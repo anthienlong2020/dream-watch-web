@@ -1,0 +1,25 @@
+# Nhánh thử nghiệm: chạy kiểm tra + vẽ ảnh xem trước, KHÔNG đưa lên web.
+name: Preview (nhánh thử nghiệm)
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter create . --project-name dream_watch --platforms=web
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview
+          path: build/preview
