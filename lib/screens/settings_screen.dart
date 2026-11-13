@@ -1022,6 +1022,8 @@ class _StyleSettings extends StatelessWidget {
               children: [
                 const Text(
                   'Kiểu – Standard: ảnh phẳng. 3D thổi phồng: khối tròn như thú bông. '
+                  '3D phù điêu: như tượng đúc, chỗ sáng nổi cao, có ánh kim loại – hợp '
+                  'với biểu tượng, huy hiệu. '
                   'Chibi 3D: ảnh làm mặt trên thân chibi (con vật thành "thú chibi"). '
                   'Người que: ảnh làm đầu trên thân người que.\n'
                   'Hệ – Lửa, Nước, Điện: đổi chất liệu và thêm hiệu ứng động quanh hình.',

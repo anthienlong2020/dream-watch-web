@@ -41,11 +41,12 @@ const Map<BodyType, ChibiShape> kChibiShapes = {
 };
 
 /// Kiểu hiển thị của mỗi hình.
-enum ImageStyle { standard, thoiPhong, chibi, nguoiQue }
+enum ImageStyle { standard, thoiPhong, phuDieu, chibi, nguoiQue }
 
 const Map<ImageStyle, String> kImageStyleNames = {
   ImageStyle.standard: 'Standard (phẳng)',
   ImageStyle.thoiPhong: '3D thổi phồng',
+  ImageStyle.phuDieu: '3D phù điêu (biểu tượng)',
   ImageStyle.chibi: 'Chibi 3D',
   ImageStyle.nguoiQue: 'Người que',
 };

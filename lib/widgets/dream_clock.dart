@@ -223,7 +223,9 @@ class _DreamClockState extends State<DreamClock>
     final img = widget.theme.slot(i);
     final style = _style(i);
     // Ảnh phẳng / thổi phồng: lấy đúng viền ảnh; kiểu khác dùng viền elip
-    final edgeSrc = (style == ImageStyle.standard || style == ImageStyle.thoiPhong) &&
+    final edgeSrc = (style == ImageStyle.standard ||
+                style == ImageStyle.thoiPhong ||
+                style == ImageStyle.phuDieu) &&
             img.chibi == null
         ? (img.bytes ?? img.asset)
         : null;

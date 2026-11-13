@@ -22,7 +22,9 @@ class InflatedMesh {
   final Float32List uv; // u,v (pixel trên ảnh texture)
   final Uint32List tris; // a,b,c
   final Uint8List back; // 1 = tam giác mặt sau
-  InflatedMesh(this.pos, this.nrm, this.uv, this.tris, this.back);
+  /// Kiểu phù điêu kim loại: có ánh loé (specular) khi xoay.
+  final bool metallic;
+  InflatedMesh(this.pos, this.nrm, this.uv, this.tris, this.back, {this.metallic = false});
 
   int get vertexCount => pos.length ~/ 3;
   int get triCount => tris.length ~/ 3;
@@ -35,9 +37,14 @@ class InflatedModel {
 }
 
 /// Dựng lưới từ ảnh. [grid]: số ô theo cạnh dài (càng lớn càng mịn).
+/// [relief]: kiểu phù điêu — khối mỏng hơn, chỗ sáng trên ảnh nổi cao lên,
+/// hợp với biểu tượng / huy hiệu / tượng kim loại.
 Future<InflatedModel> buildInflated(Uint8List bytes,
-    {int grid = 40, BodyType body = BodyType.canDoi}) async {
-  final shape = kInflateShapes[body]!;
+    {int grid = 40, BodyType body = BodyType.canDoi, bool relief = false}) async {
+  final base = kInflateShapes[body]!;
+  final shape = relief
+      ? InflateShape(base.thick * 0.38, 0.6, base.scaleX, base.scaleY)
+      : base;
   // Ảnh texture: thu nhỏ còn tối đa 512px cho nhẹ
   final probe = await ui.instantiateImageCodec(bytes);
   final first = (await probe.getNextFrame()).image;
@@ -169,6 +176,39 @@ Future<InflatedModel> buildInflated(Uint8List bytes,
     }
   }
 
+  // Phù điêu: cộng thêm độ nổi theo độ sáng của ảnh (sáng = nổi cao)
+  if (relief) {
+    double lumAt(int px, int py) {
+      px = px.clamp(0, tw - 1);
+      py = py.clamp(0, th - 1);
+      final o = (py * tw + px) * 4;
+      if (rgba.getUint8(o + 3) < 100) return 0;
+      return (0.3 * rgba.getUint8(o) + 0.59 * rgba.getUint8(o + 1) + 0.11 * rgba.getUint8(o + 2)) / 255;
+    }
+    final detail = Float64List(nx * ny);
+    final rx = math.max(1, (tw / gx / 2).round()), ry = math.max(1, (th / gy / 2).round());
+    for (var j = 0; j < ny; j++) {
+      for (var i = 0; i < nx; i++) {
+        final k = j * nx + i;
+        if (used[k] == 0 || nodeH[k] == 0) continue;
+        final px = (i / gx * tw).round(), py = (j / gy * th).round();
+        var sum = 0.0;
+        var c = 0;
+        for (final dy in [-ry, 0, ry]) {
+          for (final dx in [-rx, 0, rx]) {
+            sum += lumAt(px + dx, py + dy);
+            c++;
+          }
+        }
+        detail[k] = sum / c;
+      }
+    }
+    final amount = 3.2 * (gx > gy ? gx : gy) / 60; // ~ độ nổi tối đa (đơn vị ô)
+    for (var k = 0; k < nodeH.length; k++) {
+      if (nodeH[k] > 0) nodeH[k] += detail[k] * amount;
+    }
+  }
+
   // Làm mượt đường viền: các đỉnh ở mép được kéo về trung bình với
   // các đỉnh mép bên cạnh, để viền không bị bậc thang theo ô lưới.
   final nodeX = Float64List(nx * ny), nodeY = Float64List(nx * ny);
@@ -263,7 +303,8 @@ Future<InflatedModel> buildInflated(Uint8List bytes,
 
   return InflatedModel(
     InflatedMesh(Float32List.fromList(pos), Float32List.fromList(nrm),
-        Float32List.fromList(uvs), Uint32List.fromList(tris), Uint8List.fromList(back)),
+        Float32List.fromList(uvs), Uint32List.fromList(tris), Uint8List.fromList(back),
+        metallic: relief),
     tex,
   );
 }
@@ -385,7 +426,7 @@ void paintInflated(Canvas canvas, Size size, InflatedModel model,
       uvs[o * 2] = m.uv[vi * 2];
       uvs[o * 2 + 1] = m.uv[vi * 2 + 1];
       final rim = math.pow(1 - nzv[vi].abs(), 3).toDouble() * 0.15;
-      var l = 0.72 + 0.36 * lit[vi] + rim;
+      var l = m.metallic ? 0.5 + 0.62 * lit[vi] + rim : 0.72 + 0.36 * lit[vi] + rim;
       if (isBack) l *= 0.86;
       final g = (l.clamp(0.0, 1.0) * 255).round();
       colors[o] = (0xFF << 24) | (g << 16) | (g << 8) | g;
@@ -399,6 +440,30 @@ void paintInflated(Canvas canvas, Size size, InflatedModel model,
         model.texture, TileMode.clamp, TileMode.clamp, Matrix4.identity().storage)
     ..filterQuality = FilterQuality.medium;
   canvas.drawVertices(vertices, BlendMode.modulate, paint);
+
+  // Kim loại: thêm lớp ánh loé (cộng sáng) theo hướng phản chiếu ánh sáng
+  if (m.metallic) {
+    final hx = lx / ll, hy = ly / ll, hz = lz / ll + 1;
+    final hl = math.sqrt(hx * hx + hy * hy + hz * hz);
+    final spec = Int32List(cnt);
+    var q = 0;
+    for (final t in vis) {
+      for (var e = 0; e < 3; e++) {
+        final vi = m.tris[t * 3 + e];
+        final ax = m.nrm[vi * 3], ay = m.nrm[vi * 3 + 1], az = m.nrm[vi * 3 + 2];
+        final nx1 = ax * cyw + az * syw;
+        final nz1 = -ax * syw + az * cyw;
+        final ny2 = ay * cp - nz1 * sp;
+        final nz2 = ay * sp + nz1 * cp;
+        final d = math.max(0.0, (nx1 * hx + ny2 * hy + nz2 * hz) / hl);
+        final v = (math.pow(d, 28).toDouble() * 230).round().clamp(0, 255);
+        // ánh vàng nhạt
+        spec[q++] = (0xFF << 24) | (v << 16) | ((v * 0.92).round() << 8) | (v * 0.7).round();
+      }
+    }
+    final sv = ui.Vertices.raw(ui.VertexMode.triangles, positions, colors: spec);
+    canvas.drawVertices(sv, BlendMode.dst, Paint()..blendMode = BlendMode.plus);
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -406,12 +471,12 @@ void paintInflated(Canvas canvas, Size size, InflatedModel model,
 // ---------------------------------------------------------------------
 
 // Khoá: (ảnh, độ mịn). Ảnh người dùng so theo đúng đối tượng, asset so theo tên.
-final Map<(Object, bool, BodyType), Future<InflatedModel?>> _cache = {};
+final Map<(Object, bool, BodyType, bool), Future<InflatedModel?>> _cache = {};
 
 /// [source] là Uint8List (ảnh người dùng) hoặc String (đường dẫn asset).
 Future<InflatedModel?> loadInflated(Object source,
-    {required bool hi, BodyType body = BodyType.canDoi}) {
-  final key = (source, hi, body);
+    {required bool hi, BodyType body = BodyType.canDoi, bool relief = false}) {
+  final key = (source, hi, body, relief);
   if (!_cache.containsKey(key) && _cache.length > 60) {
     _cache.remove(_cache.keys.first);
   }
@@ -424,7 +489,8 @@ Future<InflatedModel?> loadInflated(Object source,
         final data = await rootBundle.load(source as String);
         bytes = data.buffer.asUint8List();
       }
-      return await buildInflated(bytes, grid: hi ? 52 : 34, body: body);
+      return await buildInflated(bytes,
+          grid: relief ? (hi ? 64 : 40) : (hi ? 52 : 34), body: body, relief: relief);
     } catch (_) {
       return null; // ảnh lỗi / không có file -> dùng kiểu cũ
     }
@@ -438,6 +504,9 @@ class Inflated3DView extends StatefulWidget {
   final bool hiDetail;
   final BodyType body;
 
+  /// Kiểu phù điêu kim loại.
+  final bool relief;
+
   /// Hiển thị trong lúc đang dựng hoặc khi không dựng được.
   final Widget fallback;
 
@@ -449,6 +518,7 @@ class Inflated3DView extends StatefulWidget {
     this.yaw = 0,
     this.hiDetail = false,
     this.body = BodyType.canDoi,
+    this.relief = false,
   });
 
   @override
@@ -470,7 +540,8 @@ class _Inflated3DViewState extends State<Inflated3DView> {
     super.didUpdateWidget(old);
     if (!identical(old.source, widget.source) ||
         old.hiDetail != widget.hiDetail ||
-        old.body != widget.body) {
+        old.body != widget.body ||
+        old.relief != widget.relief) {
       _load();
     }
   }
@@ -479,11 +550,13 @@ class _Inflated3DViewState extends State<Inflated3DView> {
     final src = widget.source;
     final hi = widget.hiDetail;
     final body = widget.body;
-    loadInflated(src, hi: hi, body: body).then((m) {
+    final relief = widget.relief;
+    loadInflated(src, hi: hi, body: body, relief: relief).then((m) {
       if (!mounted ||
           !identical(src, widget.source) ||
           hi != widget.hiDetail ||
-          body != widget.body) {
+          body != widget.body ||
+          relief != widget.relief) {
         return;
       }
       setState(() {

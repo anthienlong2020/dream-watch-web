@@ -42,6 +42,7 @@ class SlotImageView extends StatelessWidget {
   static bool is3D(SlotImage img, ImageStyle? style) {
     switch (style) {
       case ImageStyle.thoiPhong:
+      case ImageStyle.phuDieu:
         return _hasFile(img);
       case ImageStyle.chibi:
         return img.chibi != null || _hasFile(img);
@@ -65,6 +66,7 @@ class SlotImageView extends StatelessWidget {
       case ImageStyle.standard:
         break;
       case ImageStyle.thoiPhong:
+      case ImageStyle.phuDieu:
         if (_hasFile(image)) {
           return Inflated3DView(
             source: image.bytes ?? image.asset!,
@@ -72,6 +74,7 @@ class SlotImageView extends StatelessWidget {
             yaw: yaw,
             hiDetail: hiDetail,
             body: body,
+            relief: style == ImageStyle.phuDieu,
             fallback: flat,
           );
         }
