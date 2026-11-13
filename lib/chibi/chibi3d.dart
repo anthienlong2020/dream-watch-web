@@ -94,12 +94,24 @@ class MeshVert {
 class MeshTri {
   final int a, b, c;
   final Mat mat;
-  const MeshTri(this.a, this.b, this.c, this.mat);
+  final int part; // mỗi khối (đầu, tay, chân...) là một "phần"
+  const MeshTri(this.a, this.b, this.c, this.mat, this.part);
 }
 
 class ChibiMesh {
   final List<MeshVert> verts = [];
   final List<MeshTri> tris = [];
+
+  /// Độ ưu tiên vẽ của từng phần (cộng vào độ sâu khi sắp xếp).
+  final List<double> partBias = [];
+  int _part = -1;
+
+  /// Bắt đầu một phần mới. Các khối gắn với đầu dùng [bias] lớn để luôn
+  /// vẽ đè lên thân khi nhìn từ phía trước.
+  void part([double bias = 0]) {
+    partBias.add(bias);
+    _part = partBias.length - 1;
+  }
 
   int _add(V3 p, V3 n, [Offset uv = Offset.zero]) {
     verts.add(MeshVert(p, n, uv));
@@ -139,8 +151,8 @@ class ChibiMesh {
           m1 = (front(a) && front(c2) && front(b)) ? Mat.face : backMat;
           m2 = (front(b) && front(c2) && front(d)) ? Mat.face : backMat;
         }
-        tris.add(MeshTri(a, c2, b, m1));
-        tris.add(MeshTri(b, c2, d, m2));
+        tris.add(MeshTri(a, c2, b, m1, _part));
+        tris.add(MeshTri(b, c2, d, m2, _part));
       }
     }
   }
@@ -165,8 +177,8 @@ class ChibiMesh {
     }
     for (var j = 0; j < seg; j++) {
       final i0 = base + j * 2;
-      tris.add(MeshTri(i0, i0 + 2, i0 + 1, mat));
-      tris.add(MeshTri(i0 + 1, i0 + 2, i0 + 3, mat));
+      tris.add(MeshTri(i0, i0 + 2, i0 + 1, mat, _part));
+      tris.add(MeshTri(i0 + 1, i0 + 2, i0 + 3, mat, _part));
     }
     if (capA && ra > 0) ellipsoid(a, V3(ra, ra, ra), mat, seg: seg, rings: 6);
     if (capB && rb > 0) ellipsoid(b, V3(rb, rb, rb), mat, seg: seg, rings: 6);
@@ -180,12 +192,15 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1}) {
   final hr = lod == 1 ? 18 : 12;
   final ps = lod == 1 ? 14 : 10; // độ mịn các phần khác
   const pr = 8;
+  const headBias = 0.8;
 
   // Chân + giày
   for (final s in [-1.0, 1.0]) {
-    m.tube(V3(0.17 * s, 0.38, 0), V3(0.17 * s, 0.13, 0.02), 0.13, 0.12,
+    m.part();
+    m.tube(V3(0.17 * s, 0.4, 0), V3(0.17 * s, 0.14, 0.02), 0.13, 0.12,
         outfit == ChibiOutfit.vay ? Mat.skin : (outfit == ChibiOutfit.khungLong ? Mat.outfit : Mat.pants),
         seg: ps, capA: false, capB: false);
+    m.part();
     m.ellipsoid(V3(0.18 * s, 0.08, 0.07), const V3(0.15, 0.09, 0.21),
         outfit == ChibiOutfit.khungLong ? Mat.outfitDark : Mat.shoe,
         seg: ps, rings: pr);
@@ -194,55 +209,68 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1}) {
   // Thân
   switch (outfit) {
     case ChibiOutfit.vay:
-      m.tube(const V3(0, 0.92, 0), const V3(0, 0.3, 0), 0.3, 0.52, Mat.outfit, seg: ps + 4, capA: true, capB: false);
+      m.part();
+      m.tube(const V3(0, 0.95, 0), const V3(0, 0.3, 0), 0.3, 0.52, Mat.outfit, seg: ps + 4, capA: true, capB: false);
+      m.part();
       m.ellipsoid(const V3(0, 0.3, 0), const V3(0.52, 0.04, 0.52), Mat.outfitDark, seg: ps + 4, rings: 4);
-      m.tube(const V3(0, 0.74, 0), const V3(0, 0.68, 0), 0.335, 0.36, Mat.outfitDark, seg: ps + 4, capA: false, capB: false);
       break;
     case ChibiOutfit.vest:
-      m.ellipsoid(const V3(0, 0.38, 0), const V3(0.36, 0.13, 0.31), Mat.pants, seg: ps, rings: pr);
-      m.tube(const V3(0, 0.5, 0), const V3(0, 0.8, 0), 0.37, 0.33, Mat.outfit, seg: ps);
-      m.ellipsoid(const V3(0, 0.82, 0.22), const V3(0.17, 0.17, 0.12), Mat.white, seg: ps, rings: pr);
-      m.ellipsoid(const V3(0, 0.72, 0.33), const V3(0.05, 0.15, 0.04), Mat.outfitLight, seg: 8, rings: 6);
+      m.part();
+      m.ellipsoid(const V3(0, 0.42, 0), const V3(0.36, 0.14, 0.31), Mat.pants, seg: ps, rings: pr);
+      m.part();
+      m.tube(const V3(0, 0.55, 0), const V3(0, 0.88, 0), 0.37, 0.32, Mat.outfit, seg: ps);
+      m.part(0.05);
+      m.ellipsoid(const V3(0, 0.86, 0.2), const V3(0.17, 0.2, 0.15), Mat.white, seg: ps, rings: pr);
+      m.part(0.1);
+      m.ellipsoid(const V3(0, 0.76, 0.33), const V3(0.05, 0.16, 0.04), Mat.outfitLight, seg: 8, rings: 6);
       break;
     case ChibiOutfit.khungLong:
-      m.tube(const V3(0, 0.45, 0), const V3(0, 0.8, 0), 0.38, 0.34, Mat.outfit, seg: ps);
-      m.ellipsoid(const V3(0, 0.6, 0.24), const V3(0.25, 0.27, 0.14), Mat.outfitLight, seg: ps, rings: pr);
-      // Đuôi
-      m.tube(const V3(0, 0.45, -0.25), const V3(0, 0.12, -0.95), 0.24, 0.0, Mat.outfit, seg: ps, capB: false);
+      m.part();
+      m.tube(const V3(0, 0.48, 0), const V3(0, 0.88, 0), 0.38, 0.33, Mat.outfit, seg: ps);
+      m.part(0.05);
+      m.ellipsoid(const V3(0, 0.66, 0.24), const V3(0.25, 0.28, 0.15), Mat.outfitLight, seg: ps, rings: pr);
+      m.part();
+      m.tube(const V3(0, 0.48, -0.25), const V3(0, 0.12, -0.95), 0.24, 0.0, Mat.outfit, seg: ps, capB: false);
       break;
     case ChibiOutfit.aoThun:
-      m.ellipsoid(const V3(0, 0.38, 0), const V3(0.36, 0.13, 0.31), Mat.pants, seg: ps, rings: pr);
-      m.tube(const V3(0, 0.5, 0), const V3(0, 0.8, 0), 0.37, 0.33, Mat.outfit, seg: ps);
-      m.ellipsoid(const V3(0, 0.62, 0.3), const V3(0.11, 0.11, 0.06), Mat.outfitLight, seg: 10, rings: 6);
+      m.part();
+      m.ellipsoid(const V3(0, 0.42, 0), const V3(0.36, 0.14, 0.31), Mat.pants, seg: ps, rings: pr);
+      m.part();
+      m.tube(const V3(0, 0.55, 0), const V3(0, 0.88, 0), 0.37, 0.32, Mat.outfit, seg: ps);
+      m.part(0.05);
+      m.ellipsoid(const V3(0, 0.7, 0.3), const V3(0.11, 0.11, 0.07), Mat.outfitLight, seg: 10, rings: 6);
       break;
   }
 
   // Tay
-  final sleeve = switch (outfit) {
-    ChibiOutfit.vay => Mat.skin,
-    _ => Mat.outfit,
-  };
+  final sleeve = outfit == ChibiOutfit.vay ? Mat.skin : Mat.outfit;
   for (final s in [-1.0, 1.0]) {
-    m.tube(V3(0.33 * s, 0.82, 0), V3(0.6 * s, 0.5, 0.1), 0.11, 0.1, sleeve, seg: ps, capB: false);
-    m.ellipsoid(V3(0.62 * s, 0.47, 0.11), const V3(0.13, 0.13, 0.13), Mat.skin, seg: ps, rings: pr);
+    m.part();
+    m.tube(V3(0.32 * s, 0.86, 0), V3(0.6 * s, 0.55, 0.1), 0.11, 0.1, sleeve, seg: ps, capB: false);
+    m.part();
+    m.ellipsoid(V3(0.62 * s, 0.52, 0.11), const V3(0.13, 0.13, 0.13), Mat.skin, seg: ps, rings: pr);
   }
 
   // Cổ
-  m.tube(const V3(0, 0.78, 0), const V3(0, 0.95, 0), 0.13, 0.13, Mat.skin, seg: ps, capA: false, capB: false);
+  m.part();
+  m.tube(const V3(0, 0.84, 0), const V3(0, 1.0, 0), 0.13, 0.13, Mat.skin, seg: ps, capA: false, capB: false);
 
   // Đầu (mặt trước dán ảnh khuôn mặt, phần còn lại màu tóc)
-  const headC = V3(0, 1.48, 0);
-  const headR = V3(0.92, 0.88, 0.86);
+  const headC = V3(0, 1.66, 0);
+  const headR = V3(0.9, 0.84, 0.84);
+  m.part(headBias);
   m.ellipsoid(headC, headR, Mat.hair, seg: hs, rings: hr, faceFront: true);
 
   // Mũ trùm khủng long: chỉ nửa sau đầu (để lộ mặt) + gai
   if (outfit == ChibiOutfit.khungLong) {
-    m.ellipsoid(headC + const V3(0, 0.03, -0.04), headR * 1.08, Mat.outfit,
-        seg: hs, rings: hr, phiFrom: math.pi * 0.42, phiTo: math.pi * 1.58);
+    m.part(headBias);
+    m.ellipsoid(headC + const V3(0, 0.03, -0.07), headR * 1.06, Mat.outfit,
+        seg: hs, rings: hr, phiFrom: math.pi * 0.5, phiTo: math.pi * 1.5);
     for (var k = 0; k < 6; k++) {
-      final th = 0.08 + k * 0.3; // từ đỉnh đầu ra sau gáy
+      final th = 0.1 + k * 0.3; // từ đỉnh đầu ra sau gáy
       final dir = V3(0, math.cos(th), -math.sin(th));
-      final basePt = headC + V3(0, dir.y * headR.y * 1.06, dir.z * headR.z * 1.06);
+      final basePt = headC + V3(0, dir.y * headR.y * 1.04, dir.z * headR.z * 1.04 - 0.07);
+      m.part(headBias);
       m.tube(basePt, basePt + dir * 0.3, 0.13, 0.0, Mat.spike, seg: 8, capA: false, capB: false);
     }
   }
@@ -316,7 +344,7 @@ void paintChibi3D(Canvas canvas, Size size, ChibiMesh mesh, ui.Image atlas,
   final scale = s / 2.75;
   final cx = size.width / 2;
   final cy = size.height / 2;
-  const centerY = 1.18;
+  const centerY = 1.25;
   const camDist = 7.0;
   final light = _light.unit;
 
@@ -344,18 +372,29 @@ void paintChibi3D(Canvas canvas, Size size, ChibiMesh mesh, ui.Image atlas,
     scr[i] = Offset(cx + p.x * scale * k, cy - p.y * scale * k);
   }
 
-  // Lọc mặt khuất + sắp xếp từ xa tới gần
+  // Độ sâu trung bình của từng phần (mỗi phần là một khối lồi, nên vẽ
+  // cả phần theo thứ tự xa -> gần là đủ, không bị răng cưa ở chỗ giao nhau).
+  final parts = mesh.partBias.length;
+  final pz = List<double>.filled(parts, 0);
+  final pc = List<int>.filled(parts, 0);
+  for (final tr in mesh.tris) {
+    pz[tr.part] += pos[tr.a].z;
+    pc[tr.part]++;
+  }
+  for (var i = 0; i < parts; i++) {
+    pz[i] = (pc[i] == 0 ? 0 : pz[i] / pc[i]) + mesh.partBias[i];
+  }
+
+  // Lọc mặt khuất (quay lưng lại người xem)
   final visible = <int>[];
-  final depth = List<double>.filled(mesh.tris.length, 0);
   for (var t = 0; t < mesh.tris.length; t++) {
     final tr = mesh.tris[t];
     final a = scr[tr.a], b = scr[tr.b], c = scr[tr.c];
     final area = (b.dx - a.dx) * (c.dy - a.dy) - (b.dy - a.dy) * (c.dx - a.dx);
-    if (area >= 0) continue; // quay lưng lại người xem
-    depth[t] = pos[tr.a].z + pos[tr.b].z + pos[tr.c].z;
+    if (area >= 0) continue;
     visible.add(t);
   }
-  visible.sort((p, q) => depth[p].compareTo(depth[q]));
+  visible.sort((p, q) => pz[mesh.tris[p].part].compareTo(pz[mesh.tris[q].part]));
 
   final count = visible.length * 3;
   final positions = Float32List(count * 2);
