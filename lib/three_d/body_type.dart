@@ -39,3 +39,16 @@ const Map<BodyType, ChibiShape> kChibiShapes = {
   BodyType.canDoi: ChibiShape(1.0, 1.0, 1.0),
   BodyType.map: ChibiShape(1.38, 1.32, 0.85),
 };
+
+/// Kiểu hiển thị của mỗi hình.
+enum ImageStyle { standard, thoiPhong, chibi, nguoiQue }
+
+const Map<ImageStyle, String> kImageStyleNames = {
+  ImageStyle.standard: 'Standard (phẳng)',
+  ImageStyle.thoiPhong: '3D thổi phồng',
+  ImageStyle.chibi: 'Chibi 3D',
+  ImageStyle.nguoiQue: 'Người que',
+};
+
+ImageStyle imageStyleFromName(String? s, [ImageStyle fallback = ImageStyle.thoiPhong]) =>
+    ImageStyle.values.firstWhere((b) => b.name == s, orElse: () => fallback);

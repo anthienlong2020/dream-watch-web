@@ -339,7 +339,7 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
           final t = DateTime.now().millisecondsSinceEpoch / 1000.0;
           final yaw = _dragging ? _dragYaw : _dragYaw + 0.6 * math.sin(t * 0.8);
           return Chibi3DView(
-              spec: spec, size: 240, yaw: yaw, hiDetail: true, body: app.bodyType);
+              spec: spec, size: 240, yaw: yaw, hiDetail: true, body: app.defaultBody);
         },
       ),
     );

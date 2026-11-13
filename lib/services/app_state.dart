@@ -42,9 +42,19 @@ class AppState extends ChangeNotifier {
   bool showRoman = true;
   bool keepAwake = true;
   bool showStars = true;
-  bool inflate3d = true; // thổi phồng ảnh thường thành khối 3D
+  /// Kiểu & dáng mặc định cho mọi vị trí.
+  ImageStyle defaultStyle = ImageStyle.thoiPhong;
+  BodyType defaultBody = BodyType.canDoi;
+
+  /// Kiểu & dáng riêng của từng vị trí (0 = XII ... 11 = XI); null = theo mặc định.
+  List<ImageStyle?> slotStyle = List<ImageStyle?>.filled(12, null);
+  List<BodyType?> slotBody = List<BodyType?>.filled(12, null);
+
+  List<ImageStyle> get resolvedStyles =>
+      List.generate(12, (i) => slotStyle[i] ?? defaultStyle);
+  List<BodyType> get resolvedBodies =>
+      List.generate(12, (i) => slotBody[i] ?? defaultBody);
   bool spin360 = true; // ảnh 3D ở vị trí giờ + ở giữa quay tròn 360°
-  BodyType bodyType = BodyType.canDoi; // dáng 3D: ốm / cân đối / mập
 
   // ---------- Tốc độ chuyển động (1.0 = mặc định, 0.25 = rất chậm, 2.0 = nhanh) ----------
   double hourSpeed = 1.0; // ảnh giờ + ảnh giữa đung đưa
@@ -168,9 +178,11 @@ class AppState extends ChangeNotifier {
         'showRoman': showRoman,
         'keepAwake': keepAwake,
         'showStars': showStars,
-        'inflate3d': inflate3d,
+        'defaultStyle': defaultStyle.name,
+        'slotStyle': slotStyle.map((e) => e?.name).toList(),
+        'slotBody': slotBody.map((e) => e?.name).toList(),
         'spin360': spin360,
-        'bodyType': bodyType.name,
+        'bodyType': defaultBody.name,
         'hourSpeed': hourSpeed,
         'minuteSpeed': minuteSpeed,
         'secondSpeed': secondSpeed,
@@ -194,9 +206,27 @@ class AppState extends ChangeNotifier {
     showRoman = (j['showRoman'] as bool?) ?? showRoman;
     keepAwake = (j['keepAwake'] as bool?) ?? keepAwake;
     showStars = (j['showStars'] as bool?) ?? showStars;
-    inflate3d = (j['inflate3d'] as bool?) ?? inflate3d;
+    if (j['defaultStyle'] is String) {
+      defaultStyle = imageStyleFromName(j['defaultStyle'] as String);
+    } else if (j['inflate3d'] == false) {
+      defaultStyle = ImageStyle.standard; // bản cũ đã tắt ảnh 3D
+    }
+    final ss = j['slotStyle'];
+    if (ss is List) {
+      slotStyle = List<ImageStyle?>.generate(12, (i) {
+        final v = i < ss.length ? ss[i] : null;
+        return v is String ? imageStyleFromName(v) : null;
+      });
+    }
+    final sb = j['slotBody'];
+    if (sb is List) {
+      slotBody = List<BodyType?>.generate(12, (i) {
+        final v = i < sb.length ? sb[i] : null;
+        return v is String ? bodyTypeFromName(v) : null;
+      });
+    }
     spin360 = (j['spin360'] as bool?) ?? spin360;
-    if (j['bodyType'] is String) bodyType = bodyTypeFromName(j['bodyType'] as String);
+    if (j['bodyType'] is String) defaultBody = bodyTypeFromName(j['bodyType'] as String);
     hourSpeed = (j['hourSpeed'] as num?)?.toDouble() ?? hourSpeed;
     minuteSpeed = (j['minuteSpeed'] as num?)?.toDouble() ?? minuteSpeed;
     secondSpeed = (j['secondSpeed'] as num?)?.toDouble() ?? secondSpeed;

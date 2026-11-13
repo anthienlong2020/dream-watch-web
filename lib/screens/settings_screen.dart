@@ -28,6 +28,8 @@ class SettingsScreen extends StatelessWidget {
           _ThemePicker(),
           SizedBox(height: 8),
           _CustomImagesEditor(),
+          _Header('Kiểu & dáng từng hình'),
+          _StyleSettings(),
           _Header('Âm báo mỗi giờ'),
           _ChimeSettings(),
           _Header('Tốc độ chuyển động'),
@@ -537,29 +539,6 @@ class _DisplaySettings extends StatelessWidget {
             onChanged: (v) => app.update(() => app.showRoman = v),
           ),
           SwitchListTile(
-            title: const Text('Ảnh 3D (thổi phồng)'),
-            subtitle: const Text(
-                'Biến ảnh con vật, đồ vật thành khối 3D tròn trịa khi xoay. '
-                'Đẹp nhất với ảnh PNG nền trong suốt. Tắt nếu máy chạy chậm.'),
-            value: app.inflate3d,
-            onChanged: (v) => app.update(() => app.inflate3d = v),
-          ),
-          ListTile(
-            title: const Text('Dáng 3D'),
-            subtitle: const Text('Áp dụng cho ảnh thổi phồng và Chibi 3D'),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: SegmentedButton<BodyType>(
-              segments: [
-                for (final b in BodyType.values)
-                  ButtonSegment(value: b, label: Text(kBodyTypeNames[b]!)),
-              ],
-              selected: {app.bodyType},
-              onSelectionChanged: (v) => app.update(() => app.bodyType = v.first),
-            ),
-          ),
-          SwitchListTile(
             title: const Text('Ảnh 3D quay tròn 360°'),
             subtitle: const Text(
                 'Ảnh giờ và ảnh giữa (Chibi 3D, ảnh thổi phồng) quay hết vòng. '
@@ -976,6 +955,128 @@ class _PresetSettingsState extends State<_PresetSettings> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// =====================================================================
+// Kiểu & dáng: mặc định + riêng từng vị trí (danh sách thả xuống)
+// =====================================================================
+
+class _StyleSettings extends StatelessWidget {
+  const _StyleSettings();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final theme = app.theme;
+        const order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0];
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Standard: ảnh phẳng như bản standard. 3D thổi phồng: ảnh thành khối '
+                  'tròn như thú bông. Chibi 3D: ảnh làm mặt trên thân chibi (ảnh con '
+                  'vật thành "thú chibi"). Người que: ảnh làm đầu trên thân người que.',
+                  style: TextStyle(fontSize: 12.5, color: Colors.white60),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const SizedBox(width: 92, child: Text('Mặc định',
+                        style: TextStyle(fontWeight: FontWeight.w600))),
+                    Expanded(
+                      child: DropdownButton<ImageStyle>(
+                        isExpanded: true,
+                        value: app.defaultStyle,
+                        items: [
+                          for (final st in ImageStyle.values)
+                            DropdownMenuItem(value: st, child: Text(kImageStyleNames[st]!)),
+                        ],
+                        onChanged: (v) =>
+                            app.update(() => app.defaultStyle = v ?? app.defaultStyle),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 96,
+                      child: DropdownButton<BodyType>(
+                        isExpanded: true,
+                        value: app.defaultBody,
+                        items: [
+                          for (final b in BodyType.values)
+                            DropdownMenuItem(value: b, child: Text(kBodyTypeNames[b]!)),
+                        ],
+                        onChanged: (v) =>
+                            app.update(() => app.defaultBody = v ?? app.defaultBody),
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                for (final i in order)
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 40,
+                        child: SlotImageView(image: theme.slot(i), size: 34),
+                      ),
+                      SizedBox(
+                        width: 52,
+                        child: Text(kRoman[i].toUpperCase()),
+                      ),
+                      Expanded(
+                        child: DropdownButton<ImageStyle?>(
+                          isExpanded: true,
+                          value: app.slotStyle[i],
+                          items: [
+                            const DropdownMenuItem<ImageStyle?>(
+                                value: null, child: Text('Mặc định')),
+                            for (final st in ImageStyle.values)
+                              DropdownMenuItem<ImageStyle?>(
+                                  value: st, child: Text(kImageStyleNames[st]!)),
+                          ],
+                          onChanged: (v) => app.update(() => app.slotStyle[i] = v),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 96,
+                        child: DropdownButton<BodyType?>(
+                          isExpanded: true,
+                          value: app.slotBody[i],
+                          items: [
+                            const DropdownMenuItem<BodyType?>(
+                                value: null, child: Text('Mặc định')),
+                            for (final b in BodyType.values)
+                              DropdownMenuItem<BodyType?>(
+                                  value: b, child: Text(kBodyTypeNames[b]!)),
+                          ],
+                          onChanged: (v) => app.update(() => app.slotBody[i] = v),
+                        ),
+                      ),
+                    ],
+                  ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => app.update(() {
+                      app.slotStyle = List<ImageStyle?>.filled(12, null);
+                      app.slotBody = List<BodyType?>.filled(12, null);
+                    }),
+                    child: const Text('Đưa tất cả về mặc định'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
