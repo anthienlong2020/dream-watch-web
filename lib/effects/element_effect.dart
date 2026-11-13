@@ -110,9 +110,9 @@ ColorFilter? materialFilter(ElementType e) {
       ]);
     case ElementType.dien:
       return const ColorFilter.matrix(<double>[
-        0.55, 0.15, 0.05, 0, 20, //
-        0.10, 0.70, 0.10, 0, 40, //
-        0.10, 0.20, 0.70, 0, 85, //
+        0.28, 0.12, 0.02, 0, 0, //
+        0.15, 0.55, 0.10, 0, 30, //
+        0.15, 0.30, 0.60, 0, 95, //
         0, 0, 0, 1, 0, //
       ]);
     case ElementType.none:
@@ -285,7 +285,7 @@ class _FrontPainter extends CustomPainter {
 
   void _fire(Canvas canvas, double s) {
     final c = Offset(s / 2, s / 2);
-    final n = a.full ? 36 : 12;
+    final n = a.full ? 52 : 18;
     const life = 1.2;
     final paint = Paint()..blendMode = BlendMode.plus;
     for (var k = 0; k < n; k++) {
@@ -294,10 +294,10 @@ class _FrontPainter extends CustomPainter {
       final ph = x - cyc;
       final r2 = _rnd(k, cyc, 7);
       final start = _edge(k, cyc, c, s);
-      final rise = ph * s * 0.32 * (0.6 + 0.7 * r2);
+      final rise = ph * s * 0.42 * (0.6 + 0.7 * r2);
       final wob = math.sin(ph * 7 + k) * s * 0.035 * ph;
       final p = start + Offset(wob, -rise);
-      final rad = s * 0.075 * (1 - ph) * (0.5 + 0.8 * _rnd(k, cyc, 3)) + 0.5;
+      final rad = s * 0.095 * (1 - ph * 0.85) * (0.5 + 0.8 * _rnd(k, cyc, 3)) + 0.5;
       final col = ph < 0.35
           ? Color.lerp(const Color(0xFFFFF59D), const Color(0xFFFFA726), ph / 0.35)!
           : Color.lerp(const Color(0xFFFFA726), const Color(0xFFD84315), (ph - 0.35) / 0.65)!;
@@ -369,13 +369,13 @@ class _FrontPainter extends CustomPainter {
 
   void _electric(Canvas canvas, double s) {
     final c = Offset(s / 2, s / 2);
-    final nb = a.full ? 3 : 1;
-    const period = 0.42;
+    final nb = a.full ? 4 : 2;
+    const period = 0.32;
     for (var k = 0; k < nb; k++) {
       final x = a.t / period + k * 0.37;
       final cyc = x.floor();
       final ph = x - cyc;
-      if (ph > 0.38) continue; // tia sét chỉ loé trong chốc lát
+      if (ph > 0.5) continue; // tia sét chỉ loé trong chốc lát
       final from = _edge(k * 2, cyc, c, s);
       // Đầu kia: điểm viền khác hoặc phóng ra ngoài
       final toEdge = _rnd(k, cyc, 21) < 0.6;
@@ -393,7 +393,7 @@ class _FrontPainter extends CustomPainter {
         path.lineTo(p.dx, p.dy);
       }
       path.lineTo(to.dx, to.dy);
-      final fade = 1 - ph / 0.38;
+      final fade = 1 - ph / 0.5;
       canvas.drawPath(
           path,
           Paint()
