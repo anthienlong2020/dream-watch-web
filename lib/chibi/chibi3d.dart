@@ -58,13 +58,6 @@ class ChibiSpec {
 String _b64(Uint8List b) => base64Encode(b);
 Uint8List _unb64(String s) => base64Decode(s);
 
-extension on Color {
-  // Tương thích cả Flutter cũ lẫn mới.
-  int toARGB32() =>
-      // ignore: deprecated_member_use
-      value;
-}
-
 // ---------------------------------------------------------------------
 // Toán vector nhỏ gọn
 // ---------------------------------------------------------------------
@@ -91,25 +84,25 @@ class V3 {
 /// Vật liệu = một ô màu trong ảnh "atlas" (trừ mặt dùng ảnh khuôn mặt).
 enum Mat { face, skin, hair, outfit, outfitDark, outfitLight, pants, shoe, white, spike }
 
-class _Vert {
+class MeshVert {
   final V3 p;
   final V3 n;
   final Offset uv; // chỉ dùng cho mặt
-  const _Vert(this.p, this.n, this.uv);
+  const MeshVert(this.p, this.n, this.uv);
 }
 
-class _Tri {
+class MeshTri {
   final int a, b, c;
   final Mat mat;
-  const _Tri(this.a, this.b, this.c, this.mat);
+  const MeshTri(this.a, this.b, this.c, this.mat);
 }
 
 class ChibiMesh {
-  final List<_Vert> verts = [];
-  final List<_Tri> tris = [];
+  final List<MeshVert> verts = [];
+  final List<MeshTri> tris = [];
 
   int _add(V3 p, V3 n, [Offset uv = Offset.zero]) {
-    verts.add(_Vert(p, n, uv));
+    verts.add(MeshVert(p, n, uv));
     return verts.length - 1;
   }
 
@@ -146,8 +139,8 @@ class ChibiMesh {
           m1 = (front(a) && front(c2) && front(b)) ? Mat.face : backMat;
           m2 = (front(b) && front(c2) && front(d)) ? Mat.face : backMat;
         }
-        tris.add(_Tri(a, c2, b, m1));
-        tris.add(_Tri(b, c2, d, m2));
+        tris.add(MeshTri(a, c2, b, m1));
+        tris.add(MeshTri(b, c2, d, m2));
       }
     }
   }
@@ -172,8 +165,8 @@ class ChibiMesh {
     }
     for (var j = 0; j < seg; j++) {
       final i0 = base + j * 2;
-      tris.add(_Tri(i0, i0 + 2, i0 + 1, mat));
-      tris.add(_Tri(i0 + 1, i0 + 2, i0 + 3, mat));
+      tris.add(MeshTri(i0, i0 + 2, i0 + 1, mat));
+      tris.add(MeshTri(i0 + 1, i0 + 2, i0 + 3, mat));
     }
     if (capA && ra > 0) ellipsoid(a, V3(ra, ra, ra), mat, seg: seg, rings: 6);
     if (capB && rb > 0) ellipsoid(b, V3(rb, rb, rb), mat, seg: seg, rings: 6);
