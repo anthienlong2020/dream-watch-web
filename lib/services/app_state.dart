@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../chibi/chibi3d.dart';
+import '../effects/element_effect.dart';
 import '../models/alarm.dart';
 import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
@@ -49,6 +50,14 @@ class AppState extends ChangeNotifier {
   /// Kiểu & dáng riêng của từng vị trí (0 = XII ... 11 = XI); null = theo mặc định.
   List<ImageStyle?> slotStyle = List<ImageStyle?>.filled(12, null);
   List<BodyType?> slotBody = List<BodyType?>.filled(12, null);
+
+  /// Hệ (lửa, nước, điện...) mặc định và riêng từng vị trí.
+  ElementType defaultElement = ElementType.none;
+  List<ElementType?> slotElement = List<ElementType?>.filled(12, null);
+  bool effectsOn = true;
+
+  List<ElementType> get resolvedElements =>
+      List.generate(12, (i) => slotElement[i] ?? defaultElement);
 
   List<ImageStyle> get resolvedStyles =>
       List.generate(12, (i) => slotStyle[i] ?? defaultStyle);
@@ -181,6 +190,9 @@ class AppState extends ChangeNotifier {
         'defaultStyle': defaultStyle.name,
         'slotStyle': slotStyle.map((e) => e?.name).toList(),
         'slotBody': slotBody.map((e) => e?.name).toList(),
+        'defaultElement': defaultElement.name,
+        'slotElement': slotElement.map((e) => e?.name).toList(),
+        'effectsOn': effectsOn,
         'spin360': spin360,
         'bodyType': defaultBody.name,
         'hourSpeed': hourSpeed,
@@ -216,6 +228,17 @@ class AppState extends ChangeNotifier {
       slotStyle = List<ImageStyle?>.generate(12, (i) {
         final v = i < ss.length ? ss[i] : null;
         return v is String ? imageStyleFromName(v) : null;
+      });
+    }
+    if (j['defaultElement'] is String) {
+      defaultElement = elementFromName(j['defaultElement'] as String);
+    }
+    effectsOn = (j['effectsOn'] as bool?) ?? effectsOn;
+    final se = j['slotElement'];
+    if (se is List) {
+      slotElement = List<ElementType?>.generate(12, (i) {
+        final v = i < se.length ? se[i] : null;
+        return v is String ? elementFromName(v) : null;
       });
     }
     final sb = j['slotBody'];

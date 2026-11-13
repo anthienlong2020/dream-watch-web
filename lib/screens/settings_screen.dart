@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/clock_theme.dart';
 import '../services/app_state.dart';
+import '../effects/element_effect.dart';
 import '../three_d/body_type.dart';
 import '../services/file_saver.dart';
 import '../utils/image_utils.dart';
@@ -28,7 +29,7 @@ class SettingsScreen extends StatelessWidget {
           _ThemePicker(),
           SizedBox(height: 8),
           _CustomImagesEditor(),
-          _Header('Kiểu & dáng từng hình'),
+          _Header('Kiểu, dáng & hệ từng hình'),
           _StyleSettings(),
           _Header('Âm báo mỗi giờ'),
           _ChimeSettings(),
@@ -960,11 +961,48 @@ class _PresetSettingsState extends State<_PresetSettings> {
 }
 
 // =====================================================================
-// Kiểu & dáng: mặc định + riêng từng vị trí (danh sách thả xuống)
+// Kiểu, dáng & hệ: mặc định + riêng từng vị trí (danh sách thả xuống)
 // =====================================================================
 
 class _StyleSettings extends StatelessWidget {
   const _StyleSettings();
+
+  static Widget _drop<T>(T value, List<T> values, String Function(T) label,
+      ValueChanged<T> onChanged) {
+    return DropdownButton<T>(
+      isExpanded: true,
+      value: value,
+      items: [
+        for (final v in values) DropdownMenuItem<T>(value: v, child: Text(label(v))),
+      ],
+      onChanged: (v) => onChanged(v as T),
+    );
+  }
+
+  /// Một khối gồm: hình + tên vị trí + Kiểu (dòng 1), Dáng + Hệ (dòng 2).
+  Widget _block({
+    required Widget leading,
+    required Widget style,
+    required Widget body,
+    required Widget element,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        children: [
+          Row(children: [leading, Expanded(child: style)]),
+          Row(
+            children: [
+              const SizedBox(width: 92),
+              Expanded(child: body),
+              const SizedBox(width: 8),
+              Expanded(child: element),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -973,6 +1011,9 @@ class _StyleSettings extends StatelessWidget {
       builder: (context, _) {
         final theme = app.theme;
         const order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0];
+        final stylesN = <ImageStyle?>[null, ...ImageStyle.values];
+        final bodiesN = <BodyType?>[null, ...BodyType.values];
+        final elemsN = <ElementType?>[null, ...ElementType.values];
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -980,87 +1021,54 @@ class _StyleSettings extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'Standard: ảnh phẳng như bản standard. 3D thổi phồng: ảnh thành khối '
-                  'tròn như thú bông. Chibi 3D: ảnh làm mặt trên thân chibi (ảnh con '
-                  'vật thành "thú chibi"). Người que: ảnh làm đầu trên thân người que.',
+                  'Kiểu – Standard: ảnh phẳng. 3D thổi phồng: khối tròn như thú bông. '
+                  'Chibi 3D: ảnh làm mặt trên thân chibi (con vật thành "thú chibi"). '
+                  'Người que: ảnh làm đầu trên thân người que.\n'
+                  'Hệ – Lửa, Nước, Điện: đổi chất liệu và thêm hiệu ứng động quanh hình.',
                   style: TextStyle(fontSize: 12.5, color: Colors.white60),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const SizedBox(width: 92, child: Text('Mặc định',
-                        style: TextStyle(fontWeight: FontWeight.w600))),
-                    Expanded(
-                      child: DropdownButton<ImageStyle>(
-                        isExpanded: true,
-                        value: app.defaultStyle,
-                        items: [
-                          for (final st in ImageStyle.values)
-                            DropdownMenuItem(value: st, child: Text(kImageStyleNames[st]!)),
-                        ],
-                        onChanged: (v) =>
-                            app.update(() => app.defaultStyle = v ?? app.defaultStyle),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 96,
-                      child: DropdownButton<BodyType>(
-                        isExpanded: true,
-                        value: app.defaultBody,
-                        items: [
-                          for (final b in BodyType.values)
-                            DropdownMenuItem(value: b, child: Text(kBodyTypeNames[b]!)),
-                        ],
-                        onChanged: (v) =>
-                            app.update(() => app.defaultBody = v ?? app.defaultBody),
-                      ),
-                    ),
-                  ],
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Bật hiệu ứng hệ'),
+                  subtitle: const Text('Tắt nếu máy chạy chậm'),
+                  value: app.effectsOn,
+                  onChanged: (v) => app.update(() => app.effectsOn = v),
+                ),
+                _block(
+                  leading: const SizedBox(
+                    width: 92,
+                    child: Text('Mặc định', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  style: _drop<ImageStyle>(app.defaultStyle, ImageStyle.values,
+                      (v) => kImageStyleNames[v]!, (v) => app.update(() => app.defaultStyle = v)),
+                  body: _drop<BodyType>(app.defaultBody, BodyType.values,
+                      (v) => 'Dáng: ${kBodyTypeNames[v]!}', (v) => app.update(() => app.defaultBody = v)),
+                  element: _drop<ElementType>(app.defaultElement, ElementType.values,
+                      (v) => 'Hệ: ${kElementNames[v]!}',
+                      (v) => app.update(() => app.defaultElement = v)),
                 ),
                 const Divider(),
                 for (final i in order)
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 40,
-                        child: SlotImageView(image: theme.slot(i), size: 34),
+                  _block(
+                    leading: SizedBox(
+                      width: 92,
+                      child: Row(
+                        children: [
+                          SlotImageView(image: theme.slot(i), size: 34),
+                          const SizedBox(width: 8),
+                          Text(kRoman[i].toUpperCase()),
+                        ],
                       ),
-                      SizedBox(
-                        width: 52,
-                        child: Text(kRoman[i].toUpperCase()),
-                      ),
-                      Expanded(
-                        child: DropdownButton<ImageStyle?>(
-                          isExpanded: true,
-                          value: app.slotStyle[i],
-                          items: [
-                            const DropdownMenuItem<ImageStyle?>(
-                                value: null, child: Text('Mặc định')),
-                            for (final st in ImageStyle.values)
-                              DropdownMenuItem<ImageStyle?>(
-                                  value: st, child: Text(kImageStyleNames[st]!)),
-                          ],
-                          onChanged: (v) => app.update(() => app.slotStyle[i] = v),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 96,
-                        child: DropdownButton<BodyType?>(
-                          isExpanded: true,
-                          value: app.slotBody[i],
-                          items: [
-                            const DropdownMenuItem<BodyType?>(
-                                value: null, child: Text('Mặc định')),
-                            for (final b in BodyType.values)
-                              DropdownMenuItem<BodyType?>(
-                                  value: b, child: Text(kBodyTypeNames[b]!)),
-                          ],
-                          onChanged: (v) => app.update(() => app.slotBody[i] = v),
-                        ),
-                      ),
-                    ],
+                    ),
+                    style: _drop<ImageStyle?>(app.slotStyle[i], stylesN,
+                        (v) => v == null ? 'Kiểu: mặc định' : kImageStyleNames[v]!,
+                        (v) => app.update(() => app.slotStyle[i] = v)),
+                    body: _drop<BodyType?>(app.slotBody[i], bodiesN,
+                        (v) => v == null ? 'Dáng: mặc định' : 'Dáng: ${kBodyTypeNames[v]!}',
+                        (v) => app.update(() => app.slotBody[i] = v)),
+                    element: _drop<ElementType?>(app.slotElement[i], elemsN,
+                        (v) => v == null ? 'Hệ: mặc định' : 'Hệ: ${kElementNames[v]!}',
+                        (v) => app.update(() => app.slotElement[i] = v)),
                   ),
                 Align(
                   alignment: Alignment.centerRight,
@@ -1068,6 +1076,7 @@ class _StyleSettings extends StatelessWidget {
                     onPressed: () => app.update(() {
                       app.slotStyle = List<ImageStyle?>.filled(12, null);
                       app.slotBody = List<BodyType?>.filled(12, null);
+                      app.slotElement = List<ElementType?>.filled(12, null);
                     }),
                     child: const Text('Đưa tất cả về mặc định'),
                   ),

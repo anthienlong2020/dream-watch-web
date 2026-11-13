@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/clock_theme.dart';
 import '../three_d/body_type.dart';
+import '../effects/element_effect.dart';
 import 'extruded_3d.dart';
 import 'slot_image_view.dart';
 
@@ -30,6 +31,12 @@ class DreamClock extends StatefulWidget {
   /// Dáng của từng vị trí: ốm / cân đối / mập.
   final List<BodyType> bodies;
 
+  /// Hệ (lửa, nước, điện...) của từng vị trí.
+  final List<ElementType> elements;
+
+  /// Bật/tắt toàn bộ hiệu ứng hệ (tắt khi máy yếu).
+  final bool effectsOn;
+
   /// Hệ số tốc độ: 1.0 = mặc định, nhỏ hơn = chậm hơn.
   final double hourSpeed;
   final double minuteSpeed;
@@ -43,6 +50,8 @@ class DreamClock extends StatefulWidget {
     this.styles = const [],
     this.spin360 = true,
     this.bodies = const [],
+    this.elements = const [],
+    this.effectsOn = true,
     this.hourSpeed = 1.0,
     this.minuteSpeed = 1.0,
     this.secondSpeed = 1.0,
@@ -91,6 +100,7 @@ class _DreamClockState extends State<DreamClock>
   }
 
   Widget _buildFace(double s, DateTime now) {
+    _fxTime = (now.millisecondsSinceEpoch % 100000000) / 1000.0;
     final cx = s / 2;
     final cy = s / 2;
     final ringR = s * 0.40;
@@ -143,7 +153,7 @@ class _DreamClockState extends State<DreamClock>
       final a = i * math.pi / 6;
       final x = cx + ringR * math.sin(a);
       final y = cy - ringR * math.cos(a);
-      final Widget img = i == hSlot
+      final Widget raw = i == hSlot
           ? _turning(i, slotSize, _hourAngle(i, ms))
           // Ảnh 3D đứng yên hơi nghiêng 3/4 cho thấy khối
           : SlotImageView(
@@ -152,6 +162,7 @@ class _DreamClockState extends State<DreamClock>
               yaw: 0.35,
               style: _style(i),
               body: _body(i));
+      final img = _fx(i, raw, slotSize, full: i == hSlot);
       children.add(Positioned(
         left: x - slotSize / 2,
         top: y - slotSize / 2,
@@ -184,15 +195,47 @@ class _DreamClockState extends State<DreamClock>
       width: runnerSize,
       height: runnerSize,
       // Chibi 3D quay mặt theo hướng chạy
-      child: SlotImageView(
-          image: widget.theme.slot(mSlot),
-          size: runnerSize,
-          yaw: 0.8 * math.cos(a),
-          style: _style(mSlot),
-          body: _body(mSlot)),
+      child: _fx(
+          mSlot,
+          SlotImageView(
+              image: widget.theme.slot(mSlot),
+              size: runnerSize,
+              yaw: 0.8 * math.cos(a),
+              style: _style(mSlot),
+              body: _body(mSlot)),
+          runnerSize),
     ));
 
     return Stack(clipBehavior: Clip.none, children: children);
+  }
+
+  /// Thời điểm hiện tại (giây) cho hiệu ứng hệ, cập nhật mỗi khung hình.
+  double _fxTime = 0;
+
+  ElementType _element(int i) => !widget.effectsOn || i >= widget.elements.length
+      ? ElementType.none
+      : widget.elements[i];
+
+  /// Bọc hiệu ứng hệ quanh hình ở vị trí [i] (nếu có).
+  Widget _fx(int i, Widget child, double size, {bool full = false}) {
+    final e = _element(i);
+    if (e == ElementType.none) return child;
+    final img = widget.theme.slot(i);
+    final style = _style(i);
+    // Ảnh phẳng / thổi phồng: lấy đúng viền ảnh; kiểu khác dùng viền elip
+    final edgeSrc = (style == ImageStyle.standard || style == ImageStyle.thoiPhong) &&
+            img.chibi == null
+        ? (img.bytes ?? img.asset)
+        : null;
+    return ElementLayer(
+      element: e,
+      size: size,
+      time: _fxTime,
+      edgeSource: edgeSrc,
+      full: full,
+      seed: i,
+      child: child,
+    );
   }
 
   ImageStyle _style(int i) =>
@@ -289,7 +332,8 @@ class _DreamClockState extends State<DreamClock>
       top: y - slotSize / 2,
       width: slotSize,
       height: slotSize,
-      child: Transform.scale(scaleX: 2 - squash, scaleY: squash, child: img),
+      child: Transform.scale(
+          scaleX: 2 - squash, scaleY: squash, child: _fx(mSlot, img, slotSize, full: mSlot == hSlot)),
     );
   }
 
@@ -317,7 +361,7 @@ class _DreamClockState extends State<DreamClock>
       height: size,
       child: Transform.scale(
         scale: scale,
-        child: _turning(hSlot, size, angle, hi: true),
+        child: _fx(hSlot, _turning(hSlot, size, angle, hi: true), size, full: true),
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:dream_watch/effects/element_effect.dart';
 import 'package:dream_watch/models/clock_theme.dart';
 import 'package:dream_watch/three_d/body_type.dart';
 import 'package:dream_watch/widgets/dream_clock.dart';
@@ -33,7 +34,15 @@ void main() {
     final png = (await tester.runAsync(_fakeAnimal))!;
     final theme = buildCustomTheme(List<Uint8List?>.filled(12, png));
     final shots = <ui.Image>[];
-    for (final style in [ImageStyle.nguoiQue, ImageStyle.chibi, ImageStyle.thoiPhong]) {
+    final configs = [
+      (ImageStyle.nguoiQue, ElementType.none),
+      (ImageStyle.chibi, ElementType.none),
+      (ImageStyle.thoiPhong, ElementType.none),
+      (ImageStyle.thoiPhong, ElementType.lua),
+      (ImageStyle.chibi, ElementType.nuoc),
+      (ImageStyle.standard, ElementType.dien),
+    ];
+    for (final (style, element) in configs) {
       final key = GlobalKey();
       await tester.pumpWidget(MaterialApp(
         home: Center(
@@ -48,6 +57,7 @@ void main() {
                   theme: theme,
                   styles: List.filled(12, style),
                   bodies: List.generate(12, (i) => BodyType.values[i % 3]),
+                  elements: List.filled(12, element),
                 ),
               ),
             ),
@@ -65,9 +75,9 @@ void main() {
       final rec = ui.PictureRecorder();
       final c = Canvas(rec);
       for (var i = 0; i < shots.length; i++) {
-        c.drawImage(shots[i], Offset(i * 500.0, 0), Paint());
+        c.drawImage(shots[i], Offset((i % 3) * 500.0, (i ~/ 3) * 500.0), Paint());
       }
-      final img = await rec.endRecording().toImage(500 * shots.length, 500);
+      final img = await rec.endRecording().toImage(1500, 500 * ((shots.length + 2) ~/ 3));
       return img.toByteData(format: ui.ImageByteFormat.png);
     });
     File('build/preview/styles.png')
