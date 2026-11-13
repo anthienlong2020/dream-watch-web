@@ -41,6 +41,7 @@ class AppState extends ChangeNotifier {
   bool showRoman = true;
   bool keepAwake = true;
   bool showStars = true;
+  bool inflate3d = true; // thổi phồng ảnh thường thành khối 3D
 
   // ---------- Tốc độ chuyển động (1.0 = mặc định, 0.25 = rất chậm, 2.0 = nhanh) ----------
   double hourSpeed = 1.0; // ảnh giờ + ảnh giữa đung đưa
@@ -164,6 +165,7 @@ class AppState extends ChangeNotifier {
         'showRoman': showRoman,
         'keepAwake': keepAwake,
         'showStars': showStars,
+        'inflate3d': inflate3d,
         'hourSpeed': hourSpeed,
         'minuteSpeed': minuteSpeed,
         'secondSpeed': secondSpeed,
@@ -187,6 +189,7 @@ class AppState extends ChangeNotifier {
     showRoman = (j['showRoman'] as bool?) ?? showRoman;
     keepAwake = (j['keepAwake'] as bool?) ?? keepAwake;
     showStars = (j['showStars'] as bool?) ?? showStars;
+    inflate3d = (j['inflate3d'] as bool?) ?? inflate3d;
     hourSpeed = (j['hourSpeed'] as num?)?.toDouble() ?? hourSpeed;
     minuteSpeed = (j['minuteSpeed'] as num?)?.toDouble() ?? minuteSpeed;
     secondSpeed = (j['secondSpeed'] as num?)?.toDouble() ?? secondSpeed;

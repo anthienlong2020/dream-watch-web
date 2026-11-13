@@ -20,6 +20,9 @@ class DreamClock extends StatefulWidget {
   final bool showRoman;
   final bool showStars;
 
+  /// Thổi phồng ảnh thường thành khối 3D.
+  final bool inflate3d;
+
   /// Hệ số tốc độ: 1.0 = mặc định, nhỏ hơn = chậm hơn.
   final double hourSpeed;
   final double minuteSpeed;
@@ -30,6 +33,7 @@ class DreamClock extends StatefulWidget {
     required this.theme,
     this.showRoman = true,
     this.showStars = true,
+    this.inflate3d = true,
     this.hourSpeed = 1.0,
     this.minuteSpeed = 1.0,
     this.secondSpeed = 1.0,
@@ -134,7 +138,11 @@ class _DreamClockState extends State<DreamClock>
           ? _turning(widget.theme.slot(i), slotSize,
               swingAngleAt(swingPhase(widget.scaledMs(ms, widget.hourSpeed), 9000)))
           // Chibi 3D đứng yên hơi nghiêng 3/4 cho thấy khối
-          : SlotImageView(image: widget.theme.slot(i), size: slotSize, yaw: 0.35);
+          : SlotImageView(
+              image: widget.theme.slot(i),
+              size: slotSize,
+              yaw: 0.35,
+              inflate: widget.inflate3d);
       children.add(Positioned(
         left: x - slotSize / 2,
         top: y - slotSize / 2,
@@ -168,7 +176,10 @@ class _DreamClockState extends State<DreamClock>
       height: runnerSize,
       // Chibi 3D quay mặt theo hướng chạy
       child: SlotImageView(
-          image: widget.theme.slot(mSlot), size: runnerSize, yaw: 0.8 * math.cos(a)),
+          image: widget.theme.slot(mSlot),
+          size: runnerSize,
+          yaw: 0.8 * math.cos(a),
+          inflate: widget.inflate3d),
     ));
 
     return Stack(clipBehavior: Clip.none, children: children);
@@ -176,8 +187,9 @@ class _DreamClockState extends State<DreamClock>
 
   /// Hình đang xoay: Chibi 3D thì quay thật, ảnh phẳng thì dùng khối dày 2.5D.
   Widget _turning(SlotImage img, double size, double angle, {bool hi = false}) {
-    if (img.chibi != null) {
-      return SlotImageView(image: img, size: size, yaw: angle, hiDetail: hi);
+    if (img.chibi != null || (widget.inflate3d && SlotImageView.canInflate(img))) {
+      return SlotImageView(
+          image: img, size: size, yaw: angle, hiDetail: hi, inflate: widget.inflate3d);
     }
     return Extruded3D(
       size: size,
@@ -225,12 +237,18 @@ class _DreamClockState extends State<DreamClock>
     final squash = 1.0 + 0.05 * math.cos(frac * 2 * math.pi);
 
     final slotImg = widget.theme.slot(mSlot);
-    Widget img = SlotImageView(image: slotImg, size: slotSize, yaw: backward ? -0.6 : 0.6);
+    Widget img = SlotImageView(
+        image: slotImg,
+        size: slotSize,
+        yaw: backward ? -0.6 : 0.6,
+        inflate: widget.inflate3d);
+    final is3d = slotImg.chibi != null ||
+        (widget.inflate3d && SlotImageView.canInflate(slotImg));
     if (mSlot == hSlot) {
       // Vừa là hình giờ vừa là hình phút: vừa đung đưa vừa nhảy
       img = _turning(slotImg, slotSize,
           swingAngleAt(swingPhase(widget.scaledMs(realMs, widget.hourSpeed), 9000)));
-    } else if (backward && slotImg.chibi == null) {
+    } else if (backward && !is3d) {
       // Quay đầu khi nhảy về
       img = Transform(
         alignment: Alignment.center,

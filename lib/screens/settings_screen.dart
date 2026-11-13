@@ -536,6 +536,14 @@ class _DisplaySettings extends StatelessWidget {
             onChanged: (v) => app.update(() => app.showRoman = v),
           ),
           SwitchListTile(
+            title: const Text('Ảnh 3D (thổi phồng)'),
+            subtitle: const Text(
+                'Biến ảnh con vật, đồ vật thành khối 3D tròn trịa khi xoay. '
+                'Đẹp nhất với ảnh PNG nền trong suốt. Tắt nếu máy chạy chậm.'),
+            value: app.inflate3d,
+            onChanged: (v) => app.update(() => app.inflate3d = v),
+          ),
+          SwitchListTile(
             title: const Text('Hiện ngôi sao'),
             value: app.showStars,
             onChanged: (v) => app.update(() => app.showStars = v),
