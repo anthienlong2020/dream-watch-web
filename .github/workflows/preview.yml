@@ -5,6 +5,9 @@ on:
   push:
     branches: [dev]
 
+permissions:
+  contents: write
+
 jobs:
   preview:
     runs-on: ubuntu-latest
@@ -19,8 +22,15 @@ jobs:
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
         continue-on-error: true
       - run: flutter test
-      - uses: actions/upload-artifact@v4
+      # Đẩy ảnh xem trước lên nhánh riêng "preview-images" để xem được ngay
+      - name: Lưu ảnh xem trước
         if: always()
-        with:
-          name: preview
-          path: build/preview
+        run: |
+          mkdir -p /tmp/out && cp -r build/preview/. /tmp/out/ 2>/dev/null || true
+          cd /tmp/out
+          git init -q
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "preview ${GITHUB_SHA::7}" || exit 0
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/preview-images
