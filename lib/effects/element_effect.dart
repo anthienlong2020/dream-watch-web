@@ -11,13 +11,17 @@ import 'package:flutter/services.dart' show rootBundle;
 // Hiệu ứng tính theo thời gian thực (không lưu trạng thái) nên nhẹ và ổn định.
 // =====================================================================
 
-enum ElementType { none, lua, nuoc, dien }
+enum ElementType { none, lua, nuoc, dien, may, khoi, sap, dat }
 
 const Map<ElementType, String> kElementNames = {
   ElementType.none: 'Không',
   ElementType.lua: '🔥 Lửa',
   ElementType.nuoc: '💧 Nước',
   ElementType.dien: '⚡ Điện',
+  ElementType.may: '☁️ Mây',
+  ElementType.khoi: '💨 Gió/Khói',
+  ElementType.sap: '🕯️ Sáp',
+  ElementType.dat: '🪨 Đất',
 };
 
 ElementType elementFromName(String? s) =>
@@ -115,6 +119,34 @@ ColorFilter? materialFilter(ElementType e) {
         0.15, 0.30, 0.60, 0, 95, //
         0, 0, 0, 1, 0, //
       ]);
+    case ElementType.may:
+      return const ColorFilter.matrix(<double>[
+        0.30, 0.35, 0.08, 0, 125, //
+        0.30, 0.35, 0.08, 0, 128, //
+        0.30, 0.35, 0.08, 0, 140, //
+        0, 0, 0, 0.92, 0, //
+      ]);
+    case ElementType.khoi:
+      return const ColorFilter.matrix(<double>[
+        0.22, 0.40, 0.08, 0, 70, //
+        0.22, 0.40, 0.08, 0, 72, //
+        0.22, 0.40, 0.08, 0, 78, //
+        0, 0, 0, 0.72, 0, //
+      ]);
+    case ElementType.sap:
+      return const ColorFilter.matrix(<double>[
+        0.50, 0.28, 0.08, 0, 75, //
+        0.42, 0.28, 0.08, 0, 62, //
+        0.35, 0.22, 0.10, 0, 45, //
+        0, 0, 0, 1, 0, //
+      ]);
+    case ElementType.dat:
+      return const ColorFilter.matrix(<double>[
+        0.20, 0.38, 0.08, 0, 45, //
+        0.15, 0.28, 0.06, 0, 28, //
+        0.10, 0.18, 0.04, 0, 12, //
+        0, 0, 0, 1, 0, //
+      ]);
     case ElementType.none:
       return null;
   }
@@ -196,12 +228,24 @@ class _ElementLayerState extends State<ElementLayer> {
         children: [
           Positioned.fill(child: CustomPaint(painter: _BackPainter(args))),
           Positioned.fill(
-            child: filter == null ? widget.child : ColorFiltered(colorFilter: filter, child: widget.child),
+            child: _material(filter, widget.child),
           ),
           Positioned.fill(child: CustomPaint(painter: _FrontPainter(args))),
         ],
       ),
     );
+  }
+}
+
+extension on _ElementLayerState {
+  /// Phủ chất liệu; riêng Mây/Khói làm mềm viền một chút cho "bông".
+  Widget _material(ColorFilter? filter, Widget child) {
+    Widget w = filter == null ? child : ColorFiltered(colorFilter: filter, child: child);
+    if (widget.element == ElementType.may || widget.element == ElementType.khoi) {
+      final sigma = widget.size * 0.01;
+      w = ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma), child: w);
+    }
+    return w;
   }
 }
 
@@ -238,6 +282,18 @@ class _BackPainter extends CustomPainter {
       case ElementType.dien:
         glow = Color.fromARGB((60 + 70 * pulse).round(), 90, 220, 255);
         break;
+      case ElementType.may:
+        glow = Color.fromARGB((60 + 25 * pulse).round(), 255, 255, 255);
+        break;
+      case ElementType.khoi:
+        glow = Color.fromARGB((35 + 20 * pulse).round(), 180, 180, 190);
+        break;
+      case ElementType.sap:
+        glow = Color.fromARGB((40 + 25 * pulse).round(), 255, 200, 120);
+        break;
+      case ElementType.dat:
+        glow = Color.fromARGB(70, 60, 35, 15);
+        break;
       case ElementType.none:
         return;
     }
@@ -273,8 +329,173 @@ class _FrontPainter extends CustomPainter {
       case ElementType.dien:
         _electric(canvas, size.width);
         break;
+      case ElementType.may:
+        _cloud(canvas, size.width);
+        break;
+      case ElementType.khoi:
+        _smoke(canvas, size.width);
+        break;
+      case ElementType.sap:
+        _wax(canvas, size.width);
+        break;
+      case ElementType.dat:
+        _earth(canvas, size.width);
+        break;
       case ElementType.none:
         break;
+    }
+  }
+
+  /// Mây: các cụm mây bông trôi ngang quanh thân.
+  void _cloud(Canvas canvas, double s) {
+    final c = Offset(s / 2, s / 2);
+    final n = a.full ? 7 : 3;
+    for (var k = 0; k < n; k++) {
+      final speed = 0.05 + 0.04 * _rnd(k, 1, a.seed);
+      final x = ((a.t * speed + _rnd(k, 2, a.seed)) % 1.0 - 0.5) * s * 1.3;
+      final y = (_rnd(k, 3, a.seed) - 0.5) * s * 0.8 + math.sin(a.t * 0.7 + k) * s * 0.02;
+      final r = s * (0.06 + 0.05 * _rnd(k, 4, a.seed));
+      // mờ dần khi trôi ra xa thân
+      final fade = (1 - (x.abs() / (s * 0.65))).clamp(0.0, 1.0);
+      final paint = Paint()
+        ..color = Colors.white.withAlpha((170 * fade).round())
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.35);
+      final p = c + Offset(x, y);
+      canvas.drawCircle(p, r, paint);
+      canvas.drawCircle(p + Offset(-r * 0.9, r * 0.25), r * 0.7, paint);
+      canvas.drawCircle(p + Offset(r * 0.9, r * 0.3), r * 0.65, paint);
+    }
+  }
+
+  /// Gió/Khói: khói bốc lên và bị gió thổi lệch, kèm vệt gió lướt ngang.
+  void _smoke(Canvas canvas, double s) {
+    final c = Offset(s / 2, s / 2);
+    final n = a.full ? 24 : 8;
+    const life = 2.6;
+    for (var k = 0; k < n; k++) {
+      final x = a.t / life + k / n;
+      final cyc = x.floor();
+      final ph = x - cyc;
+      final start = _edge(k, cyc, c, s);
+      final p = start +
+          Offset(ph * s * 0.3 + math.sin(ph * 5 + k) * s * 0.03, -ph * s * 0.3);
+      final r = s * (0.03 + 0.09 * ph) * (0.7 + 0.6 * _rnd(k, cyc, 5));
+      canvas.drawCircle(
+          p,
+          r,
+          Paint()
+            ..color = const Color(0xFFB0BEC5).withAlpha((math.sin(ph * math.pi) * 120).round())
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.6));
+    }
+    // vệt gió
+    final nw = a.full ? 4 : 2;
+    for (var k = 0; k < nw; k++) {
+      final ph = (a.t * 0.6 + k / nw) % 1.0;
+      final y = (_rnd(k, 9, a.seed) - 0.5) * s * 0.8;
+      final x0 = (ph - 0.5) * s * 1.4;
+      final len = s * 0.25;
+      final path = Path()
+        ..moveTo(c.dx + x0 - len, c.dy + y)
+        ..quadraticBezierTo(c.dx + x0 - len / 2, c.dy + y - s * 0.03, c.dx + x0, c.dy + y);
+      canvas.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(1, s * 0.01)
+            ..strokeCap = StrokeCap.round
+            ..color = Colors.white.withAlpha((math.sin(ph * math.pi) * 150).round()));
+    }
+  }
+
+  /// Sáp: bóng láng như nến, sáp chảy giọt ở chân, ngọn lửa nến nhỏ trên đỉnh.
+  void _wax(Canvas canvas, double s) {
+    final c = Offset(s / 2, s / 2);
+    // vệt bóng láng
+    canvas.drawOval(
+        Rect.fromCenter(center: c + Offset(-s * 0.12, -s * 0.15), width: s * 0.16, height: s * 0.28),
+        Paint()
+          ..color = Colors.white.withAlpha(70)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03));
+    // giọt sáp chảy chậm từ phần dưới
+    final bottom = a.edges.where((e) => e.dy > 0.05).toList();
+    if (bottom.isNotEmpty) {
+      final n = a.full ? 6 : 3;
+      const life = 6.0;
+      for (var k = 0; k < n; k++) {
+        final x = a.t / life + k / n;
+        final cyc = x.floor();
+        final ph = x - cyc;
+        final e = bottom[(_rnd(k, cyc, a.seed + 3) * bottom.length).floor() % bottom.length];
+        final top = c + e * s;
+        final len = s * 0.12 * Curves.easeOut.transform(ph);
+        final w = s * 0.03;
+        final rr = RRect.fromRectAndRadius(
+            Rect.fromLTWH(top.dx - w / 2, top.dy - w, w, len + w), Radius.circular(w / 2));
+        canvas.drawRRect(rr, Paint()..color = const Color(0xFFFFF3E0).withAlpha(((1 - ph) * 230).round()));
+        canvas.drawCircle(Offset(top.dx, top.dy + len), w * 0.75,
+            Paint()..color = const Color(0xFFFFF3E0).withAlpha(((1 - ph) * 230).round()));
+      }
+    }
+    // ngọn lửa nến trên đỉnh đầu
+    if (a.full) {
+      var topPt = a.edges.first;
+      for (final e in a.edges) {
+        if (e.dy < topPt.dy) topPt = e;
+      }
+      final base = c + topPt * s;
+      final flick = 1 + 0.12 * math.sin(a.t * 17) + 0.06 * math.sin(a.t * 29);
+      final h = s * 0.12 * flick;
+      final flame = Path()
+        ..moveTo(base.dx, base.dy - h)
+        ..quadraticBezierTo(base.dx + s * 0.04, base.dy - h * 0.35, base.dx, base.dy)
+        ..quadraticBezierTo(base.dx - s * 0.04, base.dy - h * 0.35, base.dx, base.dy - h);
+      canvas.drawPath(
+          flame,
+          Paint()
+            ..color = const Color(0xFFFFB74D)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.012));
+      canvas.drawCircle(base + Offset(0, -h * 0.3), s * 0.012, Paint()..color = const Color(0xFFFFF9C4));
+    }
+  }
+
+  /// Đất: vết nứt trên thân, bụi đất và sỏi nhỏ rơi lả tả.
+  void _earth(Canvas canvas, double s) {
+    final c = Offset(s / 2, s / 2);
+    // vết nứt cố định cho mỗi vị trí
+    final crack = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1, s * 0.008)
+      ..strokeJoin = StrokeJoin.round
+      ..color = const Color(0xAA2D1B0E);
+    final nc = a.full ? 5 : 2;
+    for (var k = 0; k < nc; k++) {
+      final e = a.edges[(_rnd(k, 77, a.seed) * a.edges.length).floor() % a.edges.length];
+      var p = c + e * s;
+      final path = Path()..moveTo(p.dx, p.dy);
+      final dir = (c - p) / ((c - p).distance + 0.001);
+      for (var i = 0; i < 4; i++) {
+        final jitter = Offset(-dir.dy, dir.dx) * ((_rnd(k, i, a.seed + 5) - 0.5) * s * 0.06);
+        p = p + dir * (s * 0.05) + jitter;
+        path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(path, crack);
+    }
+    // bụi đất rơi
+    final n = a.full ? 18 : 6;
+    const life = 1.8;
+    for (var k = 0; k < n; k++) {
+      final x = a.t / life + k / n;
+      final cyc = x.floor();
+      final ph = x - cyc;
+      final start = _edge(k, cyc, c, s);
+      final p = start + Offset((_rnd(k, cyc, 8) - 0.5) * s * 0.06, ph * ph * s * 0.3);
+      final big = _rnd(k, cyc, 12) < 0.2; // vài viên sỏi to hơn
+      final r = s * (big ? 0.018 : 0.008);
+      canvas.drawCircle(
+          p,
+          r,
+          Paint()..color = (big ? const Color(0xFF6D4C41) : const Color(0xFFA1887F))
+              .withAlpha(((1 - ph) * 230).round()));
     }
   }
 
