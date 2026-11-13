@@ -54,6 +54,7 @@ class ClockScreen extends StatelessWidget {
                         showStars: app.showStars,
                         inflate3d: app.inflate3d,
                         spin360: app.spin360,
+                        bodyType: app.bodyType,
                         hourSpeed: app.hourSpeed,
                         minuteSpeed: app.minuteSpeed,
                         secondSpeed: app.secondSpeed,

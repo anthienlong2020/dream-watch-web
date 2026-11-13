@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../models/clock_theme.dart';
+import '../three_d/body_type.dart';
 import 'extruded_3d.dart';
 import 'slot_image_view.dart';
 
@@ -26,6 +27,9 @@ class DreamClock extends StatefulWidget {
   /// Ảnh 3D (Chibi / thổi phồng) ở vị trí giờ và ở giữa quay tròn 360°.
   final bool spin360;
 
+  /// Dáng 3D: ốm / cân đối / mập.
+  final BodyType bodyType;
+
   /// Hệ số tốc độ: 1.0 = mặc định, nhỏ hơn = chậm hơn.
   final double hourSpeed;
   final double minuteSpeed;
@@ -38,6 +42,7 @@ class DreamClock extends StatefulWidget {
     this.showStars = true,
     this.inflate3d = true,
     this.spin360 = true,
+    this.bodyType = BodyType.canDoi,
     this.hourSpeed = 1.0,
     this.minuteSpeed = 1.0,
     this.secondSpeed = 1.0,
@@ -146,7 +151,8 @@ class _DreamClockState extends State<DreamClock>
               image: widget.theme.slot(i),
               size: slotSize,
               yaw: 0.35,
-              inflate: widget.inflate3d);
+              inflate: widget.inflate3d,
+          body: widget.bodyType);
       children.add(Positioned(
         left: x - slotSize / 2,
         top: y - slotSize / 2,
@@ -183,7 +189,8 @@ class _DreamClockState extends State<DreamClock>
           image: widget.theme.slot(mSlot),
           size: runnerSize,
           yaw: 0.8 * math.cos(a),
-          inflate: widget.inflate3d),
+          inflate: widget.inflate3d,
+          body: widget.bodyType),
     ));
 
     return Stack(clipBehavior: Clip.none, children: children);
@@ -206,7 +213,8 @@ class _DreamClockState extends State<DreamClock>
   Widget _turning(SlotImage img, double size, double angle, {bool hi = false}) {
     if (img.chibi != null || (widget.inflate3d && SlotImageView.canInflate(img))) {
       return SlotImageView(
-          image: img, size: size, yaw: angle, hiDetail: hi, inflate: widget.inflate3d);
+          image: img, size: size, yaw: angle, hiDetail: hi, inflate: widget.inflate3d,
+          body: widget.bodyType);
     }
     return Extruded3D(
       size: size,
@@ -258,7 +266,8 @@ class _DreamClockState extends State<DreamClock>
         image: slotImg,
         size: slotSize,
         yaw: backward ? -0.6 : 0.6,
-        inflate: widget.inflate3d);
+        inflate: widget.inflate3d,
+          body: widget.bodyType);
     final is3d = slotImg.chibi != null ||
         (widget.inflate3d && SlotImageView.canInflate(slotImg));
     if (mSlot == hSlot) {

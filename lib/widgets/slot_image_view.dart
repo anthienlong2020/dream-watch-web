@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../chibi/chibi3d.dart';
+import '../three_d/body_type.dart';
 import '../three_d/inflated_3d.dart';
 import '../models/clock_theme.dart';
 
@@ -19,6 +20,9 @@ class SlotImageView extends StatelessWidget {
   /// Ảnh thường (có file ảnh) thì "thổi phồng" thành khối 3D.
   final bool inflate;
 
+  /// Dáng 3D: ốm / cân đối / mập.
+  final BodyType body;
+
   const SlotImageView({
     super.key,
     required this.image,
@@ -26,6 +30,7 @@ class SlotImageView extends StatelessWidget {
     this.yaw = 0,
     this.hiDetail = false,
     this.inflate = false,
+    this.body = BodyType.canDoi,
   });
 
   /// Ảnh này có thể thổi phồng 3D không (có file ảnh, không phải emoji/chibi).
@@ -36,7 +41,8 @@ class SlotImageView extends StatelessWidget {
   Widget build(BuildContext context) {
     final chibi = image.chibi;
     if (chibi != null) {
-      return Chibi3DView(spec: chibi, size: size, yaw: yaw, hiDetail: hiDetail);
+      return Chibi3DView(
+          spec: chibi, size: size, yaw: yaw, hiDetail: hiDetail, body: body);
     }
     if (inflate && canInflate(image)) {
       return Inflated3DView(
@@ -44,6 +50,7 @@ class SlotImageView extends StatelessWidget {
         size: size,
         yaw: yaw,
         hiDetail: hiDetail,
+        body: body,
         fallback: SlotImageView(image: image, size: size),
       );
     }

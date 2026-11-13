@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:dream_watch/three_d/body_type.dart';
 import 'package:dream_watch/three_d/inflated_3d.dart';
 
 /// Một con khủng long vẽ giả, nền trong suốt.
@@ -56,19 +57,25 @@ void main() {
 
   test('vẽ thử ảnh thổi phồng 3D', () async {
     final png = await _fakeDino();
-    final model = await buildInflated(png, grid: 52);
-    const yaws = [0.0, 0.4, -0.7, 1.2, math.pi];
+    const yaws = [0.0, 0.5, -0.8, math.pi];
     const cell = 300.0;
+    final rows = BodyType.values.length;
     final rec = ui.PictureRecorder();
     final canvas = Canvas(rec);
-    canvas.drawRect(const Rect.fromLTWH(0, 0, cell * 5, cell), Paint()..color = const Color(0xFF90A4AE));
-    for (var i = 0; i < yaws.length; i++) {
-      canvas.save();
-      canvas.translate(i * cell, 0);
-      paintInflated(canvas, const Size(cell, cell), model, yaw: yaws[i]);
-      canvas.restore();
+    canvas.drawRect(Rect.fromLTWH(0, 0, cell * yaws.length, cell * rows),
+        Paint()..color = const Color(0xFF90A4AE));
+    late InflatedModel model;
+    for (var r = 0; r < rows; r++) {
+      model = await buildInflated(png, grid: 52, body: BodyType.values[r]);
+      for (var i = 0; i < yaws.length; i++) {
+        canvas.save();
+        canvas.translate(i * cell, r * cell);
+        paintInflated(canvas, const Size(cell, cell), model, yaw: yaws[i]);
+        canvas.restore();
+      }
     }
-    final img = await rec.endRecording().toImage((cell * 5).round(), cell.round());
+    final img = await rec.endRecording()
+        .toImage((cell * yaws.length).round(), (cell * rows).round());
     final out = await img.toByteData(format: ui.ImageByteFormat.png);
     final dir = Directory('build/preview')..createSync(recursive: true);
     File('${dir.path}/inflated.png').writeAsBytesSync(out!.buffer.asUint8List());

@@ -5,6 +5,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
+import 'body_type.dart';
+
 // =====================================================================
 // "Thổi phồng" ảnh phẳng thành khối 3D (kiểu thú bông nhồi bông).
 //
@@ -33,7 +35,9 @@ class InflatedModel {
 }
 
 /// Dựng lưới từ ảnh. [grid]: số ô theo cạnh dài (càng lớn càng mịn).
-Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
+Future<InflatedModel> buildInflated(Uint8List bytes,
+    {int grid = 40, BodyType body = BodyType.canDoi}) async {
+  final shape = kInflateShapes[body]!;
   // Ảnh texture: thu nhỏ còn tối đa 512px cho nhẹ
   final probe = await ui.instantiateImageCodec(bytes);
   final first = (await probe.getNextFrame()).image;
@@ -123,13 +127,13 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
   }
   dmax /= 3;
 
-  // Độ dày tại mỗi ô: profile tròn như mặt cầu, hơi dẹt lại
+  // Độ dày tại mỗi ô theo dáng: mập thì phồng đều tròn trịa, ốm thì mỏng
   double cellH(int i, int j) {
     if (i < 0 || j < 0 || i >= gx || j >= gy) return -1;
     if (inside[j * gx + i] == 0) return -1;
-    final d = dist[j * gx + i] / 3.0 - 0.5;
-    final v = 2 * dmax * d - d * d;
-    return 0.62 * math.sqrt(math.max(0.0, v));
+    final x = ((dist[j * gx + i] / 3.0 - 0.5) / dmax).clamp(0.0, 1.0);
+    final round = 1 - (1 - x) * (1 - x); // 0 ở mép, 1 ở giữa
+    return shape.thick * dmax * math.pow(round, shape.profile).toDouble();
   }
 
   // Chiều cao tại các đỉnh lưới (góc ô): mép = 0
@@ -142,6 +146,26 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
       if (hs.every((h) => h < 0)) continue;
       used[j * nx + i] = 1;
       nodeH[j * nx + i] = hs.any((h) => h < 0) ? 0 : (hs.reduce((a, b) => a + b) / 4);
+    }
+  }
+
+  // Làm mềm bề mặt (hết nếp nhăn kiểu giấy vò): mỗi đỉnh bên trong lấy
+  // trung bình với các đỉnh xung quanh vài lần, mép vẫn giữ bằng 0.
+  for (var pass = 0; pass < 6; pass++) {
+    final old = Float64List.fromList(nodeH);
+    for (var j = 1; j < ny - 1; j++) {
+      for (var i = 1; i < nx - 1; i++) {
+        final k = j * nx + i;
+        if (used[k] == 0 || old[k] == 0) continue;
+        var sum = 0.0;
+        var c = 0;
+        for (final q in [k - 1, k + 1, k - nx, k + nx, k - nx - 1, k - nx + 1, k + nx - 1, k + nx + 1]) {
+          if (used[q] == 0) continue;
+          sum += old[q];
+          c++;
+        }
+        if (c > 0) nodeH[k] = old[k] * 0.4 + (sum / c) * 0.6;
+      }
     }
   }
 
@@ -195,8 +219,8 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
     for (var i = 0; i < nx; i++) {
       if (used[j * nx + i] == 0) continue;
       final gxp = nodeX[j * nx + i], gyp = nodeY[j * nx + i];
-      final x = (gxp - gx / 2) * cs;
-      final y = -(gyp - gy / 2) * cs;
+      final x = (gxp - gx / 2) * cs * shape.scaleX;
+      final y = -(gyp - gy / 2) * cs * shape.scaleY;
       final h = nodeH[j * nx + i] * cs;
       final hx = (hAt(i + 1, j) - hAt(i - 1, j)) / 2; // theo ô
       final hy = (hAt(i, j - 1) - hAt(i, j + 1)) / 2; // y hướng lên
@@ -382,11 +406,12 @@ void paintInflated(Canvas canvas, Size size, InflatedModel model,
 // ---------------------------------------------------------------------
 
 // Khoá: (ảnh, độ mịn). Ảnh người dùng so theo đúng đối tượng, asset so theo tên.
-final Map<(Object, bool), Future<InflatedModel?>> _cache = {};
+final Map<(Object, bool, BodyType), Future<InflatedModel?>> _cache = {};
 
 /// [source] là Uint8List (ảnh người dùng) hoặc String (đường dẫn asset).
-Future<InflatedModel?> loadInflated(Object source, {required bool hi}) {
-  final key = (source, hi);
+Future<InflatedModel?> loadInflated(Object source,
+    {required bool hi, BodyType body = BodyType.canDoi}) {
+  final key = (source, hi, body);
   if (!_cache.containsKey(key) && _cache.length > 60) {
     _cache.remove(_cache.keys.first);
   }
@@ -399,7 +424,7 @@ Future<InflatedModel?> loadInflated(Object source, {required bool hi}) {
         final data = await rootBundle.load(source as String);
         bytes = data.buffer.asUint8List();
       }
-      return await buildInflated(bytes, grid: hi ? 52 : 34);
+      return await buildInflated(bytes, grid: hi ? 52 : 34, body: body);
     } catch (_) {
       return null; // ảnh lỗi / không có file -> dùng kiểu cũ
     }
@@ -411,6 +436,7 @@ class Inflated3DView extends StatefulWidget {
   final double size;
   final double yaw;
   final bool hiDetail;
+  final BodyType body;
 
   /// Hiển thị trong lúc đang dựng hoặc khi không dựng được.
   final Widget fallback;
@@ -422,6 +448,7 @@ class Inflated3DView extends StatefulWidget {
     required this.fallback,
     this.yaw = 0,
     this.hiDetail = false,
+    this.body = BodyType.canDoi,
   });
 
   @override
@@ -441,7 +468,9 @@ class _Inflated3DViewState extends State<Inflated3DView> {
   @override
   void didUpdateWidget(covariant Inflated3DView old) {
     super.didUpdateWidget(old);
-    if (!identical(old.source, widget.source) || old.hiDetail != widget.hiDetail) {
+    if (!identical(old.source, widget.source) ||
+        old.hiDetail != widget.hiDetail ||
+        old.body != widget.body) {
       _load();
     }
   }
@@ -449,8 +478,14 @@ class _Inflated3DViewState extends State<Inflated3DView> {
   void _load() {
     final src = widget.source;
     final hi = widget.hiDetail;
-    loadInflated(src, hi: hi).then((m) {
-      if (!mounted || !identical(src, widget.source) || hi != widget.hiDetail) return;
+    final body = widget.body;
+    loadInflated(src, hi: hi, body: body).then((m) {
+      if (!mounted ||
+          !identical(src, widget.source) ||
+          hi != widget.hiDetail ||
+          body != widget.body) {
+        return;
+      }
       setState(() {
         _model = m;
         _failed = m == null;

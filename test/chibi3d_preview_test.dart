@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:dream_watch/chibi/chibi3d.dart';
 import 'package:dream_watch/chibi/chibi_painter.dart';
+import 'package:dream_watch/three_d/body_type.dart';
 
 Future<Uint8List> _fakeFace() async {
   final rec = ui.PictureRecorder();
@@ -65,5 +66,37 @@ void main() {
     final dir = Directory('build/preview')..createSync(recursive: true);
     File('${dir.path}/chibi3d.png').writeAsBytesSync(png!.buffer.asUint8List());
     expect(png.lengthInBytes, greaterThan(1000));
+  });
+
+  test('vẽ thử 3 dáng Chibi 3D', () async {
+    final face = await _fakeFace();
+    const yaws = [0.0, 0.6, math.pi / 2];
+    const cell = 300.0;
+    final rec = ui.PictureRecorder();
+    final canvas = Canvas(rec);
+    canvas.drawRect(const Rect.fromLTWH(0, 0, cell * 3, cell * 3),
+        Paint()..color = const Color(0xFF0B1020));
+    final spec = ChibiSpec(
+      face: face,
+      outfit: ChibiOutfit.aoThun,
+      outfitColor: kOutfitColors[4],
+      skin: const Color(0xFFF1C27D),
+      hair: const Color(0xFF3E2723),
+    );
+    final atlas = await buildAtlas(spec);
+    for (var r = 0; r < 3; r++) {
+      final mesh = buildChibiMesh(spec.outfit, body: BodyType.values[r]);
+      for (var c = 0; c < 3; c++) {
+        canvas.save();
+        canvas.translate(c * cell, r * cell);
+        paintChibi3D(canvas, const Size(cell, cell), mesh, atlas, yaw: yaws[c]);
+        canvas.restore();
+      }
+    }
+    final img = await rec.endRecording().toImage(900, 900);
+    final png = await img.toByteData(format: ui.ImageByteFormat.png);
+    File('build/preview/chibi_body.png')
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(png!.buffer.asUint8List());
   });
 }

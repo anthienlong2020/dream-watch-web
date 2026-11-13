@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../chibi/chibi3d.dart';
 import '../chibi/chibi_painter.dart';
+import '../services/app_state.dart';
 import '../widgets/tick_builder.dart';
 
 /// Kết quả tạo Chibi: ảnh phẳng (để làm hình thu nhỏ) + thông tin dựng 3D.
@@ -337,7 +338,8 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
         builder: (_) {
           final t = DateTime.now().millisecondsSinceEpoch / 1000.0;
           final yaw = _dragging ? _dragYaw : _dragYaw + 0.6 * math.sin(t * 0.8);
-          return Chibi3DView(spec: spec, size: 240, yaw: yaw, hiDetail: true);
+          return Chibi3DView(
+              spec: spec, size: 240, yaw: yaw, hiDetail: true, body: app.bodyType);
         },
       ),
     );

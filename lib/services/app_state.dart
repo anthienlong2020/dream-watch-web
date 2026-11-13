@@ -8,6 +8,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../chibi/chibi3d.dart';
 import '../models/alarm.dart';
+import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
 import 'sound_service.dart';
 
@@ -43,6 +44,7 @@ class AppState extends ChangeNotifier {
   bool showStars = true;
   bool inflate3d = true; // thổi phồng ảnh thường thành khối 3D
   bool spin360 = true; // ảnh 3D ở vị trí giờ + ở giữa quay tròn 360°
+  BodyType bodyType = BodyType.canDoi; // dáng 3D: ốm / cân đối / mập
 
   // ---------- Tốc độ chuyển động (1.0 = mặc định, 0.25 = rất chậm, 2.0 = nhanh) ----------
   double hourSpeed = 1.0; // ảnh giờ + ảnh giữa đung đưa
@@ -168,6 +170,7 @@ class AppState extends ChangeNotifier {
         'showStars': showStars,
         'inflate3d': inflate3d,
         'spin360': spin360,
+        'bodyType': bodyType.name,
         'hourSpeed': hourSpeed,
         'minuteSpeed': minuteSpeed,
         'secondSpeed': secondSpeed,
@@ -193,6 +196,7 @@ class AppState extends ChangeNotifier {
     showStars = (j['showStars'] as bool?) ?? showStars;
     inflate3d = (j['inflate3d'] as bool?) ?? inflate3d;
     spin360 = (j['spin360'] as bool?) ?? spin360;
+    if (j['bodyType'] is String) bodyType = bodyTypeFromName(j['bodyType'] as String);
     hourSpeed = (j['hourSpeed'] as num?)?.toDouble() ?? hourSpeed;
     minuteSpeed = (j['minuteSpeed'] as num?)?.toDouble() ?? minuteSpeed;
     secondSpeed = (j['secondSpeed'] as num?)?.toDouble() ?? secondSpeed;

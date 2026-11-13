@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../three_d/body_type.dart';
 import 'chibi_painter.dart' show ChibiOutfit;
 
 // =====================================================================
@@ -188,7 +189,8 @@ class ChibiMesh {
 }
 
 /// Dựng nhân vật. [lod]: 1 = mịn (ảnh to ở giữa), 0 = gọn (ảnh nhỏ quanh vòng).
-ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1}) {
+/// [body]: dáng ốm / cân đối / mập.
+ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyType.canDoi}) {
   final m = ChibiMesh();
   final hs = lod == 1 ? 28 : 18; // độ mịn của đầu
   final hr = lod == 1 ? 18 : 12;
@@ -196,14 +198,21 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1}) {
   const pr = 8;
   const headBias = 0.8;
 
+  final sh = kChibiShapes[body]!;
+  final t = sh.torso, l = sh.limb;
+  final dy = 0.26 * (sh.legLen - 1); // chân dài/ngắn hơn thì đẩy phần trên lên/xuống
+  V3 up(double x, double y, double z) => V3(x, y + dy, z);
+  final legX = 0.17 * math.min(t, 1.25);
+
   // Chân + giày
   for (final s in [-1.0, 1.0]) {
     m.part();
-    m.tube(V3(0.17 * s, 0.4, 0), V3(0.17 * s, 0.14, 0.02), 0.13, 0.12,
+    m.tube(up(legX * s, 0.4, 0), V3(legX * s, 0.14, 0.02), 0.13 * l, 0.12 * l,
         outfit == ChibiOutfit.vay ? Mat.skin : (outfit == ChibiOutfit.khungLong ? Mat.outfit : Mat.pants),
         seg: ps, capA: false, capB: false);
     m.part();
-    m.ellipsoid(V3(0.18 * s, 0.08, 0.07), const V3(0.15, 0.09, 0.21),
+    final shoe = 0.8 + 0.2 * l;
+    m.ellipsoid(V3((legX + 0.01) * s, 0.08, 0.07), V3(0.15 * shoe, 0.09, 0.21 * shoe),
         outfit == ChibiOutfit.khungLong ? Mat.outfitDark : Mat.shoe,
         seg: ps, rings: pr);
   }
@@ -212,53 +221,56 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1}) {
   switch (outfit) {
     case ChibiOutfit.vay:
       m.part();
-      m.tube(const V3(0, 0.95, 0), const V3(0, 0.3, 0), 0.3, 0.52, Mat.outfit, seg: ps + 4, capA: true, capB: false);
+      m.tube(up(0, 0.95, 0), up(0, 0.3, 0), 0.3 * t, 0.52 * t, Mat.outfit, seg: ps + 4, capA: true, capB: false);
       m.part();
-      m.ellipsoid(const V3(0, 0.3, 0), const V3(0.52, 0.04, 0.52), Mat.outfitDark, seg: ps + 4, rings: 4);
+      m.ellipsoid(up(0, 0.3, 0), V3(0.52 * t, 0.04, 0.52 * t), Mat.outfitDark, seg: ps + 4, rings: 4);
       break;
     case ChibiOutfit.vest:
       m.part();
-      m.ellipsoid(const V3(0, 0.42, 0), const V3(0.36, 0.14, 0.31), Mat.pants, seg: ps, rings: pr);
+      m.ellipsoid(up(0, 0.42, 0), V3(0.36 * t, 0.14, 0.31 * t), Mat.pants, seg: ps, rings: pr);
       m.part();
-      m.tube(const V3(0, 0.55, 0), const V3(0, 0.88, 0), 0.37, 0.32, Mat.outfit, seg: ps);
+      m.tube(up(0, 0.55, 0), up(0, 0.88, 0), 0.37 * t, 0.32 * t, Mat.outfit, seg: ps);
       m.part(0.05);
-      m.ellipsoid(const V3(0, 0.86, 0.2), const V3(0.17, 0.2, 0.15), Mat.white, seg: ps, rings: pr);
+      m.ellipsoid(up(0, 0.86, 0.2 * t), const V3(0.17, 0.2, 0.15), Mat.white, seg: ps, rings: pr);
       m.part(0.1);
-      m.ellipsoid(const V3(0, 0.76, 0.33), const V3(0.05, 0.16, 0.04), Mat.outfitLight, seg: 8, rings: 6);
+      m.ellipsoid(up(0, 0.76, 0.33 * t), const V3(0.05, 0.16, 0.04), Mat.outfitLight, seg: 8, rings: 6);
       break;
     case ChibiOutfit.khungLong:
       m.part();
-      m.tube(const V3(0, 0.48, 0), const V3(0, 0.88, 0), 0.38, 0.33, Mat.outfit, seg: ps);
+      m.tube(up(0, 0.48, 0), up(0, 0.88, 0), 0.38 * t, 0.33 * t, Mat.outfit, seg: ps);
       m.part(0.05);
-      m.ellipsoid(const V3(0, 0.66, 0.24), const V3(0.25, 0.28, 0.15), Mat.outfitLight, seg: ps, rings: pr);
+      m.ellipsoid(up(0, 0.66, 0.24 * t), V3(0.25 * t, 0.28, 0.15), Mat.outfitLight, seg: ps, rings: pr);
       m.part();
-      m.tube(const V3(0, 0.48, -0.25), const V3(0, 0.12, -0.95), 0.24, 0.0, Mat.outfit, seg: ps, capB: false);
+      m.tube(up(0, 0.48, -0.25 * t), up(0, 0.12, -0.95 * t), 0.24 * t, 0.0, Mat.outfit, seg: ps, capB: false);
       break;
     case ChibiOutfit.aoThun:
       m.part();
-      m.ellipsoid(const V3(0, 0.42, 0), const V3(0.36, 0.14, 0.31), Mat.pants, seg: ps, rings: pr);
+      m.ellipsoid(up(0, 0.42, 0), V3(0.36 * t, 0.14, 0.31 * t), Mat.pants, seg: ps, rings: pr);
       m.part();
-      m.tube(const V3(0, 0.55, 0), const V3(0, 0.88, 0), 0.37, 0.32, Mat.outfit, seg: ps);
+      m.tube(up(0, 0.55, 0), up(0, 0.88, 0), 0.37 * t, 0.32 * t, Mat.outfit, seg: ps);
       m.part(0.05);
-      m.ellipsoid(const V3(0, 0.7, 0.3), const V3(0.11, 0.11, 0.07), Mat.outfitLight, seg: 10, rings: 6);
+      m.ellipsoid(up(0, 0.7, 0.3 * t), const V3(0.11, 0.11, 0.07), Mat.outfitLight, seg: 10, rings: 6);
       break;
   }
 
   // Tay
   final sleeve = outfit == ChibiOutfit.vay ? Mat.skin : Mat.outfit;
+  final shoulderX = 0.32 * t;
   for (final s in [-1.0, 1.0]) {
     m.part();
-    m.tube(V3(0.32 * s, 0.86, 0), V3(0.6 * s, 0.55, 0.1), 0.11, 0.1, sleeve, seg: ps, capB: false);
+    m.tube(up(shoulderX * s, 0.86, 0), up((shoulderX + 0.28) * s, 0.55, 0.1), 0.11 * l, 0.1 * l,
+        sleeve, seg: ps, capB: false);
     m.part();
-    m.ellipsoid(V3(0.62 * s, 0.52, 0.11), const V3(0.13, 0.13, 0.13), Mat.skin, seg: ps, rings: pr);
+    m.ellipsoid(up((shoulderX + 0.3) * s, 0.52, 0.11), V3(0.13 * l, 0.13 * l, 0.13 * l), Mat.skin,
+        seg: ps, rings: pr);
   }
 
   // Cổ
   m.part();
-  m.tube(const V3(0, 0.84, 0), const V3(0, 1.0, 0), 0.13, 0.13, Mat.skin, seg: ps, capA: false, capB: false);
+  m.tube(up(0, 0.84, 0), up(0, 1.0, 0), 0.13 * l, 0.13 * l, Mat.skin, seg: ps, capA: false, capB: false);
 
   // Đầu (mặt trước dán ảnh khuôn mặt, phần còn lại màu tóc)
-  const headC = V3(0, 1.66, 0);
+  final headC = up(0, 1.66, 0);
   const headR = V3(0.9, 0.84, 0.84);
   m.part(headBias);
   m.ellipsoid(headC, headR, Mat.hair, seg: hs, rings: hr, faceFront: true);
@@ -456,16 +468,17 @@ class _Built {
   _Built(this.hi, this.lo, this.atlas);
 }
 
-final Map<ChibiSpec, Future<_Built>> _cache = {};
+final Map<(ChibiSpec, BodyType), Future<_Built>> _cache = {};
 
-Future<_Built> _build(ChibiSpec spec) {
-  if (!_cache.containsKey(spec) && _cache.length > 40) {
+Future<_Built> _build(ChibiSpec spec, BodyType body) {
+  final key = (spec, body);
+  if (!_cache.containsKey(key) && _cache.length > 40) {
     _cache.remove(_cache.keys.first); // giới hạn bộ nhớ đệm
   }
-  return _cache.putIfAbsent(spec, () async {
+  return _cache.putIfAbsent(key, () async {
     final atlas = await buildAtlas(spec);
-    return _Built(buildChibiMesh(spec.outfit, lod: 1),
-        buildChibiMesh(spec.outfit, lod: 0), atlas);
+    return _Built(buildChibiMesh(spec.outfit, lod: 1, body: body),
+        buildChibiMesh(spec.outfit, lod: 0, body: body), atlas);
   });
 }
 
@@ -475,6 +488,7 @@ class Chibi3DView extends StatefulWidget {
   final double yaw;
   final double size;
   final bool hiDetail;
+  final BodyType body;
 
   const Chibi3DView({
     super.key,
@@ -482,6 +496,7 @@ class Chibi3DView extends StatefulWidget {
     required this.size,
     this.yaw = 0,
     this.hiDetail = true,
+    this.body = BodyType.canDoi,
   });
 
   @override
@@ -500,13 +515,16 @@ class _Chibi3DViewState extends State<Chibi3DView> {
   @override
   void didUpdateWidget(covariant Chibi3DView old) {
     super.didUpdateWidget(old);
-    if (!identical(old.spec, widget.spec)) _load();
+    if (!identical(old.spec, widget.spec) || old.body != widget.body) _load();
   }
 
   void _load() {
     final spec = widget.spec;
-    _build(spec).then((b) {
-      if (mounted && identical(spec, widget.spec)) setState(() => _built = b);
+    final body = widget.body;
+    _build(spec, body).then((b) {
+      if (mounted && identical(spec, widget.spec) && body == widget.body) {
+        setState(() => _built = b);
+      }
     });
   }
 

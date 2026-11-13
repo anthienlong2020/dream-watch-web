@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/clock_theme.dart';
 import '../services/app_state.dart';
+import '../three_d/body_type.dart';
 import '../services/file_saver.dart';
 import '../utils/image_utils.dart';
 import '../widgets/slot_image_view.dart';
@@ -542,6 +543,21 @@ class _DisplaySettings extends StatelessWidget {
                 'Đẹp nhất với ảnh PNG nền trong suốt. Tắt nếu máy chạy chậm.'),
             value: app.inflate3d,
             onChanged: (v) => app.update(() => app.inflate3d = v),
+          ),
+          ListTile(
+            title: const Text('Dáng 3D'),
+            subtitle: const Text('Áp dụng cho ảnh thổi phồng và Chibi 3D'),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SegmentedButton<BodyType>(
+              segments: [
+                for (final b in BodyType.values)
+                  ButtonSegment(value: b, label: Text(kBodyTypeNames[b]!)),
+              ],
+              selected: {app.bodyType},
+              onSelectionChanged: (v) => app.update(() => app.bodyType = v.first),
+            ),
           ),
           SwitchListTile(
             title: const Text('Ảnh 3D quay tròn 360°'),
