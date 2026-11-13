@@ -134,7 +134,9 @@ class ChibiMesh {
         final p = V3(c.x + r.x * ux, c.y + r.y * uy, c.z + r.z * uz);
         final n = V3(ux / r.x, uy / r.y, uz / r.z).unit;
         // Chiếu thẳng từ phía trước để lấy toạ độ trên ảnh khuôn mặt (0..256)
-        final uv = Offset(128 + ux * 128 * 1.02, 128 - uy * 128 * 1.02);
+        // Ảnh mặt chiếm khoảng 85% phần nhìn thấy phía trước; phần ngoài vòng
+        // tròn của ảnh là màu tóc, nên mép mặt - tóc luôn tròn mượt.
+        final uv = Offset(128 + ux * 128 * 1.18, 128 - uy * 128 * 1.18);
         _add(p, n, uv);
       }
     }
@@ -147,7 +149,7 @@ class ChibiMesh {
         final d = c2 + 1;
         Mat m1 = mat, m2 = mat;
         if (faceFront) {
-          bool front(int k) => verts[k].n.z > 0.18 && _localZ(verts[k].p, c, r) > 0.2;
+          bool front(int k) => _localZ(verts[k].p, c, r) > -0.02;
           m1 = (front(a) && front(c2) && front(b)) ? Mat.face : backMat;
           m2 = (front(b) && front(c2) && front(d)) ? Mat.face : backMat;
         }
@@ -456,6 +458,9 @@ class _Built {
 final Map<ChibiSpec, Future<_Built>> _cache = {};
 
 Future<_Built> _build(ChibiSpec spec) {
+  if (!_cache.containsKey(spec) && _cache.length > 40) {
+    _cache.remove(_cache.keys.first); // giới hạn bộ nhớ đệm
+  }
   return _cache.putIfAbsent(spec, () async {
     final atlas = await buildAtlas(spec);
     return _Built(buildChibiMesh(spec.outfit, lod: 1),
@@ -511,12 +516,14 @@ class _Chibi3DViewState extends State<Chibi3DView> {
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: CustomPaint(
+      child: RepaintBoundary(
+        child: CustomPaint(
         painter: _Chibi3DPainter(
           mesh: widget.hiDetail ? b.hi : b.lo,
           atlas: b.atlas,
           yaw: widget.yaw,
         ),
+      ),
       ),
     );
   }

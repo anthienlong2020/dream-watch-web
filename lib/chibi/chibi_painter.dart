@@ -299,6 +299,42 @@ Future<Color> sampleSkinColor(ui.Image photo, FaceCrop crop) async {
   return Color.fromARGB(255, r ~/ count, g ~/ count, b ~/ count);
 }
 
+/// Màu tóc: lấy trung bình dải trên cùng của khung mặt.
+Future<Color> sampleHairColor(ui.Image photo, FaceCrop crop) async {
+  const n = 48;
+  final rec = ui.PictureRecorder();
+  final canvas = Canvas(rec);
+  paintFaceCircle(canvas, photo, crop, const Offset(n / 2, n / 2), n / 2);
+  final img = await rec.endRecording().toImage(n, n);
+  final data = await img.toByteData(format: ui.ImageByteFormat.rawRgba);
+  img.dispose();
+  if (data == null) return const Color(0xFF3E2723);
+  var r = 0, g = 0, b = 0, count = 0;
+  for (var y = (n * 0.04).round(); y < (n * 0.16).round(); y++) {
+    for (var x = (n * 0.35).round(); x < (n * 0.65).round(); x++) {
+      final i = (y * n + x) * 4;
+      if (data.getUint8(i + 3) < 200) continue;
+      r += data.getUint8(i);
+      g += data.getUint8(i + 1);
+      b += data.getUint8(i + 2);
+      count++;
+    }
+  }
+  if (count == 0) return const Color(0xFF3E2723);
+  return Color.fromARGB(255, r ~/ count, g ~/ count, b ~/ count);
+}
+
+/// Ảnh khuôn mặt hình tròn (PNG vuông [size]) để dán lên đầu Chibi 3D.
+Future<Uint8List> renderFacePng(ui.Image photo, FaceCrop crop, {int size = 256}) async {
+  final rec = ui.PictureRecorder();
+  final canvas = Canvas(rec);
+  paintFaceCircle(canvas, photo, crop, Offset(size / 2, size / 2), size / 2);
+  final img = await rec.endRecording().toImage(size, size);
+  final data = await img.toByteData(format: ui.ImageByteFormat.png);
+  img.dispose();
+  return data!.buffer.asUint8List();
+}
+
 // =====================================================================
 // Xuất PNG nền trong suốt
 // =====================================================================

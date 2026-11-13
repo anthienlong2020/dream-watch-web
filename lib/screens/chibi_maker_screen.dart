@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -5,11 +6,20 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../chibi/chibi3d.dart';
 import '../chibi/chibi_painter.dart';
+import '../widgets/tick_builder.dart';
+
+/// Kết quả tạo Chibi: ảnh phẳng (để làm hình thu nhỏ) + thông tin dựng 3D.
+class ChibiResult {
+  final Uint8List png;
+  final ChibiSpec spec;
+  const ChibiResult(this.png, this.spec);
+}
 
 /// Màn hình tạo nhân vật Chibi từ ảnh người:
 /// 1) chọn ảnh, 2) kéo/phóng để khoanh khuôn mặt, 3) chọn trang phục + màu.
-/// Kết quả trả về là ảnh PNG nền trong suốt (Navigator.pop).
+/// Kết quả trả về là [ChibiResult] (Navigator.pop).
 class ChibiMakerScreen extends StatefulWidget {
   /// Tên vị trí sẽ gắn chibi (vd "VII"), chỉ để hiển thị.
   final String slotLabel;
@@ -40,6 +50,46 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
   bool _autoSkin = true;
   bool _busy = false;
 
+  static const List<Color> _hairPresets = [
+    Color(0xFF1B1B1B), // đen
+    Color(0xFF3E2723), // nâu đen
+    Color(0xFF6D4C41), // nâu
+    Color(0xFFC8A165), // vàng
+    Color(0xFF9E9E9E), // bạc
+    Color(0xFFE91E63), // hồng
+  ];
+  Color _hair = _hairPresets[1];
+  bool _autoHair = true;
+
+  Uint8List? _facePng; // ảnh mặt tròn để dán lên Chibi 3D
+  ChibiSpec? _spec;
+  double _dragYaw = 0;
+  bool _dragging = false;
+
+  void _rebuildSpec() {
+    final f = _facePng;
+    if (f == null) return;
+    _spec = ChibiSpec(
+        face: f, outfit: _outfit, outfitColor: _color, skin: _skin, hair: _hair);
+  }
+
+  /// Gọi khi khung mặt thay đổi xong: tạo lại ảnh mặt + màu da/tóc tự động.
+  Future<void> _refreshFace() async {
+    final p = _photo;
+    if (p == null) return;
+    final crop = _crop;
+    final face = await renderFacePng(p, crop);
+    final skin = _autoSkin ? await sampleSkinColor(p, crop) : _skin;
+    final hair = _autoHair ? await sampleHairColor(p, crop) : _hair;
+    if (!mounted) return;
+    setState(() {
+      _facePng = face;
+      _skin = skin;
+      _hair = hair;
+      _rebuildSpec();
+    });
+  }
+
   FaceCrop get _crop => FaceCrop(zoom: _zoom, offset: _offset, viewport: _viewport);
 
   @override
@@ -61,7 +111,7 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
         _zoom = 1.6; // mặt thường chiếm phần giữa ảnh
         _offset = Offset.zero;
       });
-      await _updateSkin();
+      await _refreshFace();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -72,20 +122,16 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
     }
   }
 
-  Future<void> _updateSkin() async {
-    final p = _photo;
-    if (p == null || !_autoSkin) return;
-    final c = await sampleSkinColor(p, _crop);
-    if (mounted) setState(() => _skin = c);
-  }
-
   Future<void> _done() async {
     final p = _photo;
     if (p == null) return;
     setState(() => _busy = true);
     final png = await renderChibiPng(
         photo: p, crop: _crop, outfit: _outfit, color: _color, skin: _skin);
-    if (mounted) Navigator.pop<Uint8List>(context, png);
+    final face = _facePng ?? await renderFacePng(p, _crop);
+    final spec = ChibiSpec(
+        face: face, outfit: _outfit, outfitColor: _color, skin: _skin, hair: _hair);
+    if (mounted) Navigator.pop<ChibiResult>(context, ChibiResult(png, spec));
   }
 
   @override
@@ -154,7 +200,7 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
               if (e is PointerScrollEvent) {
                 setState(() => _zoom = (_zoom * (e.scrollDelta.dy > 0 ? 0.92 : 1.08))
                     .clamp(1.0, 8.0));
-                _updateSkin();
+                _refreshFace();
               }
             },
             child: GestureDetector(
@@ -163,7 +209,7 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
                 _zoom = (_startZoom * d.scale).clamp(1.0, 8.0);
                 _offset += d.focalPointDelta;
               }),
-              onScaleEnd: (_) => _updateSkin(),
+              onScaleEnd: (_) => _refreshFace(),
               child: SizedBox(
                 width: _viewport,
                 height: _viewport,
@@ -181,7 +227,7 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
                 min: 1,
                 max: 8,
                 onChanged: (v) => setState(() => _zoom = v),
-                onChangeEnd: (_) => _updateSkin(),
+                onChangeEnd: (_) => _refreshFace(),
               ),
             ),
             const Icon(Icons.zoom_in, size: 20),
@@ -197,15 +243,10 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
         const Text('2. Trang phục',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
-        Center(
-          child: SizedBox(
-            width: 220,
-            height: 220,
-            child: CustomPaint(
-              painter: ChibiPreviewPainter(
-                  photo: photo, crop: _crop, outfit: _outfit, color: _color, skin: _skin),
-            ),
-          ),
+        Center(child: _preview3d()),
+        const Center(
+          child: Text('Vuốt ngang để xoay xem các góc',
+              style: TextStyle(fontSize: 12, color: Colors.white54)),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -216,14 +257,20 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
               ChoiceChip(
                 label: Text(kOutfitNames[o]!),
                 selected: _outfit == o,
-                onSelected: (_) => setState(() => _outfit = o),
+                onSelected: (_) => setState(() {
+                  _outfit = o;
+                  _rebuildSpec();
+                }),
               ),
           ],
         ),
         const SizedBox(height: 14),
         const Text('Màu trang phục'),
         const SizedBox(height: 6),
-        _colorRow(kOutfitColors, _color, (c) => setState(() => _color = c)),
+        _colorRow(kOutfitColors, _color, (c) => setState(() {
+              _color = c;
+              _rebuildSpec();
+            })),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -234,7 +281,7 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
               selected: _autoSkin,
               onSelected: (v) {
                 setState(() => _autoSkin = v);
-                _updateSkin();
+                _refreshFace();
               },
             ),
           ],
@@ -244,10 +291,55 @@ class _ChibiMakerScreenState extends State<ChibiMakerScreen> {
           setState(() {
             _autoSkin = false;
             _skin = c;
+            _rebuildSpec();
+          });
+        }),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            const Text('Màu tóc (sau đầu)'),
+            const Spacer(),
+            FilterChip(
+              label: const Text('Tự động'),
+              selected: _autoHair,
+              onSelected: (v) {
+                setState(() => _autoHair = v);
+                _refreshFace();
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        _colorRow(_hairPresets, _autoHair ? null : _hair, (c) {
+          setState(() {
+            _autoHair = false;
+            _hair = c;
+            _rebuildSpec();
           });
         }),
         const SizedBox(height: 24),
       ],
+    );
+  }
+
+  Widget _preview3d() {
+    final spec = _spec;
+    if (spec == null) {
+      return const SizedBox(
+          width: 240, height: 240, child: Center(child: CircularProgressIndicator()));
+    }
+    return GestureDetector(
+      onHorizontalDragStart: (_) => _dragging = true,
+      onHorizontalDragUpdate: (d) => setState(() => _dragYaw += d.delta.dx / 60),
+      onHorizontalDragEnd: (_) => _dragging = false,
+      child: TickBuilder(
+        interval: const Duration(milliseconds: 33),
+        builder: (_) {
+          final t = DateTime.now().millisecondsSinceEpoch / 1000.0;
+          final yaw = _dragging ? _dragYaw : _dragYaw + 0.6 * math.sin(t * 0.8);
+          return Chibi3DView(spec: spec, size: 240, yaw: yaw, hiDetail: true);
+        },
+      ),
     );
   }
 

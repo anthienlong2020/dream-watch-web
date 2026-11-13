@@ -77,7 +77,7 @@ class _ThemePicker extends StatelessWidget {
     final themes = [
       buildDinoTheme(),
       buildZodiacTheme(),
-      buildCustomTheme(app.customImages),
+      buildCustomTheme(app.customImages, app.customChibi),
     ];
     return Column(
       children: [
@@ -219,15 +219,15 @@ class _CustomImagesEditorState extends State<_CustomImagesEditor> {
         await app.setCustomImage(index, null);
         break;
       case 'chibi':
-        final png = await Navigator.push<Uint8List>(
+        final res = await Navigator.push<ChibiResult>(
           context,
           MaterialPageRoute(
             builder: (_) =>
                 ChibiMakerScreen(slotLabel: kRoman[index].toUpperCase()),
           ),
         );
-        if (png != null) {
-          final ok = await app.setCustomImage(index, png);
+        if (res != null) {
+          final ok = await app.setCustomImage(index, res.png, chibi: res.spec);
           if (!ok) _toast('Không lưu được (bộ nhớ đầy?).');
         }
         break;
@@ -281,7 +281,7 @@ class _CustomImagesEditorState extends State<_CustomImagesEditor> {
   }
 
   Widget _build(BuildContext context) {
-    final theme = buildCustomTheme(app.customImages);
+    final theme = buildCustomTheme(app.customImages, app.customChibi);
     const order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0];
     return Card(
       child: Padding(

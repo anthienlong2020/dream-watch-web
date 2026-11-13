@@ -130,17 +130,11 @@ class _DreamClockState extends State<DreamClock>
       final a = i * math.pi / 6;
       final x = cx + ringR * math.sin(a);
       final y = cy - ringR * math.cos(a);
-      Widget img = SlotImageView(image: widget.theme.slot(i), size: slotSize);
-      if (i == hSlot) {
-        img = Extruded3D(
-          size: slotSize,
-          angleY: swingAngleAt(
-              swingPhase(widget.scaledMs(ms, widget.hourSpeed), 9000)),
-          depth: 0.14,
-          layers: 6,
-          child: img,
-        );
-      }
+      final Widget img = i == hSlot
+          ? _turning(widget.theme.slot(i), slotSize,
+              swingAngleAt(swingPhase(widget.scaledMs(ms, widget.hourSpeed), 9000)))
+          // Chibi 3D đứng yên hơi nghiêng 3/4 cho thấy khối
+          : SlotImageView(image: widget.theme.slot(i), size: slotSize, yaw: 0.35);
       children.add(Positioned(
         left: x - slotSize / 2,
         top: y - slotSize / 2,
@@ -172,10 +166,26 @@ class _DreamClockState extends State<DreamClock>
       top: ry + oy - runnerSize / 2,
       width: runnerSize,
       height: runnerSize,
-      child: SlotImageView(image: widget.theme.slot(mSlot), size: runnerSize),
+      // Chibi 3D quay mặt theo hướng chạy
+      child: SlotImageView(
+          image: widget.theme.slot(mSlot), size: runnerSize, yaw: 0.8 * math.cos(a)),
     ));
 
     return Stack(clipBehavior: Clip.none, children: children);
+  }
+
+  /// Hình đang xoay: Chibi 3D thì quay thật, ảnh phẳng thì dùng khối dày 2.5D.
+  Widget _turning(SlotImage img, double size, double angle, {bool hi = false}) {
+    if (img.chibi != null) {
+      return SlotImageView(image: img, size: size, yaw: angle, hiDetail: hi);
+    }
+    return Extruded3D(
+      size: size,
+      angleY: angle,
+      depth: hi ? 0.12 : 0.14,
+      layers: hi ? 10 : 6,
+      child: SlotImageView(image: img, size: size),
+    );
   }
 
   /// Hình phút: nhảy tới lui giữa mốc 5 phút vừa qua và phút hiện tại.
@@ -214,18 +224,13 @@ class _DreamClockState extends State<DreamClock>
     // Nhún nhẹ khi chạm đất
     final squash = 1.0 + 0.05 * math.cos(frac * 2 * math.pi);
 
-    Widget img = SlotImageView(image: widget.theme.slot(mSlot), size: slotSize);
+    final slotImg = widget.theme.slot(mSlot);
+    Widget img = SlotImageView(image: slotImg, size: slotSize, yaw: backward ? -0.6 : 0.6);
     if (mSlot == hSlot) {
       // Vừa là hình giờ vừa là hình phút: vừa đung đưa vừa nhảy
-      img = Extruded3D(
-        size: slotSize,
-        angleY: swingAngleAt(
-            swingPhase(widget.scaledMs(realMs, widget.hourSpeed), 9000)),
-        depth: 0.14,
-        layers: 6,
-        child: img,
-      );
-    } else if (backward) {
+      img = _turning(slotImg, slotSize,
+          swingAngleAt(swingPhase(widget.scaledMs(realMs, widget.hourSpeed), 9000)));
+    } else if (backward && slotImg.chibi == null) {
       // Quay đầu khi nhảy về
       img = Transform(
         alignment: Alignment.center,
@@ -259,13 +264,7 @@ class _DreamClockState extends State<DreamClock>
       height: size,
       child: Transform.scale(
         scale: scale,
-        child: Extruded3D(
-          size: size,
-          angleY: angle,
-          depth: 0.12,
-          layers: 10,
-          child: SlotImageView(image: widget.theme.slot(hSlot), size: size),
-        ),
+        child: _turning(widget.theme.slot(hSlot), size, angle, hi: true),
       ),
     );
   }

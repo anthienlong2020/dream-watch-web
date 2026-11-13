@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../chibi/chibi3d.dart';
 import '../models/alarm.dart';
 import '../models/clock_theme.dart';
 import 'sound_service.dart';
@@ -32,6 +33,9 @@ class AppState extends ChangeNotifier {
   // ---------- Giao diện ----------
   String themeId = 'khung_long';
   List<Uint8List?> customImages = List<Uint8List?>.filled(12, null);
+
+  /// Chibi 3D theo từng vị trí (null = ảnh thường).
+  List<ChibiSpec?> customChibi = List<ChibiSpec?>.filled(12, null);
   bool showTime = true;
   bool showDate = true;
   bool showRoman = true;
@@ -130,6 +134,16 @@ class AppState extends ChangeNotifier {
       } catch (_) {}
     }
 
+    final rawChibi = _prefs.getString('customChibi');
+    if (rawChibi != null) {
+      try {
+        final list = jsonDecode(rawChibi) as List;
+        for (var i = 0; i < 12 && i < list.length; i++) {
+          customChibi[i] = ChibiSpec.fromJson(list[i]);
+        }
+      } catch (_) {}
+    }
+
     final rawImages = _prefs.getString('customImages');
     if (rawImages != null) {
       try {
@@ -201,13 +215,18 @@ class AppState extends ChangeNotifier {
         'alarms', jsonEncode(alarms.map((a) => a.toJson()).toList()));
   }
 
-  Future<bool> _saveImages() {
-    return _prefs.setString(
+  Future<bool> _saveImages() async {
+    final ok = await _prefs.setString(
       'customImages',
       jsonEncode(customImages
           .map((b) => b == null ? null : base64Encode(b))
           .toList()),
     );
+    final ok2 = await _prefs.setString(
+      'customChibi',
+      jsonEncode(customChibi.map((c) => c?.toJson()).toList()),
+    );
+    return ok && ok2;
   }
 
   /// Gọi khi đổi bất kỳ cài đặt nào.
@@ -249,15 +268,16 @@ class AppState extends ChangeNotifier {
       case 'con_giap':
         return buildZodiacTheme();
       case 'tu_chon':
-        return buildCustomTheme(customImages);
+        return buildCustomTheme(customImages, customChibi);
       default:
         return buildDinoTheme();
     }
   }
 
   /// Đặt ảnh cho một vị trí (0 = XII). Trả về false nếu lưu thất bại (đầy bộ nhớ).
-  Future<bool> setCustomImage(int index, Uint8List? bytes) async {
+  Future<bool> setCustomImage(int index, Uint8List? bytes, {ChibiSpec? chibi}) async {
     customImages[index] = bytes;
+    customChibi[index] = chibi;
     themeId = 'tu_chon';
     _saveSettings();
     notifyListeners();
@@ -269,7 +289,10 @@ class AppState extends ChangeNotifier {
   }
 
   Future<bool> setManyCustomImages(Map<int, Uint8List> images) async {
-    images.forEach((i, b) => customImages[i] = b);
+    images.forEach((i, b) {
+      customImages[i] = b;
+      customChibi[i] = null;
+    });
     themeId = 'tu_chon';
     _saveSettings();
     notifyListeners();
@@ -347,6 +370,7 @@ class AppState extends ChangeNotifier {
       'settings': _settingsMap(),
       'customImages':
           customImages.map((b) => b == null ? null : base64Encode(b)).toList(),
+      'customChibi': customChibi.map((c) => c?.toJson()).toList(),
       'backgrounds': backgrounds.map(base64Encode).toList(),
       if (withAlarms) 'alarms': alarms.map((a) => a.toJson()).toList(),
     };
@@ -376,6 +400,9 @@ class AppState extends ChangeNotifier {
       final v = i < imgs.length ? imgs[i] : null;
       return v is String ? base64Decode(v) : null;
     });
+    final chibiList = (data['customChibi'] as List?) ?? const [];
+    customChibi = List<ChibiSpec?>.generate(
+        12, (i) => i < chibiList.length ? ChibiSpec.fromJson(chibiList[i]) : null);
 
     final alarmList = data['alarms'];
     if (alarmList is List) {
@@ -408,6 +435,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> clearCustomImages() async {
     customImages = List<Uint8List?>.filled(12, null);
+    customChibi = List<ChibiSpec?>.filled(12, null);
     notifyListeners();
     await _saveImages();
   }

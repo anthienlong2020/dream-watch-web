@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import '../chibi/chibi3d.dart';
+
 /// Một hình hiển thị trên mặt đồng hồ: ảnh do người dùng chọn (bytes),
 /// ảnh có sẵn trong app (asset), hoặc emoji dự phòng.
 class SlotImage {
@@ -7,7 +9,10 @@ class SlotImage {
   final String? asset;
   final String emoji;
 
-  const SlotImage({this.bytes, this.asset, required this.emoji});
+  /// Nhân vật Chibi 3D (nếu có thì vẽ 3D thay cho ảnh).
+  final ChibiSpec? chibi;
+
+  const SlotImage({this.bytes, this.asset, required this.emoji, this.chibi});
 }
 
 /// Một bộ chủ đề gồm 12 hình. Chỉ số 0 = vị trí XII, 1 = I, ..., 11 = XI.
@@ -73,7 +78,9 @@ ClockTheme buildZodiacTheme() => ClockTheme(
     );
 
 /// Chủ đề của người dùng: ô nào chưa có ảnh thì dùng emoji khủng long.
-ClockTheme buildCustomTheme(List<Uint8List?> images) => ClockTheme(
+ClockTheme buildCustomTheme(List<Uint8List?> images,
+        [List<ChibiSpec?> chibis = const []]) =>
+    ClockTheme(
       id: 'tu_chon',
       name: 'Ảnh của tôi',
       slots: List.generate(
@@ -81,6 +88,7 @@ ClockTheme buildCustomTheme(List<Uint8List?> images) => ClockTheme(
         (i) => SlotImage(
           bytes: i < images.length ? images[i] : null,
           emoji: _dinoEmoji[i],
+          chibi: i < chibis.length ? chibis[i] : null,
         ),
       ),
     );

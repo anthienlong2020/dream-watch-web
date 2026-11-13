@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../chibi/chibi3d.dart';
 import '../models/clock_theme.dart';
 
 /// Vẽ một hình của chủ đề trong khung vuông [size].
@@ -8,10 +9,26 @@ class SlotImageView extends StatelessWidget {
   final SlotImage image;
   final double size;
 
-  const SlotImageView({super.key, required this.image, required this.size});
+  /// Góc quay (chỉ dùng cho Chibi 3D).
+  final double yaw;
+
+  /// Vẽ Chibi 3D thật mịn (dùng cho hình to ở giữa).
+  final bool hiDetail;
+
+  const SlotImageView({
+    super.key,
+    required this.image,
+    required this.size,
+    this.yaw = 0,
+    this.hiDetail = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final chibi = image.chibi;
+    if (chibi != null) {
+      return Chibi3DView(spec: chibi, size: size, yaw: yaw, hiDetail: hiDetail);
+    }
     final emoji = _EmojiView(emoji: image.emoji, size: size);
     Widget child;
     final bytes = image.bytes;
