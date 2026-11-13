@@ -61,7 +61,7 @@ void main() {
     const cell = 300.0;
     final rec = ui.PictureRecorder();
     final canvas = Canvas(rec);
-    canvas.drawRect(const Rect.fromLTWH(0, 0, cell * 5, cell), Paint()..color = const Color(0xFF0B1020));
+    canvas.drawRect(const Rect.fromLTWH(0, 0, cell * 5, cell), Paint()..color = const Color(0xFF90A4AE));
     for (var i = 0; i < yaws.length; i++) {
       canvas.save();
       canvas.translate(i * cell, 0);

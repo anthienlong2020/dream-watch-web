@@ -52,7 +52,13 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
   // Lưới phân tích
   final gx = tw >= th ? grid : math.max(4, (grid * tw / th).round());
   final gy = th >= tw ? grid : math.max(4, (grid * th / tw).round());
-  final rgba = (await tex.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+  final rgba = (await tex.toByteData(format: ui.ImageByteFormat.rawStraightRgba))!;
+
+  // Lấp phần trong suốt bằng màu của hình ở sát mép (màu da con vật),
+  // để không bao giờ lộ "vết đen" khi trình duyệt vẽ phần trong suốt.
+  final padded = await _padTransparent(rgba, tw, th);
+  tex.dispose();
+  tex = padded;
 
   // Ô nào "có hình": lấy mẫu vài điểm trong ô, đủ đậm thì tính là có
   final inside = Uint8List(gx * gy);
@@ -65,13 +71,12 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
           final px = ((i + fx) / gx * tw).floor().clamp(0, tw - 1);
           final py = ((j + fy) / gy * th).floor().clamp(0, th - 1);
           final a = rgba.getUint8((py * tw + px) * 4 + 3);
-          if (a > 60) opaque++;
+          if (a > 110) opaque++;
           if (a < 40) anyTransparent = true;
         }
       }
-      // Ô chỉ cần chạm một chút hình là tính; phần trong suốt của ảnh tự
-      // "cắt" viền nên mép hình mượt theo đúng nét ảnh, không bị răng cưa.
-      inside[j * gx + i] = opaque >= 1 ? 1 : 0;
+      // Ô có khoảng 1/3 diện tích là hình thì tính là "có hình".
+      inside[j * gx + i] = opaque >= 5 ? 1 : 0;
     }
   }
   if (!anyTransparent) {
@@ -140,6 +145,39 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
     }
   }
 
+  // Làm mượt đường viền: các đỉnh ở mép được kéo về trung bình với
+  // các đỉnh mép bên cạnh, để viền không bị bậc thang theo ô lưới.
+  final nodeX = Float64List(nx * ny), nodeY = Float64List(nx * ny);
+  for (var j = 0; j < ny; j++) {
+    for (var i = 0; i < nx; i++) {
+      nodeX[j * nx + i] = i.toDouble();
+      nodeY[j * nx + i] = j.toDouble();
+    }
+  }
+  bool isEdge(int i, int j) =>
+      i >= 0 && j >= 0 && i < nx && j < ny && used[j * nx + i] == 1 && nodeH[j * nx + i] == 0;
+  for (var pass = 0; pass < 3; pass++) {
+    final ox = Float64List.fromList(nodeX), oy = Float64List.fromList(nodeY);
+    for (var j = 0; j < ny; j++) {
+      for (var i = 0; i < nx; i++) {
+        if (!isEdge(i, j)) continue;
+        var sx = 0.0, sy = 0.0, c = 0;
+        for (var dj = -1; dj <= 1; dj++) {
+          for (var di = -1; di <= 1; di++) {
+            if ((di == 0 && dj == 0) || !isEdge(i + di, j + dj)) continue;
+            sx += ox[(j + dj) * nx + i + di];
+            sy += oy[(j + dj) * nx + i + di];
+            c++;
+          }
+        }
+        if (c < 2) continue;
+        final k = j * nx + i;
+        nodeX[k] = ox[k] * 0.5 + (sx / c) * 0.5;
+        nodeY[k] = oy[k] * 0.5 + (sy / c) * 0.5;
+      }
+    }
+  }
+
   // Quy đổi sang toạ độ mô hình: cạnh dài = 2 đơn vị, tâm ở gốc
   final cs = 2.0 / math.max(gx, gy);
   double hAt(int i, int j) {
@@ -156,12 +194,13 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
   for (var j = 0; j < ny; j++) {
     for (var i = 0; i < nx; i++) {
       if (used[j * nx + i] == 0) continue;
-      final x = (i - gx / 2) * cs;
-      final y = -(j - gy / 2) * cs;
+      final gxp = nodeX[j * nx + i], gyp = nodeY[j * nx + i];
+      final x = (gxp - gx / 2) * cs;
+      final y = -(gyp - gy / 2) * cs;
       final h = nodeH[j * nx + i] * cs;
       final hx = (hAt(i + 1, j) - hAt(i - 1, j)) / 2; // theo ô
       final hy = (hAt(i, j - 1) - hAt(i, j + 1)) / 2; // y hướng lên
-      final u = i / gx * tw, v = j / gy * th;
+      final u = gxp / gx * tw, v = gyp / gy * th;
       for (final side in const [1.0, -1.0]) {
         var nX = -hx * side, nY = -hy * side, nZ = side;
         final l = math.sqrt(nX * nX + nY * nY + nZ * nZ);
@@ -203,6 +242,59 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
         Float32List.fromList(uvs), Uint32List.fromList(tris), Uint8List.fromList(back)),
     tex,
   );
+}
+
+/// Tô màu cho các điểm ảnh trong suốt bằng màu của điểm có hình gần nhất
+/// (loang dần từ mép ra ngoài), rồi làm ảnh đặc hoàn toàn.
+Future<ui.Image> _padTransparent(ByteData src, int w, int h) async {
+  final n = w * h;
+  final out = Uint8List(n * 4);
+  final filled = Uint8List(n);
+  final queue = Int32List(n);
+  var head = 0, tail = 0;
+  for (var k = 0; k < n; k++) {
+    final a = src.getUint8(k * 4 + 3);
+    if (a >= 128) {
+      out[k * 4] = src.getUint8(k * 4);
+      out[k * 4 + 1] = src.getUint8(k * 4 + 1);
+      out[k * 4 + 2] = src.getUint8(k * 4 + 2);
+      out[k * 4 + 3] = 255;
+      filled[k] = 1;
+      queue[tail++] = k;
+    }
+  }
+  if (tail == 0) {
+    // Ảnh trong suốt hoàn toàn: tô xám
+    for (var k = 0; k < n; k++) {
+      out[k * 4] = out[k * 4 + 1] = out[k * 4 + 2] = 128;
+      out[k * 4 + 3] = 255;
+    }
+  }
+  while (head < tail) {
+    final k = queue[head++];
+    final x = k % w, y = k ~/ w;
+    for (var d = 0; d < 4; d++) {
+      final nx2 = x + (d == 0 ? 1 : d == 1 ? -1 : 0);
+      final ny2 = y + (d == 2 ? 1 : d == 3 ? -1 : 0);
+      if (nx2 < 0 || ny2 < 0 || nx2 >= w || ny2 >= h) continue;
+      final q = ny2 * w + nx2;
+      if (filled[q] == 1) continue;
+      filled[q] = 1;
+      out[q * 4] = out[k * 4];
+      out[q * 4 + 1] = out[k * 4 + 1];
+      out[q * 4 + 2] = out[k * 4 + 2];
+      out[q * 4 + 3] = 255;
+      queue[tail++] = q;
+    }
+  }
+  final buffer = await ui.ImmutableBuffer.fromUint8List(out);
+  final desc = ui.ImageDescriptor.raw(buffer,
+      width: w, height: h, pixelFormat: ui.PixelFormat.rgba8888);
+  final codec = await desc.instantiateCodec();
+  final img = (await codec.getNextFrame()).image;
+  desc.dispose();
+  buffer.dispose();
+  return img;
 }
 
 /// Vẽ khối phồng ở góc [yaw], vừa khung [size].

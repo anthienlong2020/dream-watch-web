@@ -23,6 +23,9 @@ class DreamClock extends StatefulWidget {
   /// Thổi phồng ảnh thường thành khối 3D.
   final bool inflate3d;
 
+  /// Ảnh 3D (Chibi / thổi phồng) ở vị trí giờ và ở giữa quay tròn 360°.
+  final bool spin360;
+
   /// Hệ số tốc độ: 1.0 = mặc định, nhỏ hơn = chậm hơn.
   final double hourSpeed;
   final double minuteSpeed;
@@ -34,6 +37,7 @@ class DreamClock extends StatefulWidget {
     this.showRoman = true,
     this.showStars = true,
     this.inflate3d = true,
+    this.spin360 = true,
     this.hourSpeed = 1.0,
     this.minuteSpeed = 1.0,
     this.secondSpeed = 1.0,
@@ -136,7 +140,7 @@ class _DreamClockState extends State<DreamClock>
       final y = cy - ringR * math.cos(a);
       final Widget img = i == hSlot
           ? _turning(widget.theme.slot(i), slotSize,
-              swingAngleAt(swingPhase(widget.scaledMs(ms, widget.hourSpeed), 9000)))
+              _hourAngle(widget.theme.slot(i), ms))
           // Chibi 3D đứng yên hơi nghiêng 3/4 cho thấy khối
           : SlotImageView(
               image: widget.theme.slot(i),
@@ -183,6 +187,19 @@ class _DreamClockState extends State<DreamClock>
     ));
 
     return Stack(clipBehavior: Clip.none, children: children);
+  }
+
+  /// Ảnh này có quay 360° không (chỉ ảnh 3D, khi bật tuỳ chọn).
+  bool _spins(SlotImage img) =>
+      widget.spin360 &&
+      (img.chibi != null || (widget.inflate3d && SlotImageView.canInflate(img)));
+
+  /// Góc của ảnh giờ: ảnh 3D quay 360°, ảnh phẳng đung đưa 3/4.
+  double _hourAngle(SlotImage img, int realMs) {
+    final ms = widget.scaledMs(realMs, widget.hourSpeed);
+    return _spins(img)
+        ? spinAngleAt(swingPhase(ms, 12000))
+        : swingAngleAt(swingPhase(ms, 9000));
   }
 
   /// Hình đang xoay: Chibi 3D thì quay thật, ảnh phẳng thì dùng khối dày 2.5D.
@@ -247,7 +264,7 @@ class _DreamClockState extends State<DreamClock>
     if (mSlot == hSlot) {
       // Vừa là hình giờ vừa là hình phút: vừa đung đưa vừa nhảy
       img = _turning(slotImg, slotSize,
-          swingAngleAt(swingPhase(widget.scaledMs(realMs, widget.hourSpeed), 9000)));
+          _hourAngle(slotImg, realMs));
     } else if (backward && !is3d) {
       // Quay đầu khi nhảy về
       img = Transform(
@@ -271,9 +288,18 @@ class _DreamClockState extends State<DreamClock>
     // Góc xoay và độ phóng to dùng CHUNG một pha nên luôn khớp nhau:
     // nhìn thẳng thì to nhất, nghiêng 3/4 thì nhỏ lại.
     final ms = widget.scaledMs(now.millisecondsSinceEpoch, widget.hourSpeed);
-    final phase = swingPhase(ms, 14000);
-    final angle = swingAngleAt(phase, maxAngle: 0.65);
-    final scale = swingZoomAt(phase, amount: 0.14);
+    final img = widget.theme.slot(hSlot);
+    final double angle;
+    final double scale;
+    if (_spins(img)) {
+      // Ảnh 3D: quay tròn 360°, to nhất khi quay mặt trước ra
+      angle = spinAngleAt(swingPhase(ms, 16000));
+      scale = spinZoomAt(angle, amount: 0.14);
+    } else {
+      final phase = swingPhase(ms, 14000);
+      angle = swingAngleAt(phase, maxAngle: 0.65);
+      scale = swingZoomAt(phase, amount: 0.14);
+    }
 
     return Positioned(
       left: cx - size / 2,

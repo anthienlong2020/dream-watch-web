@@ -105,6 +105,15 @@ double swingPhase(int epochMs, int periodMs) =>
 double swingAngleAt(double phase, {double maxAngle = 0.7}) =>
     maxAngle * math.sin(phase * 2 * math.pi);
 
+/// Góc quay tròn 360° cho ảnh 3D: chậm lại khi quay mặt trước ra người xem,
+/// nhanh hơn khi đi qua phía sau, để mặt trước được ngắm lâu hơn.
+double spinAngleAt(double phase) =>
+    2 * math.pi * phase - 0.6 * math.sin(2 * math.pi * phase);
+
+/// Phóng to khớp với góc quay: to nhất khi nhìn thẳng mặt trước.
+double spinZoomAt(double angle, {double amount = 0.12}) =>
+    1.0 + amount * (1 + math.cos(angle)) / 2;
+
 /// Phóng to khớp với đung đưa: to nhất khi nhìn thẳng, nhỏ lại ở góc 3/4.
 double swingZoomAt(double phase, {double amount = 0.12}) =>
     1.0 + amount * (1 + math.cos(phase * 4 * math.pi)) / 2;
