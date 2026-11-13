@@ -136,7 +136,7 @@ class ChibiMesh {
         // Chiếu thẳng từ phía trước để lấy toạ độ trên ảnh khuôn mặt (0..256)
         // Ảnh mặt chiếm khoảng 85% phần nhìn thấy phía trước; phần ngoài vòng
         // tròn của ảnh là màu tóc, nên mép mặt - tóc luôn tròn mượt.
-        final uv = Offset(128 + ux * 128 * 1.18, 128 - uy * 128 * 1.18);
+        final uv = Offset(160 + ux * 128 * 1.18, 160 - uy * 128 * 1.18);
         _add(p, n, uv);
       }
     }
@@ -280,14 +280,15 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1}) {
 }
 
 // ---------------------------------------------------------------------
-// Ảnh atlas: ô trái 256x256 là khuôn mặt, bên phải là các ô màu
+// Ảnh atlas: ô trái 320x320 (khuôn mặt 256 ở giữa, viền màu tóc),
+// bên phải là các ô màu
 // ---------------------------------------------------------------------
 
 const double _sw = 64; // cạnh mỗi ô màu
 
 Offset _swatchCenter(Mat m) {
   final i = m.index - 1; // Mat.face = 0 không có ô màu
-  return Offset(256 + (i % 4) * _sw + _sw / 2, (i ~/ 4) * _sw + _sw / 2);
+  return Offset(320 + (i % 4) * _sw + _sw / 2, (i ~/ 4) * _sw + _sw / 2);
 }
 
 Future<ui.Image> buildAtlas(ChibiSpec spec) async {
@@ -297,13 +298,13 @@ Future<ui.Image> buildAtlas(ChibiSpec spec) async {
   final rec = ui.PictureRecorder();
   final canvas = Canvas(rec);
   // Nền ô mặt = màu tóc (viền ngoài vòng tròn của ảnh mặt)
-  canvas.drawRect(const Rect.fromLTWH(0, 0, 256, 256), Paint()..color = spec.hair);
+  canvas.drawRect(const Rect.fromLTWH(0, 0, 320, 320), Paint()..color = spec.hair);
   canvas.save();
-  canvas.clipPath(Path()..addOval(const Rect.fromLTWH(0, 0, 256, 256)));
+  canvas.clipPath(Path()..addOval(const Rect.fromLTWH(32, 32, 256, 256)));
   canvas.drawImageRect(
     face,
     Rect.fromLTWH(0, 0, face.width.toDouble(), face.height.toDouble()),
-    const Rect.fromLTWH(0, 0, 256, 256),
+    const Rect.fromLTWH(32, 32, 256, 256),
     Paint()..filterQuality = FilterQuality.medium,
   );
   canvas.restore();
@@ -331,7 +332,7 @@ Future<ui.Image> buildAtlas(ChibiSpec spec) async {
     canvas.drawRect(Rect.fromCenter(center: ctr, width: _sw, height: _sw), Paint()..color = col);
   });
   final pic = rec.endRecording();
-  return pic.toImage(512, 256);
+  return pic.toImage(576, 320);
 }
 
 // ---------------------------------------------------------------------
