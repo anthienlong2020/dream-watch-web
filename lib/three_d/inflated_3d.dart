@@ -269,8 +269,8 @@ void paintInflated(Canvas canvas, Size size, InflatedModel model,
       uvs[o * 2] = m.uv[vi * 2];
       uvs[o * 2 + 1] = m.uv[vi * 2 + 1];
       final rim = math.pow(1 - nzv[vi].abs(), 3).toDouble() * 0.15;
-      var l = 0.62 + 0.45 * lit[vi] + rim;
-      if (isBack) l *= 0.78;
+      var l = 0.72 + 0.36 * lit[vi] + rim;
+      if (isBack) l *= 0.86;
       final g = (l.clamp(0.0, 1.0) * 255).round();
       colors[o] = (0xFF << 24) | (g << 16) | (g << 8) | g;
       o++;
