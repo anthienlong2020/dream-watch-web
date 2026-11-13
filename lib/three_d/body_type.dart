@@ -21,9 +21,9 @@ class InflateShape {
 }
 
 const Map<BodyType, InflateShape> kInflateShapes = {
-  BodyType.om: InflateShape(0.55, 0.7, 0.92, 1.04),
+  BodyType.om: InflateShape(0.45, 0.75, 0.84, 1.07),
   BodyType.canDoi: InflateShape(0.85, 0.5, 1.0, 1.0),
-  BodyType.map: InflateShape(1.1, 0.32, 1.1, 0.97),
+  BodyType.map: InflateShape(1.25, 0.3, 1.2, 0.93),
 };
 
 /// Thông số cho Chibi 3D.
@@ -35,7 +35,7 @@ class ChibiShape {
 }
 
 const Map<BodyType, ChibiShape> kChibiShapes = {
-  BodyType.om: ChibiShape(0.78, 0.72, 1.25),
+  BodyType.om: ChibiShape(0.7, 0.65, 1.45),
   BodyType.canDoi: ChibiShape(1.0, 1.0, 1.0),
   BodyType.map: ChibiShape(1.38, 1.32, 0.85),
 };
