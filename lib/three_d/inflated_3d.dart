@@ -60,16 +60,18 @@ Future<InflatedModel> buildInflated(Uint8List bytes, {int grid = 40}) async {
   for (var j = 0; j < gy; j++) {
     for (var i = 0; i < gx; i++) {
       var opaque = 0;
-      for (final fy in const [0.25, 0.5, 0.75]) {
-        for (final fx in const [0.25, 0.5, 0.75]) {
+      for (final fy in const [0.05, 0.35, 0.65, 0.95]) {
+        for (final fx in const [0.05, 0.35, 0.65, 0.95]) {
           final px = ((i + fx) / gx * tw).floor().clamp(0, tw - 1);
           final py = ((j + fy) / gy * th).floor().clamp(0, th - 1);
           final a = rgba.getUint8((py * tw + px) * 4 + 3);
-          if (a > 110) opaque++;
+          if (a > 60) opaque++;
           if (a < 40) anyTransparent = true;
         }
       }
-      inside[j * gx + i] = opaque >= 4 ? 1 : 0;
+      // Ô chỉ cần chạm một chút hình là tính; phần trong suốt của ảnh tự
+      // "cắt" viền nên mép hình mượt theo đúng nét ảnh, không bị răng cưa.
+      inside[j * gx + i] = opaque >= 1 ? 1 : 0;
     }
   }
   if (!anyTransparent) {
