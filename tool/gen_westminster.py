@@ -50,42 +50,32 @@ def bell(freq, dur, length_scale=1.0, bright=1.0, seed=0):
     return out
 
 
-# Chuông giờ kiểu tháp đồng hồ (Big Ben): tiếng "beng" đồng sáng, đanh, gõ bằng búa sắt,
-# khác chuông chùa (tiếng ù trầm, êm, dùi gỗ). Nên giảm tiếng ù, tăng bồi âm cao + tiếng búa.
+# Chuông giờ: cùng "chất" với 4 chuông giai điệu (nghe êm, hài hoà) nhưng trầm hơn 1 quãng tám
+# (Mi3, như chuông lớn Big Ben). Giảm tiếng ù để không giống chuông chùa; không thêm tiếng búa
+# hay nén méo để khỏi chói tai.
 HOUR_PARTIALS = [
-    (0.5, 0.18, 0.9),
-    (1.0, 0.55, 0.6),
-    (1.2, 0.75, 0.45),
-    (1.5, 0.45, 0.35),
-    (2.0, 1.00, 0.40),
-    (2.52, 0.55, 0.22),
-    (3.0, 0.50, 0.20),
-    (4.0, 0.35, 0.14),
-    (5.04, 0.25, 0.10),
-    (6.1, 0.18, 0.07),
-    (7.3, 0.12, 0.05),
+    (0.5, 0.12, 0.8),
+    (1.0, 0.85, 0.55),
+    (1.183, 0.35, 0.40),
+    (1.506, 0.30, 0.30),
+    (2.0, 0.70, 0.30),
+    (2.514, 0.15, 0.18),
+    (3.011, 0.10, 0.12),
 ]
 
 
-def hour_bell(freq=164.81, dur=5.5, seed=99):
+def hour_bell(freq=164.81, dur=5.0, seed=99):
     rng = np.random.default_rng(seed)
     t = np.arange(int(SR * dur)) / SR
     out = np.zeros_like(t)
     for ratio, amp, dec in HOUR_PARTIALS:
         f = freq * ratio
-        tau = dec * 6.0
-        d = 1 + rng.uniform(0.001, 0.003)
+        tau = dec * 6.0 * (220 / freq) ** 0.35
+        d = 1 + rng.uniform(0.0008, 0.0018)
         ph = rng.uniform(0, 2 * np.pi, 2)
         out += amp * np.exp(-t / tau) * (np.sin(2 * np.pi * f * t + ph[0]) + 0.6 * np.sin(2 * np.pi * f * d * t + ph[1]))
-    # tiếng búa sắt gõ: "keng" kim loại ngắn và rõ
-    n = int(SR * 0.06)
-    tt = np.arange(n) / SR
-    clang = sum(np.sin(2 * np.pi * freq * r * tt) for r in (8.9, 11.7, 14.3, 17.8)) * np.exp(-tt / 0.012)
-    out[:n] += 0.9 * clang + 0.5 * rng.normal(0, 1, n) * np.exp(-tt / 0.004)
-    att = int(SR * 0.0015)
+    att = int(SR * 0.004)  # mở tiếng mềm, không "tách"
     out[:att] *= np.linspace(0, 1, att)
-    # nén nhẹ cho to, rõ mà không rè
-    out = np.tanh(out / np.max(np.abs(out)) * 2.2)
     return out
 
 
