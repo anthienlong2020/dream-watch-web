@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'season_theme.dart';
+import '../effects/element_effect.dart';
 
 // =====================================================================
 // Lớp hiệu ứng theme phủ lên toàn màn hình (không nhận chạm).
@@ -87,7 +88,9 @@ class ThemePainter extends CustomPainter {
           final y = h * (0.08 + 0.5 * r2) + math.sin(t * 2 + k) * unit * 0.03;
           canvas.save();
           canvas.translate(x, y);
-          if (dir < 0) canvas.scale(-1, 1);
+          // emoji con vật mặc định quay mặt sang trái → lật khi bay sang phải
+          final faceLeft = l.shape == Shape.emoji;
+          if ((dir < 0) != faceLeft) canvas.scale(-1, 1);
           _shape(canvas, l, Offset.zero, sz, col, t * 8 + k, seed);
           canvas.restore();
           break;
@@ -211,7 +214,18 @@ class ThemePainter extends CustomPainter {
   /// Dải cực quang uốn lượn như rèm sáng ở nửa trên màn hình.
   void _aurora(Canvas canvas, Size size, Layer l, int k, double unit) {
     final w = size.width, h = size.height;
-    final col = l.colors[k % l.colors.length];
+    // 12 màu trong danh sách Màu, xếp theo vòng sắc độ; các dải cạnh nhau lệch 5 bậc
+    // (~150°) nên luôn tương phản, cả dàn đổi màu lần lượt mỗi ~6 giây.
+    const order = [
+      ElemColor.vang, ElemColor.cam, ElemColor.doo, ElemColor.hong, ElemColor.tim, ElemColor.lam,
+      ElemColor.lucBao, ElemColor.ngocBich, ElemColor.bacHa, ElemColor.trongSuot, ElemColor.bachKim,
+      ElemColor.cauVong,
+    ];
+    final cx = t / 6;
+    final ci = cx.floor();
+    final f = Curves.easeInOut.transform(cx - ci);
+    Color at(int i) => elemColorValue(ElementType.none, order[i % order.length], t + k);
+    final col = Color.lerp(at(ci + k * 5), at(ci + 1 + k * 5), f)!;
     final baseY = h * (0.06 + 0.09 * k);
     final height = unit * (0.16 + 0.05 * math.sin(t * 0.3 + k));
     const steps = 48;
