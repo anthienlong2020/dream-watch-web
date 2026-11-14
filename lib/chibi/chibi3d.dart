@@ -103,6 +103,9 @@ class ChibiMesh {
   final List<MeshVert> verts = [];
   final List<MeshTri> tris = [];
 
+  /// Độ cao tâm khung hình (nhân vật cao hơn thì đặt tâm cao hơn).
+  double centerY = 1.25;
+
   /// Độ ưu tiên vẽ của từng phần (cộng vào độ sâu khi sắp xếp).
   final List<double> partBias = [];
   int _part = -1;
@@ -273,12 +276,17 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
         seg: ps, rings: pr);
   }
 
+  // Thân siêu anh hùng cao hơn: nâng đầu lên để lộ ngực, bụng
+  final headLift = hero ? 0.2 : 0.0;
+  if (hero) m.centerY = 1.36;
+
   // Cổ
   m.part();
-  m.tube(up(0, 0.84, 0), up(0, 1.0, 0), 0.13 * l, 0.13 * l, Mat.skin, seg: ps, capA: false, capB: false);
+  m.tube(up(0, 0.84, 0), up(0, 1.0 + headLift, 0), (male(outfit) ? 0.16 : 0.12) * l, 0.13 * l, Mat.skin,
+      seg: ps, capA: false, capB: false);
 
   // Đầu (mặt trước dán ảnh khuôn mặt, phần còn lại màu tóc)
-  final headC = up(0, 1.66, 0);
+  final headC = up(0, 1.66 + headLift, 0);
   const headR = V3(0.9, 0.84, 0.84);
   m.part(headBias);
   m.ellipsoid(headC, headR, Mat.hair, seg: hs, rings: hr, faceFront: true);
@@ -305,6 +313,8 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
   }
   return m;
 }
+
+bool male(ChibiOutfit o) => o == ChibiOutfit.heroNam;
 
 /// Thân siêu anh hùng: [male] = nam lực lưỡng (vai rộng, ngực nở, bụng 6 múi,
 /// áo choàng); nữ = dáng đồng hồ cát (ngực, eo thon, hông), chân dài, vòng tay vàng.
@@ -487,7 +497,7 @@ void paintChibi3D(Canvas canvas, Size size, ChibiMesh mesh, ui.Image atlas,
   final scale = s / 2.75;
   final cx = size.width / 2;
   final cy = size.height / 2;
-  const centerY = 1.25;
+  final centerY = mesh.centerY;
   const camDist = 7.0;
   final light = _light.unit;
 
