@@ -57,6 +57,7 @@ class ClockScreen extends StatelessWidget {
                         bodies: app.resolvedBodies,
                         elements: app.resolvedElements,
                         effectsOn: app.effectsOn,
+                        elemColors: app.resolvedElemColors,
                         hourSpeed: app.hourSpeed,
                         minuteSpeed: app.minuteSpeed,
                         secondSpeed: app.secondSpeed,

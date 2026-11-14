@@ -42,7 +42,6 @@ void main() {
       (ImageStyle.chibi, ElementType.nuoc),
       (ImageStyle.standard, ElementType.dien),
       (ImageStyle.thoiPhong, ElementType.may),
-      (ImageStyle.chibi, ElementType.khoi),
       (ImageStyle.thoiPhong, ElementType.sap),
       (ImageStyle.standard, ElementType.dat),
       (ImageStyle.nguoiQue, ElementType.lua),
@@ -50,6 +49,9 @@ void main() {
       (ImageStyle.thoiPhong, ElementType.bongBong),
       (ImageStyle.chibi, ElementType.moc),
       (ImageStyle.phuDieu, ElementType.kim),
+      (ImageStyle.thoiPhong, ElementType.phaLe),
+      (ImageStyle.thoiPhong, ElementType.haoQuangNgan),
+      (ImageStyle.standard, ElementType.haoQuangDai),
     ];
     for (final (style, element) in configs) {
       final key = GlobalKey();
@@ -67,6 +69,9 @@ void main() {
                   styles: List.filled(12, style),
                   bodies: List.generate(12, (i) => BodyType.values[i % 3]),
                   elements: List.filled(12, element),
+                  elemColors: List.generate(12, (i) => element == ElementType.phaLe
+                      ? [ElemColor.trongSuot, ElemColor.ngocBich, ElemColor.hong, ElemColor.cauVong][i % 4]
+                      : [ElemColor.vang, ElemColor.lam, ElemColor.tim, ElemColor.bachKim][i % 4]),
                 ),
               ),
             ),

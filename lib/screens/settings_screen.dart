@@ -985,6 +985,7 @@ class _StyleSettings extends StatelessWidget {
     required Widget style,
     required Widget body,
     required Widget element,
+    Widget? color,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -999,6 +1000,8 @@ class _StyleSettings extends StatelessWidget {
               Expanded(child: element),
             ],
           ),
+          if (color != null)
+            Row(children: [const SizedBox(width: 92), Expanded(child: color)]),
         ],
       ),
     );
@@ -1026,7 +1029,8 @@ class _StyleSettings extends StatelessWidget {
                   'với biểu tượng, huy hiệu. '
                   'Chibi 3D: ảnh làm mặt trên thân chibi (con vật thành "thú chibi"). '
                   'Người que: ảnh làm đầu trên thân người que.\n'
-                  'Hệ – Lửa, Nước, Điện: đổi chất liệu và thêm hiệu ứng động quanh hình.',
+                  'Hệ – đổi chất liệu và thêm hiệu ứng động quanh hình. Tượng pha lê và '
+                  'Hào quang có thêm lựa chọn màu.',
                   style: TextStyle(fontSize: 12.5, color: Colors.white60),
                 ),
                 SwitchListTile(
@@ -1048,6 +1052,11 @@ class _StyleSettings extends StatelessWidget {
                   element: _drop<ElementType>(app.defaultElement, ElementType.values,
                       (v) => 'Hệ: ${kElementNames[v]!}',
                       (v) => app.update(() => app.defaultElement = v)),
+                  color: elementHasColor(app.defaultElement)
+                      ? _drop<ElemColor>(app.defaultElemColor, ElemColor.values,
+                          (v) => 'Màu: ${kElemColorNames[v]!}',
+                          (v) => app.update(() => app.defaultElemColor = v))
+                      : null,
                 ),
                 const Divider(),
                 for (final i in order)
@@ -1071,6 +1080,11 @@ class _StyleSettings extends StatelessWidget {
                     element: _drop<ElementType?>(app.slotElement[i], elemsN,
                         (v) => v == null ? 'Hệ: mặc định' : 'Hệ: ${kElementNames[v]!}',
                         (v) => app.update(() => app.slotElement[i] = v)),
+                    color: elementHasColor(app.slotElement[i] ?? app.defaultElement)
+                        ? _drop<ElemColor?>(app.slotElemColor[i], <ElemColor?>[null, ...ElemColor.values],
+                            (v) => v == null ? 'Màu: mặc định' : 'Màu: ${kElemColorNames[v]!}',
+                            (v) => app.update(() => app.slotElemColor[i] = v))
+                        : null,
                   ),
                 Align(
                   alignment: Alignment.centerRight,
@@ -1079,6 +1093,7 @@ class _StyleSettings extends StatelessWidget {
                       app.slotStyle = List<ImageStyle?>.filled(12, null);
                       app.slotBody = List<BodyType?>.filled(12, null);
                       app.slotElement = List<ElementType?>.filled(12, null);
+                      app.slotElemColor = List<ElemColor?>.filled(12, null);
                     }),
                     child: const Text('Đưa tất cả về mặc định'),
                   ),

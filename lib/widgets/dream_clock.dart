@@ -37,6 +37,9 @@ class DreamClock extends StatefulWidget {
   /// Bật/tắt toàn bộ hiệu ứng hệ (tắt khi máy yếu).
   final bool effectsOn;
 
+  /// Màu của hệ (Pha lê / Hào quang) theo từng vị trí.
+  final List<ElemColor> elemColors;
+
   /// Hệ số tốc độ: 1.0 = mặc định, nhỏ hơn = chậm hơn.
   final double hourSpeed;
   final double minuteSpeed;
@@ -52,6 +55,7 @@ class DreamClock extends StatefulWidget {
     this.bodies = const [],
     this.elements = const [],
     this.effectsOn = true,
+    this.elemColors = const [],
     this.hourSpeed = 1.0,
     this.minuteSpeed = 1.0,
     this.secondSpeed = 1.0,
@@ -236,6 +240,7 @@ class _DreamClockState extends State<DreamClock>
       edgeSource: edgeSrc,
       full: full,
       seed: i,
+      color: i < widget.elemColors.length ? widget.elemColors[i] : ElemColor.tuDong,
       child: child,
     );
   }
@@ -355,6 +360,11 @@ class _DreamClockState extends State<DreamClock>
       angle = swingAngleAt(phase, maxAngle: 0.65);
       scale = swingZoomAt(phase, amount: 0.14);
     }
+    // Cứ 32 giây (ở tốc độ Vừa) phóng to rõ rệt trong 8 giây rồi thu về,
+    // đỉnh phóng to rơi đúng lúc ảnh quay mặt trước ra.
+    final d = ((ms + 4000) % 32000) / 8000;
+    final bump = d < 1 ? Curves.easeInOut.transform(math.sin(d * math.pi)) : 0.0;
+    final zoom = scale * (1 + 0.55 * bump);
 
     return Positioned(
       left: cx - size / 2,
@@ -362,7 +372,7 @@ class _DreamClockState extends State<DreamClock>
       width: size,
       height: size,
       child: Transform.scale(
-        scale: scale,
+        scale: zoom,
         child: _fx(hSlot, _turning(hSlot, size, angle, hi: true), size, full: true),
       ),
     );

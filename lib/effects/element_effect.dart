@@ -11,7 +11,7 @@ import 'package:flutter/services.dart' show rootBundle;
 // Hiệu ứng tính theo thời gian thực (không lưu trạng thái) nên nhẹ và ổn định.
 // =====================================================================
 
-enum ElementType { none, lua, nuoc, dien, may, khoi, sap, dat, bongBong, moc, kim }
+enum ElementType { none, lua, nuoc, dien, may, sap, dat, bongBong, moc, kim, phaLe, haoQuangNgan, haoQuangDai }
 
 const Map<ElementType, String> kElementNames = {
   ElementType.none: 'Không',
@@ -19,16 +19,82 @@ const Map<ElementType, String> kElementNames = {
   ElementType.nuoc: '💧 Nước',
   ElementType.dien: '⚡ Điện',
   ElementType.may: '☁️ Mây',
-  ElementType.khoi: '💨 Gió/Khói',
   ElementType.sap: '🕯️ Sáp',
   ElementType.dat: '🪨 Đất',
   ElementType.bongBong: '🫧 Bong bóng',
   ElementType.moc: '🌿 Mộc (cây)',
   ElementType.kim: '🛡️ Kim (vàng kim)',
+  ElementType.phaLe: '💎 Tượng pha lê',
+  ElementType.haoQuangNgan: '✨ Hào quang – tóc dựng',
+  ElementType.haoQuangDai: '✨ Hào quang – tóc dài',
 };
 
-ElementType elementFromName(String? s) =>
-    ElementType.values.firstWhere((e) => e.name == s, orElse: () => ElementType.none);
+/// Hệ nào dùng thêm lựa chọn màu.
+bool elementHasColor(ElementType e) =>
+    e == ElementType.phaLe || e == ElementType.haoQuangNgan || e == ElementType.haoQuangDai;
+
+/// Màu cho hệ Pha lê / Hào quang.
+enum ElemColor { tuDong, trongSuot, cauVong, vang, ngocBich, lucBao, lam, tim, hong, doo, bachKim }
+
+const Map<ElemColor, String> kElemColorNames = {
+  ElemColor.tuDong: 'Màu tự động',
+  ElemColor.trongSuot: 'Trong suốt',
+  ElemColor.cauVong: '🌈 Cầu vồng',
+  ElemColor.vang: 'Vàng',
+  ElemColor.ngocBich: 'Ngọc bích (xanh lá)',
+  ElemColor.lucBao: 'Lục bảo (xanh lục)',
+  ElemColor.lam: 'Lam',
+  ElemColor.tim: 'Tím',
+  ElemColor.hong: 'Hồng',
+  ElemColor.doo: 'Đỏ',
+  ElemColor.bachKim: 'Bạch kim',
+};
+
+ElemColor elemColorFromName(String? s) =>
+    ElemColor.values.firstWhere((e) => e.name == s, orElse: () => ElemColor.tuDong);
+
+const List<Color> _rainbow = [
+  Color(0xFFFF5252), Color(0xFFFFAB40), Color(0xFFFFEB3B), Color(0xFF69F0AE),
+  Color(0xFF40C4FF), Color(0xFF7C4DFF), Color(0xFFFF4081),
+];
+
+/// Màu thực tế của hệ (cầu vồng: đổi màu theo thời gian).
+Color elemColorValue(ElementType e, ElemColor c, double t) {
+  var cc = c;
+  if (cc == ElemColor.tuDong) {
+    cc = e == ElementType.phaLe ? ElemColor.trongSuot : ElemColor.vang;
+  }
+  switch (cc) {
+    case ElemColor.trongSuot:
+      return const Color(0xFFE3F2FD);
+    case ElemColor.cauVong:
+      final x = (t * 0.25) % 1.0 * _rainbow.length;
+      final i = x.floor();
+      return Color.lerp(_rainbow[i % _rainbow.length], _rainbow[(i + 1) % _rainbow.length], x - i)!;
+    case ElemColor.vang:
+      return const Color(0xFFFFD54F);
+    case ElemColor.ngocBich:
+      return const Color(0xFF66D19E);
+    case ElemColor.lucBao:
+      return const Color(0xFF00A383);
+    case ElemColor.lam:
+      return const Color(0xFF42A5F5);
+    case ElemColor.tim:
+      return const Color(0xFFB062D9);
+    case ElemColor.hong:
+      return const Color(0xFFF48FB1);
+    case ElemColor.doo:
+      return const Color(0xFFE53935);
+    case ElemColor.bachKim:
+      return const Color(0xFFE8ECEF);
+    case ElemColor.tuDong:
+      return const Color(0xFFFFD54F);
+  }
+}
+
+ElementType elementFromName(String? s) => s == 'khoi'
+    ? ElementType.may // hệ Gió/Khói cũ đã gộp vào Mây
+    : ElementType.values.firstWhere((e) => e.name == s, orElse: () => ElementType.none);
 
 // ---------------------------------------------------------------------
 // Đường viền của hình (để lửa bốc ra đúng mép, sét loé quanh người)
@@ -95,6 +161,61 @@ double _rnd(int a, int b, [int c = 0]) {
   return (x & 0xFFFFFF) / 0xFFFFFF;
 }
 
+/// Một lọn tóc nhọn từ [base] tới [tip], bề ngang gốc [w], màu [col] phát sáng.
+void _spike(Canvas canvas, Offset base, Offset tip, double w, Color col, double s) {
+  final d = tip - base;
+  final perp = Offset(-d.dy, d.dx) / (d.distance + 0.001);
+  final l = base + perp * (w / 2), r = base - perp * (w / 2);
+  final mid = base + d * 0.55;
+  final path = Path()
+    ..moveTo(l.dx, l.dy)
+    ..quadraticBezierTo(mid.dx + perp.dx * w * 0.25, mid.dy + perp.dy * w * 0.25, tip.dx, tip.dy)
+    ..quadraticBezierTo(mid.dx - perp.dx * w * 0.1, mid.dy - perp.dy * w * 0.1, r.dx, r.dy)
+    ..close();
+  canvas.drawPath(
+      path,
+      Paint()
+        ..color = col.withAlpha(140)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.02));
+  canvas.drawPath(
+      path,
+      Paint()
+        ..shader = LinearGradient(
+          colors: [Color.lerp(col, Colors.black, 0.15)!, Color.lerp(col, Colors.white, 0.55)!],
+        ).createShader(Rect.fromPoints(base, tip)));
+  canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(0.6, s * 0.004)
+        ..color = Color.lerp(col, Colors.black, 0.45)!.withAlpha(160));
+}
+
+/// Vị trí đầu ước lượng từ viền hình: đỉnh cao nhất + bề ngang phần trên.
+class _HairGeo {
+  final Offset headC; // toạ độ chuẩn hoá (-0.5..0.5)
+  final double headR;
+  const _HairGeo(this.headC, this.headR);
+
+  static _HairGeo of(List<Offset> edges) {
+    var minY = 1.0, maxY = -1.0;
+    for (final e in edges) {
+      if (e.dy < minY) minY = e.dy;
+      if (e.dy > maxY) maxY = e.dy;
+    }
+    final band = (maxY - minY) * 0.3;
+    var lo = 1.0, hi = -1.0;
+    for (final e in edges) {
+      if (e.dy < minY + band) {
+        if (e.dx < lo) lo = e.dx;
+        if (e.dx > hi) hi = e.dx;
+      }
+    }
+    final r = ((hi - lo) / 2).clamp(0.08, 0.3);
+    return _HairGeo(Offset((lo + hi) / 2, minY + r * 0.9), r);
+  }
+}
+
 /// Khung bong bóng bao quanh hình, phập phồng nhẹ như bong bóng xà phòng.
 Rect _bubbleRect(double t, double s, Offset c) {
   final w = math.sin(t * 2.2) * 0.03;
@@ -105,7 +226,7 @@ Rect _bubbleRect(double t, double s, Offset c) {
 // Chất liệu: phủ màu lên chính hình
 // ---------------------------------------------------------------------
 
-ColorFilter? materialFilter(ElementType e) {
+ColorFilter? materialFilter(ElementType e, [Color tint = const Color(0xFFFFFFFF)]) {
   switch (e) {
     case ElementType.lua:
       return const ColorFilter.matrix(<double>[
@@ -134,13 +255,6 @@ ColorFilter? materialFilter(ElementType e) {
         0.30, 0.35, 0.08, 0, 128, //
         0.30, 0.35, 0.08, 0, 140, //
         0, 0, 0, 0.92, 0, //
-      ]);
-    case ElementType.khoi:
-      return const ColorFilter.matrix(<double>[
-        0.22, 0.40, 0.08, 0, 70, //
-        0.22, 0.40, 0.08, 0, 72, //
-        0.22, 0.40, 0.08, 0, 78, //
-        0, 0, 0, 0.72, 0, //
       ]);
     case ElementType.sap:
       return const ColorFilter.matrix(<double>[
@@ -180,6 +294,25 @@ ColorFilter? materialFilter(ElementType e) {
         0.09, 0.18, 0.03, 0, 0, //
         0, 0, 0, 1, 0, //
       ]);
+    case ElementType.phaLe:
+      // tượng pha lê: giữ khối sáng tối của hình, nhuộm màu đá quý, hơi trong
+      final r = tint.red / 255.0, g = tint.green / 255.0, b = tint.blue / 255.0;
+      return ColorFilter.matrix(<double>[
+        0.3 * 0.9 * r, 0.59 * 0.9 * r, 0.11 * 0.9 * r, 0, 60 * r + 20, //
+        0.3 * 0.9 * g, 0.59 * 0.9 * g, 0.11 * 0.9 * g, 0, 60 * g + 20, //
+        0.3 * 0.9 * b, 0.59 * 0.9 * b, 0.11 * 0.9 * b, 0, 60 * b + 20, //
+        0, 0, 0, 0.74, 0, //
+      ]);
+    case ElementType.haoQuangNgan:
+    case ElementType.haoQuangDai:
+      // sáng rực lên, ánh màu hào quang
+      final r = tint.red / 255.0, g = tint.green / 255.0, b = tint.blue / 255.0;
+      return ColorFilter.matrix(<double>[
+        0.9, 0, 0, 0, 40 * r + 10, //
+        0, 0.9, 0, 0, 40 * g + 10, //
+        0, 0, 0.9, 0, 40 * b + 10, //
+        0, 0, 0, 1, 0, //
+      ]);
     case ElementType.none:
       return null;
   }
@@ -206,6 +339,9 @@ class ElementLayer extends StatefulWidget {
   /// Hạt giống riêng cho mỗi vị trí để các hình không giống hệt nhau.
   final int seed;
 
+  /// Màu (cho Pha lê / Hào quang).
+  final ElemColor color;
+
   const ElementLayer({
     super.key,
     required this.element,
@@ -215,6 +351,7 @@ class ElementLayer extends StatefulWidget {
     this.edgeSource,
     this.full = false,
     this.seed = 0,
+    this.color = ElemColor.tuDong,
   });
 
   @override
@@ -251,8 +388,9 @@ class _ElementLayerState extends State<ElementLayer> {
   Widget build(BuildContext context) {
     final e = widget.element;
     if (e == ElementType.none) return widget.child;
-    final filter = materialFilter(e);
-    final args = _FxArgs(e, widget.time, _edges, widget.full, widget.seed);
+    final tint = elemColorValue(e, widget.color, widget.time);
+    final filter = materialFilter(e, widget.color == ElemColor.cauVong ? const Color(0xFFF2F2F2) : tint);
+    final args = _FxArgs(e, widget.time, _edges, widget.full, widget.seed, tint);
     return SizedBox(
       width: widget.size,
       height: widget.size,
@@ -274,11 +412,42 @@ extension on _ElementLayerState {
   /// Phủ chất liệu; riêng Mây/Khói làm mềm viền một chút cho "bông".
   Widget _material(ColorFilter? filter, Widget child) {
     Widget w = filter == null ? child : ColorFiltered(colorFilter: filter, child: child);
-    if (widget.element == ElementType.may || widget.element == ElementType.khoi) {
+    if (widget.element == ElementType.may) {
       final sigma = widget.size * 0.01;
       w = ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma), child: w);
     }
-    if (widget.element == ElementType.kim) {
+    if (widget.element == ElementType.phaLe) {
+      // Mặt cắt pha lê: các tia sáng tối xen kẽ xoay chậm, chỉ hiện trên hình
+      final rot = widget.time * 0.25 + widget.seed;
+      w = ShaderMask(
+        blendMode: BlendMode.srcATop,
+        shaderCallback: (r) => SweepGradient(
+          transform: GradientRotation(rot),
+          colors: const [
+            Color(0x30FFFFFF), Color(0x00FFFFFF), Color(0x40FFFFFF), Color(0x10000000),
+            Color(0x30FFFFFF), Color(0x00FFFFFF), Color(0x48FFFFFF), Color(0x14000000),
+            Color(0x30FFFFFF),
+          ],
+        ).createShader(r),
+        child: w,
+      );
+      if (widget.color == ElemColor.cauVong) {
+        // pha lê cầu vồng: dải màu cầu vồng trôi qua thân
+        final shift = widget.time * 0.2;
+        w = ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (r) => LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            tileMode: TileMode.repeated,
+            transform: GradientRotation(shift),
+            colors: [for (final c in _rainbow) c.withAlpha(110), _rainbow.first.withAlpha(110)],
+          ).createShader(Rect.fromLTWH(r.left, r.top, r.width * 0.8, r.height * 0.8)),
+          child: w,
+        );
+      }
+    }
+    if (widget.element == ElementType.kim || widget.element == ElementType.phaLe) {
       // Vệt sáng loá chạy chéo qua thân, chỉ hiện trên chính hình (như áo giáp vàng)
       final p = (widget.time * 0.35 + widget.seed * 0.13) % 1.8 - 0.4;
       w = ShaderMask(
@@ -302,7 +471,8 @@ class _FxArgs {
   final List<Offset> edges;
   final bool full;
   final int seed;
-  const _FxArgs(this.e, this.t, this.edges, this.full, this.seed);
+  final Color tint;
+  const _FxArgs(this.e, this.t, this.edges, this.full, this.seed, this.tint);
 }
 
 // ---------------------------------------------------------------------
@@ -332,9 +502,6 @@ class _BackPainter extends CustomPainter {
       case ElementType.may:
         glow = Color.fromARGB((60 + 25 * pulse).round(), 255, 255, 255);
         break;
-      case ElementType.khoi:
-        glow = Color.fromARGB((35 + 20 * pulse).round(), 180, 180, 190);
-        break;
       case ElementType.sap:
         glow = Color.fromARGB((40 + 25 * pulse).round(), 255, 200, 120);
         break;
@@ -350,6 +517,13 @@ class _BackPainter extends CustomPainter {
       case ElementType.bongBong:
         _bubbleBack(canvas, s, c);
         return;
+      case ElementType.phaLe:
+        glow = a.tint.withAlpha((50 + 40 * pulse).round());
+        break;
+      case ElementType.haoQuangNgan:
+      case ElementType.haoQuangDai:
+        _auraBack(canvas, s, c);
+        return;
       case ElementType.none:
         return;
     }
@@ -359,6 +533,53 @@ class _BackPainter extends CustomPainter {
         ..color = glow
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.12),
     );
+  }
+
+  /// Hào quang: quầng sáng + lưỡi năng lượng bốc lên bao quanh người,
+  /// và (kiểu tóc dài) mái tóc dài phía sau lưng.
+  void _auraBack(Canvas canvas, double s, Offset c) {
+    final col = a.tint;
+    final flick = 0.85 + 0.15 * math.sin(a.t * 9 + a.seed);
+    canvas.drawOval(
+      Rect.fromCenter(center: c + Offset(0, -s * 0.05), width: s * 1.0 * flick, height: s * 1.25 * flick),
+      Paint()
+        ..color = col.withAlpha(90)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.12),
+    );
+    final n = a.full ? 26 : 10;
+    for (var k = 0; k < n; k++) {
+      final e = a.edges[(k * a.edges.length ~/ n) % a.edges.length];
+      final base = c + e * s * 1.08;
+      final ph = (a.t * 2.2 + _rnd(k, 3, a.seed)) % 1.0;
+      final h = s * (0.16 + 0.14 * _rnd(k, 4, a.seed)) * (0.7 + 0.5 * math.sin(ph * math.pi));
+      final lean = e.dx * 0.6;
+      final tip = base + Offset(lean * h, -h);
+      final w = s * 0.05;
+      final path = Path()
+        ..moveTo(base.dx - w, base.dy)
+        ..quadraticBezierTo(base.dx - w * 0.3, base.dy - h * 0.55, tip.dx, tip.dy)
+        ..quadraticBezierTo(base.dx + w * 0.3, base.dy - h * 0.55, base.dx + w, base.dy)
+        ..close();
+      canvas.drawPath(
+          path,
+          Paint()
+            ..color = Color.lerp(col, Colors.white, 0.35)!.withAlpha(150)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.015));
+    }
+    if (a.e == ElementType.haoQuangDai) {
+      final hg = _HairGeo.of(a.edges);
+      final hc = c + hg.headC * s;
+      final r = hg.headR * s;
+      // mái tóc dài: những lọn to rủ xuống sau lưng tới tận chân
+      for (var k = 0; k < 9; k++) {
+        final ang = math.pi * (0.05 + 0.9 * k / 8); // từ phải sang trái, phía dưới đầu
+        final dir = Offset(math.cos(ang), math.sin(ang));
+        final base = hc + Offset(dir.dx * r * 0.9, -r * 0.3);
+        final sway = math.sin(a.t * 1.5 + k) * s * 0.02;
+        final tip = Offset(c.dx + (dir.dx * 0.32) * s + sway, c.dy + s * (0.44 + 0.08 * _rnd(k, 8, a.seed)));
+        _spike(canvas, base, tip, s * 0.09, col, s);
+      }
+    }
   }
 
   /// Thân bong bóng phía sau hình: tím xanh trong suốt như ảnh mẫu.
@@ -403,9 +624,6 @@ class _FrontPainter extends CustomPainter {
       case ElementType.may:
         _cloud(canvas, size.width);
         break;
-      case ElementType.khoi:
-        _smoke(canvas, size.width);
-        break;
       case ElementType.sap:
         _wax(canvas, size.width);
         break;
@@ -420,6 +638,13 @@ class _FrontPainter extends CustomPainter {
         break;
       case ElementType.kim:
         _metal(canvas, size.width);
+        break;
+      case ElementType.phaLe:
+        _metal(canvas, size.width); // lấp lánh như đá quý
+        break;
+      case ElementType.haoQuangNgan:
+      case ElementType.haoQuangDai:
+        _hairFront(canvas, size.width);
         break;
       case ElementType.none:
         break;
@@ -540,6 +765,48 @@ class _FrontPainter extends CustomPainter {
     }
   }
 
+  /// Tóc dựng nhọn trên đỉnh đầu (cả 2 kiểu), kèm tia điện nhỏ loé quanh.
+  void _hairFront(Canvas canvas, double s) {
+    final c = Offset(s / 2, s / 2);
+    final col = a.tint;
+    final hg = _HairGeo.of(a.edges);
+    final hc = c + hg.headC * s;
+    final r = hg.headR * s;
+    final long = a.e == ElementType.haoQuangDai;
+    final n = long ? 7 : 9;
+    for (var k = 0; k < n; k++) {
+      // xoè hình quạt phía trên đầu: từ trái (-160°) sang phải (-20°)
+      final ang = -math.pi * (0.89 - 0.78 * k / (n - 1));
+      final dir = Offset(math.cos(ang), math.sin(ang));
+      final base = hc + dir * (r * 0.75);
+      final len = r * (long ? 0.75 : 1.0) * (0.8 + 0.5 * _rnd(k, 1, a.seed)) *
+          (1 + 0.04 * math.sin(a.t * 6 + k));
+      final up = Offset(dir.dx * 0.8, dir.dy - 0.5);
+      final tip = base + up / up.distance * len;
+      _spike(canvas, base, tip, r * 0.38, col, s);
+    }
+    // tia điện nhỏ
+    if (a.full) {
+      final cyc = (a.t * 3).floor();
+      if (_rnd(1, cyc, a.seed) < 0.6) {
+        final from = _edge(3, cyc, c, s);
+        final dirOut = (from - c) / ((from - c).distance + 0.001);
+        final path = Path()..moveTo(from.dx, from.dy);
+        var p = from;
+        for (var i = 0; i < 5; i++) {
+          p = p + dirOut * s * 0.04 + Offset(-dirOut.dy, dirOut.dx) * ((_rnd(i, cyc, 5) - 0.5) * s * 0.06);
+          path.lineTo(p.dx, p.dy);
+        }
+        canvas.drawPath(
+            path,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = math.max(1, s * 0.008)
+              ..color = const Color(0xEEE1F5FE));
+      }
+    }
+  }
+
   /// Kim: những ngôi sao lấp lánh trên viền giáp vàng.
   void _metal(Canvas canvas, double s) {
     final c = Offset(s / 2, s / 2);
@@ -592,46 +859,6 @@ class _FrontPainter extends CustomPainter {
       canvas.drawCircle(p, r, paint);
       canvas.drawCircle(p + Offset(-r * 0.9, r * 0.25), r * 0.7, paint);
       canvas.drawCircle(p + Offset(r * 0.9, r * 0.3), r * 0.65, paint);
-    }
-  }
-
-  /// Gió/Khói: khói bốc lên và bị gió thổi lệch, kèm vệt gió lướt ngang.
-  void _smoke(Canvas canvas, double s) {
-    final c = Offset(s / 2, s / 2);
-    final n = a.full ? 24 : 8;
-    const life = 2.6;
-    for (var k = 0; k < n; k++) {
-      final x = a.t / life + k / n;
-      final cyc = x.floor();
-      final ph = x - cyc;
-      final start = _edge(k, cyc, c, s);
-      final p = start +
-          Offset(ph * s * 0.3 + math.sin(ph * 5 + k) * s * 0.03, -ph * s * 0.3);
-      final r = s * (0.03 + 0.09 * ph) * (0.7 + 0.6 * _rnd(k, cyc, 5));
-      canvas.drawCircle(
-          p,
-          r,
-          Paint()
-            ..color = const Color(0xFFB0BEC5).withAlpha((math.sin(ph * math.pi) * 120).round())
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.6));
-    }
-    // vệt gió
-    final nw = a.full ? 4 : 2;
-    for (var k = 0; k < nw; k++) {
-      final ph = (a.t * 0.6 + k / nw) % 1.0;
-      final y = (_rnd(k, 9, a.seed) - 0.5) * s * 0.8;
-      final x0 = (ph - 0.5) * s * 1.4;
-      final len = s * 0.25;
-      final path = Path()
-        ..moveTo(c.dx + x0 - len, c.dy + y)
-        ..quadraticBezierTo(c.dx + x0 - len / 2, c.dy + y - s * 0.03, c.dx + x0, c.dy + y);
-      canvas.drawPath(
-          path,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = math.max(1, s * 0.01)
-            ..strokeCap = StrokeCap.round
-            ..color = Colors.white.withAlpha((math.sin(ph * math.pi) * 150).round()));
     }
   }
 

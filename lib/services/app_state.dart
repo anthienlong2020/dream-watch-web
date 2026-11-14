@@ -56,6 +56,12 @@ class AppState extends ChangeNotifier {
   List<ElementType?> slotElement = List<ElementType?>.filled(12, null);
   bool effectsOn = true;
 
+  /// Màu hệ (Pha lê / Hào quang) mặc định và riêng từng vị trí.
+  ElemColor defaultElemColor = ElemColor.tuDong;
+  List<ElemColor?> slotElemColor = List<ElemColor?>.filled(12, null);
+  List<ElemColor> get resolvedElemColors =>
+      List.generate(12, (i) => slotElemColor[i] ?? defaultElemColor);
+
   List<ElementType> get resolvedElements =>
       List.generate(12, (i) => slotElement[i] ?? defaultElement);
 
@@ -193,6 +199,8 @@ class AppState extends ChangeNotifier {
         'defaultElement': defaultElement.name,
         'slotElement': slotElement.map((e) => e?.name).toList(),
         'effectsOn': effectsOn,
+        'defaultElemColor': defaultElemColor.name,
+        'slotElemColor': slotElemColor.map((e) => e?.name).toList(),
         'spin360': spin360,
         'bodyType': defaultBody.name,
         'hourSpeed': hourSpeed,
@@ -234,6 +242,16 @@ class AppState extends ChangeNotifier {
       defaultElement = elementFromName(j['defaultElement'] as String);
     }
     effectsOn = (j['effectsOn'] as bool?) ?? effectsOn;
+    if (j['defaultElemColor'] is String) {
+      defaultElemColor = elemColorFromName(j['defaultElemColor'] as String);
+    }
+    final sc = j['slotElemColor'];
+    if (sc is List) {
+      slotElemColor = List<ElemColor?>.generate(12, (i) {
+        final v = i < sc.length ? sc[i] : null;
+        return v is String ? elemColorFromName(v) : null;
+      });
+    }
     final se = j['slotElement'];
     if (se is List) {
       slotElement = List<ElementType?>.generate(12, (i) {
