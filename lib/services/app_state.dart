@@ -101,6 +101,8 @@ class AppState extends ChangeNotifier {
   /// 'chuong' = giai điệu, 'dem' = đánh số tiếng theo giờ, 'ca_hai' = cả hai
   String chimeMode = 'westminster';
   bool chimeHalfHour = false;
+  String hourBell = 'chuan'; // chuan | cao
+  String hourVoice = 'tat'; // tat | nam | nu
   bool quietEnabled = true;
   int quietStart = 22; // từ 22 giờ
   int quietEnd = 6; // đến 6 giờ sáng
@@ -224,6 +226,8 @@ class AppState extends ChangeNotifier {
         'chimeEnabled': chimeEnabled,
         'chimeMode': chimeMode,
         'chimeHalfHour': chimeHalfHour,
+        'hourBell': hourBell,
+        'hourVoice': hourVoice,
         'quietEnabled': quietEnabled,
         'quietStart': quietStart,
         'quietEnd': quietEnd,
@@ -290,6 +294,8 @@ class AppState extends ChangeNotifier {
     chimeEnabled = (j['chimeEnabled'] as bool?) ?? chimeEnabled;
     chimeMode = (j['chimeMode'] as String?) ?? chimeMode;
     chimeHalfHour = (j['chimeHalfHour'] as bool?) ?? chimeHalfHour;
+    hourBell = (j['hourBell'] as String?) ?? hourBell;
+    hourVoice = (j['hourVoice'] as String?) ?? hourVoice;
     quietEnabled = (j['quietEnabled'] as bool?) ?? quietEnabled;
     quietStart = (j['quietStart'] as num?)?.toInt() ?? quietStart;
     quietEnd = (j['quietEnd'] as num?)?.toInt() ?? quietEnd;
@@ -619,18 +625,25 @@ class AppState extends ChangeNotifier {
   /// Phát âm báo giờ theo kiểu đã chọn (cũng dùng cho nút "Nghe thử").
   void playHourChime(int hour) {
     final count = hour % 12 == 0 ? 12 : hour % 12;
+    sound
+      ..hourBell = hourBell
+      ..voice = hourVoice;
     switch (chimeMode) {
       case 'chuong':
         sound.playChime();
+        Future.delayed(const Duration(milliseconds: 4200), () => sound.speakHour(hour));
+        break;
+      case 'giong':
+        sound.speakHour(hour, voiceOverride: hourVoice == 'tat' ? 'nu' : hourVoice);
         break;
       case 'ca_hai':
-        sound.playChimeThenStrikes(count);
+        sound.playChimeThenStrikes(count, hour: hour);
         break;
       case 'westminster':
-        sound.playWestminsterHour(count);
+        sound.playWestminsterHour(count, hour: hour);
         break;
       default:
-        sound.playStrikes(count);
+        sound.playStrikes(count, hour: hour);
     }
   }
 

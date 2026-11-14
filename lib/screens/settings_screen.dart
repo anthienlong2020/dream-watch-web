@@ -429,7 +429,7 @@ class _ChimeSettings extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: DropdownButton<String>(
               isExpanded: true,
-              value: const ['westminster', 'dem', 'chuong', 'ca_hai'].contains(app.chimeMode)
+              value: const ['westminster', 'dem', 'chuong', 'ca_hai', 'giong'].contains(app.chimeMode)
                   ? app.chimeMode
                   : 'dem',
               items: const [
@@ -437,8 +437,59 @@ class _ChimeSettings extends StatelessWidget {
                 DropdownMenuItem(value: 'dem', child: Text('Đánh số tiếng theo giờ')),
                 DropdownMenuItem(value: 'chuong', child: Text('Giai điệu ngắn')),
                 DropdownMenuItem(value: 'ca_hai', child: Text('Giai điệu ngắn + đánh số tiếng')),
+                DropdownMenuItem(value: 'giong', child: Text('🗣️ Chỉ đọc giờ bằng giọng nói')),
               ],
               onChanged: on ? (v) => app.update(() => app.chimeMode = v ?? app.chimeMode) : null,
+            ),
+          ),
+          if (app.chimeMode != 'chuong' && app.chimeMode != 'giong')
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: Row(
+                children: [
+                  const Text('Chuông đánh giờ:'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: app.hourBell == 'cao' ? 'cao' : 'chuan',
+                      items: const [
+                        DropdownMenuItem(value: 'chuan', child: Text('Chuẩn – boong boong (trầm, êm)')),
+                        DropdownMenuItem(value: 'cao', child: Text('Coong coong (cao, trong)')),
+                      ],
+                      onChanged: on ? (v) => app.update(() => app.hourBell = v ?? 'chuan') : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Row(
+              children: [
+                const Text('Đọc giờ:'),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'tat', label: Text('Tắt')),
+                      ButtonSegment(value: 'nam', label: Text('Giọng nam')),
+                      ButtonSegment(value: 'nu', label: Text('Giọng nữ')),
+                    ],
+                    selected: {app.hourVoice},
+                    showSelectedIcon: false,
+                    onSelectionChanged: on ? (v) => app.update(() => app.hourVoice = v.first) : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Text(
+              'Đọc "Bây giờ là 5 giờ chiều" sau tiếng chuông. Dùng giọng tiếng Việt có sẵn trong máy; '
+              'nếu máy chỉ có 1 giọng thì app chỉnh cao độ cho ra giọng nam / nữ.',
+              style: TextStyle(fontSize: 12.5, color: Colors.white60),
             ),
           ),
           Padding(

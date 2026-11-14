@@ -129,6 +129,8 @@ if __name__ == '__main__':
                 t += BEAT + (HOLD + GAP if i == 3 else 0)
         save(f'west_q{q}', mix(ev, t + 3.5))
     save('strike_big', hour_bell())
+    # chuông "coong coong": cùng chất nhưng cao hơn 1 quãng tám (Mi4), ít trầm
+    save('strike_cao', hour_bell(freq=329.63, dur=4.0, seed=7))
     # in độ dài từng câu để khớp lịch phát trong app
     for q, changes in QUARTERS.items():
         print(q, round(len(changes) * (4 * BEAT + HOLD + GAP) - HOLD - GAP - BEAT, 2), 's tới nốt cuối')
