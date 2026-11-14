@@ -103,6 +103,7 @@ class AppState extends ChangeNotifier {
   bool chimeHalfHour = false;
   String hourBell = 'chuan'; // chuan | cao
   String hourVoice = 'tat'; // tat | nam | nu
+  String voiceNameNam = '', voiceNameNu = ''; // giọng máy user chọn ('' = tự động)
   bool quietEnabled = true;
   int quietStart = 22; // từ 22 giờ
   int quietEnd = 6; // đến 6 giờ sáng
@@ -228,6 +229,8 @@ class AppState extends ChangeNotifier {
         'chimeHalfHour': chimeHalfHour,
         'hourBell': hourBell,
         'hourVoice': hourVoice,
+        'voiceNameNam': voiceNameNam,
+        'voiceNameNu': voiceNameNu,
         'quietEnabled': quietEnabled,
         'quietStart': quietStart,
         'quietEnd': quietEnd,
@@ -296,6 +299,8 @@ class AppState extends ChangeNotifier {
     chimeHalfHour = (j['chimeHalfHour'] as bool?) ?? chimeHalfHour;
     hourBell = (j['hourBell'] as String?) ?? hourBell;
     hourVoice = (j['hourVoice'] as String?) ?? hourVoice;
+    voiceNameNam = (j['voiceNameNam'] as String?) ?? voiceNameNam;
+    voiceNameNu = (j['voiceNameNu'] as String?) ?? voiceNameNu;
     quietEnabled = (j['quietEnabled'] as bool?) ?? quietEnabled;
     quietStart = (j['quietStart'] as num?)?.toInt() ?? quietStart;
     quietEnd = (j['quietEnd'] as num?)?.toInt() ?? quietEnd;
@@ -622,12 +627,24 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void _syncVoice() {
+    sound
+      ..hourBell = hourBell
+      ..voice = hourVoice
+      ..voiceNameNam = voiceNameNam
+      ..voiceNameNu = voiceNameNu;
+  }
+
+  /// Nghe thử riêng giọng đọc giờ ('nam' / 'nu').
+  void testVoice(String v) {
+    _syncVoice();
+    sound.speakHour(DateTime.now().hour, voiceOverride: v);
+  }
+
   /// Phát âm báo giờ theo kiểu đã chọn (cũng dùng cho nút "Nghe thử").
   void playHourChime(int hour) {
     final count = hour % 12 == 0 ? 12 : hour % 12;
-    sound
-      ..hourBell = hourBell
-      ..voice = hourVoice;
+    _syncVoice();
     switch (chimeMode) {
       case 'chuong':
         sound.playChime();

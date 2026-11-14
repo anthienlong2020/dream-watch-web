@@ -387,6 +387,11 @@ List<SeasonTheme> allThemes(DateTime now) => [
         layers: [
           Layer(motion: Motion.garland, shape: Shape.confetti, count: 12,
               colors: [Color(0xFFE91E63), Color(0xFFFF9800), Color(0xFF7E57C2), Color(0xFF26C6DA), Color(0xFF8BC34A)]),
+          // hoa cúc vạn thọ nở khắp nơi + cánh hoa cam rơi
+          Layer(motion: Motion.bloom, shape: Shape.emoji, count: 16, glyphs: ['🌼', '🏵️', '🌼', '🌻'],
+              speed: 0.1, minSize: 0.04, maxSize: 0.065),
+          Layer(motion: Motion.fall, shape: Shape.emoji, count: 4, glyphs: ['🌼', '🏵️'], speed: 0.05,
+              minSize: 0.03, maxSize: 0.045),
           Layer(motion: Motion.fall, shape: Shape.petal, count: 16,
               colors: [Color(0xFFFF9800), Color(0xFFFFB300), Color(0xFFFF6F00)], speed: 0.05),
           Layer(motion: Motion.wander, shape: Shape.firefly, count: 8, colors: [Color(0xFFFFCC80)]),

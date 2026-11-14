@@ -45,6 +45,9 @@ class SoundService {
   /// Đọc giờ sau khi đánh chuông: 'tat', 'nam', 'nu'.
   String voice = 'tat';
 
+  /// Tên giọng máy user tự chọn cho giọng nam / nữ ('' = tự động).
+  String voiceNameNam = '', voiceNameNu = '';
+
   String get _bellFile => hourBell == 'cao' ? 'strike_cao' : 'strike_big';
 
   /// Đánh [count] tiếng chuông, như đồng hồ quả lắc; xong thì đọc giờ nếu bật giọng nói.
@@ -65,7 +68,8 @@ class SoundService {
   void speakHour(int hour, {String? voiceOverride}) {
     final v = voiceOverride ?? voice;
     if (v == 'tat') return;
-    speakVi(hourSentence(hour), male: v == 'nam', volume: volume);
+    speakVi(hourSentence(hour),
+        male: v == 'nam', volume: volume, voiceName: v == 'nam' ? voiceNameNam : voiceNameNu);
   }
 
   /// Giai điệu báo giờ rồi đánh số tiếng.

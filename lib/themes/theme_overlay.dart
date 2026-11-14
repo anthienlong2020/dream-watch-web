@@ -43,8 +43,10 @@ class ThemePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final glow = theme.glow;
-    if (glow != null) {
+    final g0 = theme.glow;
+    if (g0 != null) {
+      // chỉ phủ màu thật nhẹ, trong suốt để không che hình nền của user
+      final glow = g0.withAlpha((g0.alpha * 0.4).round());
       // quầng sáng nhẹ trên và dưới màn hình
       final rect = Offset.zero & size;
       canvas.drawRect(
@@ -54,7 +56,7 @@ class ThemePainter extends CustomPainter {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [glow, glow.withAlpha(0), glow.withAlpha(0), glow],
-              stops: const [0.0, 0.25, 0.75, 1.0],
+              stops: const [0.0, 0.18, 0.82, 1.0],
             ).createShader(rect));
     }
     var li = 0;
@@ -427,13 +429,13 @@ class ThemePainter extends CustomPainter {
     canvas.drawPath(
         band,
         Paint()
-          ..color = col.withAlpha((55 * shimmer).round())
+          ..color = col.withAlpha((40 * shimmer).round())
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, unit * 0.03));
     // tia rèm dọc lung linh
     final ray = Paint()..strokeWidth = math.max(1, unit * 0.006);
     for (var i = 0; i < steps; i++) {
       final x = w * (i + 0.5) / steps;
-      final a = (0.5 + 0.5 * math.sin(x * 0.05 + t * 2 + k)) * 90 * shimmer;
+      final a = (0.5 + 0.5 * math.sin(x * 0.05 + t * 2 + k)) * 65 * shimmer;
       final y = yAt(x);
       ray.shader = LinearGradient(
         begin: Alignment.topCenter,

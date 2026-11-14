@@ -8,6 +8,7 @@ import '../services/app_state.dart';
 import '../effects/element_effect.dart';
 import '../three_d/body_type.dart';
 import '../services/file_saver.dart';
+import '../services/speech.dart';
 import '../themes/season_theme.dart';
 import '../utils/image_utils.dart';
 import '../widgets/slot_image_view.dart';
@@ -402,6 +403,80 @@ class _CustomImagesEditorState extends State<_CustomImagesEditor> {
 // Âm báo mỗi giờ
 // =====================================================================
 
+/// Thử nhanh giọng nam / nữ và chọn giọng máy cho từng loại.
+class _VoicePicker extends StatefulWidget {
+  const _VoicePicker();
+
+  @override
+  State<_VoicePicker> createState() => _VoicePickerState();
+}
+
+class _VoicePickerState extends State<_VoicePicker> {
+  List<String> _names = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    warmUpVoices();
+    _load();
+    // danh sách giọng của trình duyệt có khi nạp chậm
+    Future.delayed(const Duration(milliseconds: 800), _load);
+  }
+
+  void _load() {
+    if (!mounted) return;
+    setState(() => _names = viVoiceNames());
+  }
+
+  Widget _row(String label, String v, String current, void Function(String) set) {
+    final value = _names.contains(current) ? current : '';
+    return Row(
+      children: [
+        SizedBox(width: 92, child: Text(label)),
+        Expanded(
+          child: DropdownButton<String>(
+            isExpanded: true,
+            value: value,
+            items: [
+              const DropdownMenuItem(value: '', child: Text('Tự động')),
+              for (final n in _names) DropdownMenuItem(value: n, child: Text(n, overflow: TextOverflow.ellipsis)),
+            ],
+            onChanged: (x) => app.update(() => set(x ?? '')),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Thử $label',
+          icon: const Icon(Icons.play_circle_outline),
+          onPressed: () => app.testVoice(v),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 4, 0),
+        child: Column(
+          children: [
+            _row('Giọng nam', 'nam', app.voiceNameNam, (x) => app.voiceNameNam = x),
+            _row('Giọng nữ', 'nu', app.voiceNameNu, (x) => app.voiceNameNu = x),
+            if (_names.length <= 1)
+              const Text(
+                'Máy chỉ có 1 giọng tiếng Việt nên app đổi cao độ để ra giọng nam / nữ. '
+                'Muốn có thêm giọng: Cài đặt điện thoại → Chuyển văn bản thành giọng nói → '
+                'Công cụ của Google → Tiếng Việt → chọn giọng khác.',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ChimeSettings extends StatelessWidget {
   const _ChimeSettings();
 
@@ -484,6 +559,7 @@ class _ChimeSettings extends StatelessWidget {
               ],
             ),
           ),
+          const _VoicePicker(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
