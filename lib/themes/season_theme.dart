@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 // =====================================================================
 
 /// Các kiểu chuyển động của hạt.
-enum Motion { fall, rise, fly, wander, burst, twinkle, garland, moon }
+enum Motion { fall, rise, fly, wander, burst, twinkle, garland, moon, collide, aurora, waterfall, sleigh, bounce }
 
 /// Hình dạng hạt (vẽ bằng code) hoặc emoji.
-enum Shape { dot, petal, leaf, snowflake, confetti, heart, sparkle, balloon, lantern, bat, feather, firefly, emoji }
+enum Shape { dot, petal, leaf, snowflake, confetti, heart, sparkle, balloon, lantern, bat, feather, firefly, emoji, sun }
 
 class Layer {
   final Motion motion;
@@ -54,6 +54,9 @@ class SeasonTheme {
 
 /// 12 con giáp theo năm âm lịch (Tý = 0).
 const List<String> kZodiacEmoji = ['🐭', '🐃', '🐯', '🐱', '🐲', '🐍', '🐴', '🐐', '🐵', '🐓', '🐶', '🐷'];
+
+/// Con giáp nguyên con (không chỉ cái đầu) cho theme Tết.
+const List<String> kZodiacFullBody = ['🐀', '🐂', '🐅', '🐈', '🐉', '🐍', '🐎', '🐐', '🐒', '🐓', '🐕', '🐖'];
 const List<String> kZodiacName = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
 int zodiacOfYear(int lunarYear) => ((lunarYear - 4) % 12 + 12) % 12;
 
@@ -82,8 +85,9 @@ SeasonTheme tetTheme(int lunarYear) {
       const Layer(motion: Motion.fall, shape: Shape.petal, count: 10, colors: _pinks, speed: 0.06),
       const Layer(motion: Motion.burst, shape: Shape.dot, count: 2,
           colors: [Color(0xFFFF5252), Color(0xFFFFD740)], speed: 0.35),
-      Layer(motion: Motion.rise, shape: Shape.emoji, count: 2, glyphs: [kZodiacEmoji[z]],
-          minSize: 0.06, maxSize: 0.08, speed: 0.04, sway: 0.05),
+      // con giáp của năm (nguyên con) chạy / bay ngang trời
+      Layer(motion: Motion.fly, shape: Shape.emoji, count: 2, glyphs: [kZodiacFullBody[z]],
+          minSize: 0.08, maxSize: 0.1, speed: 0.045),
     ],
   );
 }
@@ -101,7 +105,9 @@ List<SeasonTheme> allThemes(DateTime now) => [
       const SeasonTheme(
         id: 'ha', name: 'Mùa hạ', emoji: '☀️', accent: Color(0xFFFFC93C), glow: Color(0x33FFC107),
         layers: [
-          Layer(motion: Motion.wander, shape: Shape.firefly, count: 18, colors: [Color(0xFFDCE775), Color(0xFFFFF176)]),
+          Layer(motion: Motion.bounce, shape: Shape.sun, count: 6, colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
+              minSize: 0.04, maxSize: 0.06, speed: 0.6),
+          Layer(motion: Motion.wander, shape: Shape.firefly, count: 12, colors: [Color(0xFFDCE775), Color(0xFFFFF176)]),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 10, colors: [Color(0xFFFFFFFF), Color(0xFFFFE082)]),
           Layer(motion: Motion.rise, shape: Shape.dot, count: 10, colors: [Color(0x99B3E5FC)], speed: 0.05,
               minSize: 0.008, maxSize: 0.02),
@@ -133,6 +139,9 @@ List<SeasonTheme> allThemes(DateTime now) => [
           Layer(motion: Motion.fall, shape: Shape.emoji, count: 4, glyphs: ['🎁', '⭐', '🔔', '🍬'], speed: 0.04,
               minSize: 0.04, maxSize: 0.055),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 8, colors: [Color(0xFFFFD740)]),
+          // ông già Noel trên xe tuần lộc bay ngang trời
+          Layer(motion: Motion.sleigh, shape: Shape.emoji, count: 1, glyphs: ['🦌', '🦌', '🛷', '🎅'],
+              colors: [Color(0xFFFFE082)], minSize: 0.07, maxSize: 0.07, speed: 0.05),
         ],
       ),
       tetTheme(lunarYearOf(now)),
@@ -228,25 +237,28 @@ List<SeasonTheme> allThemes(DateTime now) => [
       const SeasonTheme(
         id: 'holi', name: 'Lễ hội sắc màu Holi (Ấn Độ)', emoji: '🎨', accent: Color(0xFFE040FB),
         layers: [
-          Layer(motion: Motion.burst, shape: Shape.dot, count: 4, colors: _party, speed: 0.3),
-          Layer(motion: Motion.wander, shape: Shape.dot, count: 24, colors: _party, minSize: 0.01, maxSize: 0.03),
+          // bi màu lao vào nhau, chạm nhau mới nổ tung thành bụi màu
+          Layer(motion: Motion.collide, shape: Shape.dot, count: 4, colors: _party, speed: 0.22,
+              minSize: 0.035, maxSize: 0.05),
         ],
       ),
       const SeasonTheme(
         id: 'diwali', name: 'Lễ hội ánh sáng Diwali (Ấn Độ)', emoji: '🪔', accent: Color(0xFFFFB300),
         glow: Color(0x33FF6F00),
         layers: [
-          Layer(motion: Motion.garland, shape: Shape.dot, count: 16, colors: [Color(0xFFFFD54F), Color(0xFFFF8F00)]),
-          Layer(motion: Motion.burst, shape: Shape.dot, count: 2, colors: [Color(0xFFFFD740), Color(0xFFFF6E40)], speed: 0.35),
-          Layer(motion: Motion.wander, shape: Shape.firefly, count: 14, colors: [Color(0xFFFFCA28)]),
+          // dải cực quang uốn lượn
+          Layer(motion: Motion.aurora, shape: Shape.dot, count: 4,
+              colors: [Color(0xFF00E676), Color(0xFF1DE9B6), Color(0xFF7C4DFF), Color(0xFFFF4081)], speed: 0.05),
+          Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 14, colors: [Colors.white]),
+          Layer(motion: Motion.wander, shape: Shape.firefly, count: 10, colors: [Color(0xFFFFCA28)]),
         ],
       ),
       const SeasonTheme(
         id: 'songkran', name: 'Té nước Songkran (Thái Lan)', emoji: '💦', accent: Color(0xFF29B6F6),
         layers: [
-          Layer(motion: Motion.fall, shape: Shape.dot, count: 40, colors: [Color(0xCC81D4FA), Color(0xCCB3E5FC)],
-              speed: 0.16, minSize: 0.005, maxSize: 0.012, sway: 0.01),
-          Layer(motion: Motion.burst, shape: Shape.dot, count: 2, colors: [Color(0xFF4FC3F7), Color(0xFFB3E5FC)], speed: 0.45),
+          // dòng nước đổ xuống như thác, từng đợt một, bắn tung toé ở dưới
+          Layer(motion: Motion.waterfall, shape: Shape.dot, count: 5,
+              colors: [Color(0xFF4FC3F7), Color(0xFFB3E5FC), Color(0xFF81D4FA)], speed: 0.3),
         ],
       ),
       const SeasonTheme(
