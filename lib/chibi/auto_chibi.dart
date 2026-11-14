@@ -69,7 +69,10 @@ Future<ChibiSpec?> autoChibiSpec(Object source, {ChibiOutfit outfit = ChibiOutfi
       return ChibiSpec(
         face: png!.buffer.asUint8List(),
         outfit: outfit,
-        outfitColor: main,
+        // siêu anh hùng: bộ đồ xanh kinh điển (áo choàng, bốt đỏ)
+        outfitColor: outfit == ChibiOutfit.heroNam || outfit == ChibiOutfit.heroNu
+            ? const Color(0xFF1E5BD8)
+            : main,
         skin: Color.lerp(main, Colors.white, 0.35)!,
         hair: main,
       );

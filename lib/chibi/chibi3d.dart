@@ -330,9 +330,9 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
         (male ? 0.075 : 0.065) * l, Mat.outfit, seg: ps, capB: false);
     m.part();
     m.tube(V3(hipX * 0.95 * s, 0.76, 0.01), V3(hipX * 0.9 * s, 0.1, 0.0), (male ? 0.075 : 0.065) * l,
-        (male ? 0.055 : 0.045) * l, Mat.outfitDark, seg: ps, capB: false);
+        (male ? 0.055 : 0.045) * l, Mat.cape, seg: ps, capB: false);
     m.part();
-    m.ellipsoid(V3(hipX * 0.9 * s, 0.045, 0.06), V3(0.055 * l, 0.045, 0.13), Mat.outfitDark,
+    m.ellipsoid(V3(hipX * 0.9 * s, 0.045, 0.06), V3(0.055 * l, 0.045, 0.13), Mat.cape,
         seg: ps, rings: pr);
   }
 
@@ -340,10 +340,10 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
   m.part();
   m.ellipsoid(const V3(0, 1.42, 0),
       male ? V3(0.2 * t, 0.13, 0.15 * t) : V3(0.235 * t, 0.15, 0.16 * t),
-      male ? Mat.outfitDark : Mat.outfit, seg: ps + 2, rings: pr);
+      male ? Mat.cape : Mat.outfit, seg: ps + 2, rings: pr);
   m.part();
   m.tube(const V3(0, 1.5, 0), const V3(0, 1.78, 0), (male ? 0.17 : 0.125) * t, (male ? 0.2 : 0.15) * t,
-      Mat.outfit, seg: ps, capA: false, capB: false);
+      male ? Mat.outfit : Mat.cape, seg: ps, capA: false, capB: false);
   m.part(0.02);
   m.tube(const V3(0, 1.52, 0), const V3(0, 1.57, 0), (male ? 0.18 : 0.135) * t, (male ? 0.18 : 0.135) * t,
       Mat.spike, seg: ps + 4, capA: false, capB: false);
@@ -351,7 +351,7 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
   // ---- Bụng nối liền hông với ngực (cho thân liền mạch) ----
   m.part();
   m.ellipsoid(const V3(0, 1.74, 0),
-      male ? V3(0.21 * t, 0.24, 0.14 * t) : V3(0.15 * t, 0.22, 0.115 * t), Mat.outfit,
+      male ? V3(0.21 * t, 0.24, 0.14 * t) : V3(0.15 * t, 0.22, 0.115 * t), male ? Mat.outfit : Mat.cape,
       seg: ps + 2, rings: pr + 2);
 
   // ---- Thân trên ----
@@ -375,10 +375,10 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
     m.ellipsoid(V3(0, 2.07, 0.17 * t), const V3(0.06, 0.05, 0.02), Mat.spike, seg: 10, rings: 6);
   } else {
     m.part();
-    m.ellipsoid(V3(0, 1.99, 0), V3(0.2 * t, 0.17, 0.13 * t), Mat.outfit, seg: ps + 2, rings: pr + 2);
+    m.ellipsoid(V3(0, 1.99, 0), V3(0.2 * t, 0.17, 0.13 * t), Mat.cape, seg: ps + 2, rings: pr + 2);
     for (final s in [-1.0, 1.0]) {
       m.part(0.04);
-      m.ellipsoid(V3(0.075 * t * s, 1.98, 0.085 * t), V3(0.075 * t, 0.07, 0.07), Mat.outfit,
+      m.ellipsoid(V3(0.075 * t * s, 1.98, 0.085 * t), V3(0.075 * t, 0.07, 0.07), Mat.cape,
           seg: ps, rings: pr);
     }
   }
@@ -396,7 +396,7 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
     m.part();
     m.tube(V3(shX * s, 2.17, 0), elbow, upR, loR * 1.1, male ? Mat.outfit : Mat.skin, seg: ps);
     m.part();
-    m.tube(elbow, wrist, loR * 1.05, loR * 0.85, male ? Mat.outfitDark : Mat.skin, seg: ps, capB: false);
+    m.tube(elbow, wrist, loR * 1.05, loR * 0.85, male ? Mat.outfit : Mat.skin, seg: ps, capB: false);
     if (!male) {
       m.part(0.02);
       m.tube(V3((shX + 0.09) * s, 1.48, 0.055), V3((shX + 0.1) * s, 1.37, 0.068), loR * 1.15, loR * 1.05,
@@ -405,7 +405,7 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
     m.part();
     m.ellipsoid(V3((shX + 0.105) * s, 1.27, 0.08),
         male ? V3(0.06 * l, 0.07 * l, 0.055 * l) : V3(0.045 * l, 0.06 * l, 0.04 * l),
-        male ? Mat.outfitDark : Mat.skin, seg: ps, rings: pr);
+        male ? Mat.outfit : Mat.skin, seg: ps, rings: pr);
   }
 
   // ---- Cổ + đầu (khuôn mặt dán phía trước) ----
@@ -481,6 +481,11 @@ Future<ui.Image> buildAtlas(ChibiSpec spec) async {
   };
   if (spec.outfit == ChibiOutfit.heroNam || spec.outfit == ChibiOutfit.heroNu) {
     colors[Mat.spike] = const Color(0xFFFFC107); // đai, huy hiệu, vòng tay: vàng
+    // Màu điểm nhấn kiểu siêu anh hùng kinh điển: đồ xanh thì áo choàng/bốt đỏ,
+    // còn nếu bộ đồ đã là màu đỏ thì điểm nhấn là xanh.
+    final hsv = HSVColor.fromColor(c);
+    final reddish = hsv.saturation > 0.4 && (hsv.hue < 25 || hsv.hue > 330);
+    colors[Mat.cape] = reddish ? const Color(0xFF1E5BD8) : const Color(0xFFD32F2F);
   }
   if (spec.outfit == ChibiOutfit.vest) {
     colors[Mat.outfit] = const Color(0xFF263238);
