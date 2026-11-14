@@ -66,7 +66,15 @@ class ThemePainter extends CustomPainter {
   void _layer(Canvas canvas, Size size, Layer l, int li) {
     final w = size.width, h = size.height;
     final unit = math.min(w, h);
-    for (var k = 0; k < l.count; k++) {
+    // Mật độ: quà, lá, hoa, con vật... rơi/bay nhiều hơn hẳn
+    final n = (l.count * switch (l.motion) {
+      Motion.fall || Motion.rise => 3.0,
+      Motion.fly => 2.5,
+      Motion.wander || Motion.twinkle => 2.0,
+      Motion.bounce => 1.7,
+      _ => 1.0,
+    }).round();
+    for (var k = 0; k < n; k++) {
       final seed = li * 1000 + k;
       final r0 = _rnd(seed, 1), r1 = _rnd(seed, 2), r2 = _rnd(seed, 3);
       final sz = unit * (l.minSize + (l.maxSize - l.minSize) * r2);
@@ -332,8 +340,9 @@ class ThemePainter extends CustomPainter {
     final g = l.glyphs;
     _emoji(canvas, g[0], Offset(x, y + math.sin(t * 10) * s * 0.05), s, 0);
     _emoji(canvas, g[1], Offset(x + s * 1.05, y + math.sin(t * 10 + 1.5) * s * 0.05), s, 0);
-    _emoji(canvas, g[3], Offset(x + s * 2.55, y - s * 0.32), s * 0.85, 0);
-    _emoji(canvas, g[2], Offset(x + s * 2.5, y + s * 0.1), s * 1.1, 0);
+    _emoji(canvas, g[2], Offset(x + s * 2.5, y + s * 0.15), s * 1.1, 0);
+    // ông già Noel ngồi trên xe (vẽ sau để nổi lên trên chiếc xe)
+    _emoji(canvas, g[3], Offset(x + s * 2.6, y - s * 0.45 + math.sin(t * 8) * s * 0.04), s * 0.9, 0);
   }
 
   void _emoji(Canvas canvas, String g, Offset p, double s, double rot) {
