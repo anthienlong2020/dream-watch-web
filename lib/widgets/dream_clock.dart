@@ -346,29 +346,30 @@ class _DreamClockState extends State<DreamClock>
 
   Widget _centerImage(double s, double cx, double cy, DateTime now, int hSlot) {
     final size = s * 0.40;
-    // Góc xoay và độ phóng to dùng CHUNG một pha nên luôn khớp nhau:
-    // nhìn thẳng thì to nhất, nghiêng 3/4 thì nhỏ lại.
     final ms = widget.scaledMs(now.millisecondsSinceEpoch, widget.hourSpeed);
+    final t = ms / 1000.0;
+    // Trộn vài nhịp sóng có chu kỳ lệch nhau (11s, 17.3s, 7.1s...) nên chuyển
+    // động không bao giờ lặp lại y hệt, trông tự nhiên như đang "sống".
+    double wave(double period, double phase) => math.sin(2 * math.pi * t / period + phase);
+
     final double angle;
-    final double scale;
     if (_spins(hSlot)) {
-      // Ảnh 3D: quay tròn 360°, to nhất khi quay mặt trước ra
-      angle = spinAngleAt(swingPhase(ms, 16000));
-      scale = spinZoomAt(angle, amount: 0.14);
+      // Ảnh 3D: quay tròn 360° liên tục, tốc độ quay lúc nhanh lúc chậm nhẹ
+      angle = spinAngleAt(swingPhase(ms, 16000)) + 0.18 * wave(7.1, 0.4);
     } else {
-      final phase = swingPhase(ms, 14000);
-      angle = swingAngleAt(phase, maxAngle: 0.65);
-      scale = swingZoomAt(phase, amount: 0.14);
+      angle = swingAngleAt(swingPhase(ms, 14000), maxAngle: 0.65) + 0.08 * wave(7.1, 0.4);
     }
-    // Cứ 32 giây (ở tốc độ Vừa) phóng to rõ rệt trong 8 giây rồi thu về,
-    // đỉnh phóng to rơi đúng lúc ảnh quay mặt trước ra.
-    final d = ((ms + 4000) % 32000) / 8000;
-    final bump = d < 1 ? Curves.easeInOut.transform(math.sin(d * math.pi)) : 0.0;
-    final zoom = scale * (1 + 0.55 * bump);
+    // Vừa quay vừa phóng to / thu nhỏ liên tục (khoảng 0.85x – 1.35x),
+    // to hơn một chút khi mặt trước quay ra.
+    final breathe = 0.6 * wave(11.0, 0.0) + 0.4 * wave(17.3, 1.3);
+    final facing = (1 + math.cos(angle)) / 2;
+    final zoom = 1.08 + 0.2 * breathe + 0.07 * facing;
+    // Bồng bềnh lên xuống nhẹ
+    final floatY = s * 0.012 * wave(9.4, 2.0);
 
     return Positioned(
       left: cx - size / 2,
-      top: cy - size / 2,
+      top: cy - size / 2 + floatY,
       width: size,
       height: size,
       child: Transform.scale(
