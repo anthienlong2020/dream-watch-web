@@ -50,6 +50,45 @@ def bell(freq, dur, length_scale=1.0, bright=1.0, seed=0):
     return out
 
 
+# Chuông giờ kiểu tháp đồng hồ (Big Ben): tiếng "beng" đồng sáng, đanh, gõ bằng búa sắt,
+# khác chuông chùa (tiếng ù trầm, êm, dùi gỗ). Nên giảm tiếng ù, tăng bồi âm cao + tiếng búa.
+HOUR_PARTIALS = [
+    (0.5, 0.18, 0.9),
+    (1.0, 0.55, 0.6),
+    (1.2, 0.75, 0.45),
+    (1.5, 0.45, 0.35),
+    (2.0, 1.00, 0.40),
+    (2.52, 0.55, 0.22),
+    (3.0, 0.50, 0.20),
+    (4.0, 0.35, 0.14),
+    (5.04, 0.25, 0.10),
+    (6.1, 0.18, 0.07),
+    (7.3, 0.12, 0.05),
+]
+
+
+def hour_bell(freq=164.81, dur=5.5, seed=99):
+    rng = np.random.default_rng(seed)
+    t = np.arange(int(SR * dur)) / SR
+    out = np.zeros_like(t)
+    for ratio, amp, dec in HOUR_PARTIALS:
+        f = freq * ratio
+        tau = dec * 6.0
+        d = 1 + rng.uniform(0.001, 0.003)
+        ph = rng.uniform(0, 2 * np.pi, 2)
+        out += amp * np.exp(-t / tau) * (np.sin(2 * np.pi * f * t + ph[0]) + 0.6 * np.sin(2 * np.pi * f * d * t + ph[1]))
+    # tiếng búa sắt gõ: "keng" kim loại ngắn và rõ
+    n = int(SR * 0.06)
+    tt = np.arange(n) / SR
+    clang = sum(np.sin(2 * np.pi * freq * r * tt) for r in (8.9, 11.7, 14.3, 17.8)) * np.exp(-tt / 0.012)
+    out[:n] += 0.9 * clang + 0.5 * rng.normal(0, 1, n) * np.exp(-tt / 0.004)
+    att = int(SR * 0.0015)
+    out[:att] *= np.linspace(0, 1, att)
+    # nén nhẹ cho to, rõ mà không rè
+    out = np.tanh(out / np.max(np.abs(out)) * 2.2)
+    return out
+
+
 def mix(events, total):
     buf = np.zeros(int(SR * total))
     for start, sig in events:
@@ -99,8 +138,7 @@ if __name__ == '__main__':
                 k += 1
                 t += BEAT + (HOLD + GAP if i == 3 else 0)
         save(f'west_q{q}', mix(ev, t + 3.5))
-    # chuông giờ lớn (như Big Ben, nốt Mi trầm): ngân rất lâu
-    save('strike_big', bell(164.81, 6.0, length_scale=1.6, bright=0.8, seed=99))
+    save('strike_big', hour_bell())
     # in độ dài từng câu để khớp lịch phát trong app
     for q, changes in QUARTERS.items():
         print(q, round(len(changes) * (4 * BEAT + HOLD + GAP) - HOLD - GAP - BEAT, 2), 's tới nốt cuối')
