@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../chibi/auto_chibi.dart';
 import '../chibi/chibi3d.dart';
+import '../chibi/chibi_painter.dart' show ChibiOutfit;
 import '../three_d/body_type.dart';
 import '../three_d/inflated_3d.dart';
 import '../three_d/stick_figure.dart';
@@ -45,6 +46,8 @@ class SlotImageView extends StatelessWidget {
       case ImageStyle.phuDieu:
         return _hasFile(img);
       case ImageStyle.chibi:
+      case ImageStyle.heroNam:
+      case ImageStyle.heroNu:
         return img.chibi != null || _hasFile(img);
       case null:
         return img.chibi != null;
@@ -94,10 +97,51 @@ class SlotImageView extends StatelessWidget {
           );
         }
         break;
+      case ImageStyle.heroNam:
+      case ImageStyle.heroNu:
+        final outfit = style == ImageStyle.heroNam ? ChibiOutfit.heroNam : ChibiOutfit.heroNu;
+        if (chibi != null) {
+          // Chibi người thật đã tạo: giữ khuôn mặt + màu, đổi sang thân anh hùng
+          return Chibi3DView(
+            spec: _heroSpec(chibi, outfit),
+            size: size,
+            yaw: yaw,
+            hiDetail: hiDetail,
+            body: body,
+          );
+        }
+        if (_hasFile(image)) {
+          return AutoChibiView(
+            source: image.bytes ?? image.asset!,
+            size: size,
+            yaw: yaw,
+            hiDetail: hiDetail,
+            body: body,
+            outfit: outfit,
+            headScale: 1.7, // biểu tượng / con vật làm đầu: phóng to cho dễ nhìn
+            fallback: flat,
+          );
+        }
+        break;
       case ImageStyle.nguoiQue:
         return StickFigureView(head: flat, size: size, yaw: yaw, body: body);
     }
     return _flat();
+  }
+
+  static final Expando<Map<ChibiOutfit, ChibiSpec>> _heroCache = Expando();
+
+  /// Bản sao của chibi đã tạo nhưng mặc đồ anh hùng (giữ nguyên đối tượng để
+  /// không phải dựng lại mỗi khung hình).
+  static ChibiSpec _heroSpec(ChibiSpec base, ChibiOutfit outfit) {
+    final m = _heroCache[base] ??= {};
+    return m[outfit] ??= ChibiSpec(
+      face: base.face,
+      outfit: outfit,
+      outfitColor: base.outfitColor,
+      skin: base.skin,
+      hair: base.hair,
+    );
   }
 
   Widget _flat() {

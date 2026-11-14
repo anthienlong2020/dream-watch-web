@@ -13,14 +13,16 @@ import 'chibi_painter.dart' show ChibiOutfit;
 // lấy cả ảnh làm khuôn mặt, màu tóc/mũ = màu chủ đạo của ảnh.
 // =====================================================================
 
-final Map<Object, Future<ChibiSpec?>> _cache = {};
+final Map<(Object, ChibiOutfit), Future<ChibiSpec?>> _cache = {};
 
 /// [source]: Uint8List (ảnh người dùng) hoặc String (đường dẫn asset).
-Future<ChibiSpec?> autoChibiSpec(Object source) {
-  if (!_cache.containsKey(source) && _cache.length > 40) {
+/// [outfit]: bộ đồ (mặc định đồ thú có mũ trùm).
+Future<ChibiSpec?> autoChibiSpec(Object source, {ChibiOutfit outfit = ChibiOutfit.khungLong}) {
+  final key = (source, outfit);
+  if (!_cache.containsKey(key) && _cache.length > 40) {
     _cache.remove(_cache.keys.first);
   }
-  return _cache.putIfAbsent(source, () async {
+  return _cache.putIfAbsent(key, () async {
     try {
       final Uint8List bytes;
       if (source is Uint8List) {
@@ -66,7 +68,7 @@ Future<ChibiSpec?> autoChibiSpec(Object source) {
 
       return ChibiSpec(
         face: png!.buffer.asUint8List(),
-        outfit: ChibiOutfit.khungLong, // bộ đồ thú có mũ trùm
+        outfit: outfit,
         outfitColor: main,
         skin: Color.lerp(main, Colors.white, 0.35)!,
         hair: main,
@@ -85,6 +87,8 @@ class AutoChibiView extends StatefulWidget {
   final bool hiDetail;
   final BodyType body;
   final Widget fallback;
+  final ChibiOutfit outfit;
+  final double headScale;
 
   const AutoChibiView({
     super.key,
@@ -94,6 +98,8 @@ class AutoChibiView extends StatefulWidget {
     required this.body,
     this.yaw = 0,
     this.hiDetail = false,
+    this.outfit = ChibiOutfit.khungLong,
+    this.headScale = 1.0,
   });
 
   @override
@@ -112,13 +118,16 @@ class _AutoChibiViewState extends State<AutoChibiView> {
   @override
   void didUpdateWidget(covariant AutoChibiView old) {
     super.didUpdateWidget(old);
-    if (!identical(old.source, widget.source)) _load();
+    if (!identical(old.source, widget.source) || old.outfit != widget.outfit) _load();
   }
 
   void _load() {
     final src = widget.source;
-    autoChibiSpec(src).then((s) {
-      if (mounted && identical(src, widget.source)) setState(() => _spec = s);
+    final outfit = widget.outfit;
+    autoChibiSpec(src, outfit: outfit).then((s) {
+      if (mounted && identical(src, widget.source) && outfit == widget.outfit) {
+        setState(() => _spec = s);
+      }
     });
   }
 
@@ -132,6 +141,7 @@ class _AutoChibiViewState extends State<AutoChibiView> {
       yaw: widget.yaw,
       hiDetail: widget.hiDetail,
       body: widget.body,
+      headScale: widget.headScale,
     );
   }
 }

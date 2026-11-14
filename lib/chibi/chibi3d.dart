@@ -193,7 +193,9 @@ class ChibiMesh {
 
 /// Dựng nhân vật. [lod]: 1 = mịn (ảnh to ở giữa), 0 = gọn (ảnh nhỏ quanh vòng).
 /// [body]: dáng ốm / cân đối / mập.
-ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyType.canDoi}) {
+/// [headScale]: phóng to đầu (dùng khi đầu là biểu tượng/con vật để dễ nhìn).
+ChibiMesh buildChibiMesh(ChibiOutfit outfit,
+    {int lod = 1, BodyType body = BodyType.canDoi, double headScale = 1.0}) {
   final m = ChibiMesh();
   final hs = lod == 1 ? 28 : 18; // độ mịn của đầu
   final hr = lod == 1 ? 18 : 12;
@@ -210,7 +212,7 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
   final hero = outfit == ChibiOutfit.heroNam || outfit == ChibiOutfit.heroNu;
   if (hero) {
     // Siêu anh hùng: tỷ lệ người thật (cao ~8 đầu), không phải chibi
-    _realHero(m, outfit == ChibiOutfit.heroNam, ps, pr, hs, hr, t, l);
+    _realHero(m, outfit == ChibiOutfit.heroNam, ps, pr, hs, hr, t, l, headScale);
     return m;
   }
 
@@ -315,8 +317,9 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
 /// [male] = nam lực lưỡng (vai rộng, ngực nở, bụng 6 múi, áo choàng);
 /// nữ = dáng đồng hồ cát (ngực, eo thon, hông), chân dài, vòng tay vàng, tóc dài.
 /// [t]/[l]: hệ số dáng (ốm/cân đối/mập) cho thân và tay chân.
-void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t, double l) {
-  m.centerY = 1.36;
+void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t, double l,
+    [double headScale = 1.0]) {
+  m.centerY = 1.36 + (headScale - 1) * 0.12;
   const headBias = 0.6;
 
   // ---- Chân: đùi, ống chân (bốt), bàn chân ----
@@ -409,8 +412,8 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
   m.part();
   m.tube(const V3(0, 2.18, 0), const V3(0, 2.42, 0), (male ? 0.075 : 0.058) * l, (male ? 0.07 : 0.055) * l,
       Mat.skin, seg: ps, capA: false, capB: false);
-  const headC = V3(0, 2.56, 0);
-  final headR = male ? const V3(0.135, 0.17, 0.15) : const V3(0.125, 0.16, 0.14);
+  final headR = (male ? const V3(0.135, 0.17, 0.15) : const V3(0.125, 0.16, 0.14)) * headScale;
+  final headC = V3(0, 2.4 + headR.y * 0.95, 0);
   m.part(headBias);
   m.ellipsoid(headC, headR, Mat.hair, seg: hs, rings: hr, faceFront: true);
 
@@ -613,17 +616,17 @@ class _Built {
   _Built(this.hi, this.lo, this.atlas);
 }
 
-final Map<(ChibiSpec, BodyType), Future<_Built>> _cache = {};
+final Map<(ChibiSpec, BodyType, double), Future<_Built>> _cache = {};
 
-Future<_Built> _build(ChibiSpec spec, BodyType body) {
-  final key = (spec, body);
+Future<_Built> _build(ChibiSpec spec, BodyType body, double headScale) {
+  final key = (spec, body, headScale);
   if (!_cache.containsKey(key) && _cache.length > 40) {
     _cache.remove(_cache.keys.first); // giới hạn bộ nhớ đệm
   }
   return _cache.putIfAbsent(key, () async {
     final atlas = await buildAtlas(spec);
-    return _Built(buildChibiMesh(spec.outfit, lod: 1, body: body),
-        buildChibiMesh(spec.outfit, lod: 0, body: body), atlas);
+    return _Built(buildChibiMesh(spec.outfit, lod: 1, body: body, headScale: headScale),
+        buildChibiMesh(spec.outfit, lod: 0, body: body, headScale: headScale), atlas);
   });
 }
 
@@ -634,6 +637,7 @@ class Chibi3DView extends StatefulWidget {
   final double size;
   final bool hiDetail;
   final BodyType body;
+  final double headScale;
 
   const Chibi3DView({
     super.key,
@@ -642,6 +646,7 @@ class Chibi3DView extends StatefulWidget {
     this.yaw = 0,
     this.hiDetail = true,
     this.body = BodyType.canDoi,
+    this.headScale = 1.0,
   });
 
   @override
@@ -660,14 +665,19 @@ class _Chibi3DViewState extends State<Chibi3DView> {
   @override
   void didUpdateWidget(covariant Chibi3DView old) {
     super.didUpdateWidget(old);
-    if (!identical(old.spec, widget.spec) || old.body != widget.body) _load();
+    if (!identical(old.spec, widget.spec) ||
+        old.body != widget.body ||
+        old.headScale != widget.headScale) {
+      _load();
+    }
   }
 
   void _load() {
     final spec = widget.spec;
     final body = widget.body;
-    _build(spec, body).then((b) {
-      if (mounted && identical(spec, widget.spec) && body == widget.body) {
+    final hs = widget.headScale;
+    _build(spec, body, hs).then((b) {
+      if (mounted && identical(spec, widget.spec) && body == widget.body && hs == widget.headScale) {
         setState(() => _built = b);
       }
     });

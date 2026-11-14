@@ -52,6 +52,9 @@ void main() {
       (ImageStyle.thoiPhong, ElementType.phaLe),
       (ImageStyle.thoiPhong, ElementType.haoQuangNgan),
       (ImageStyle.standard, ElementType.haoQuangDai),
+      (ImageStyle.heroNam, ElementType.none),
+      (ImageStyle.heroNu, ElementType.none),
+      (ImageStyle.heroNam, ElementType.kim),
     ];
     for (final (style, element) in configs) {
       final key = GlobalKey();
