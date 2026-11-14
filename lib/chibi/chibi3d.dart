@@ -518,7 +518,7 @@ void paintChibi3D(Canvas canvas, Size size, ChibiMesh mesh, ui.Image atlas,
   final scr = List<Offset>.filled(n, Offset.zero);
   for (var i = 0; i < n; i++) {
     final v = mesh.verts[i];
-    final p = rot(v.p - const V3(0, centerY, 0));
+    final p = rot(v.p - V3(0, centerY, 0));
     pos[i] = p;
     nrm[i] = rot(v.n);
     final k = camDist / (camDist - p.z);
