@@ -345,6 +345,12 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
   m.tube(const V3(0, 1.52, 0), const V3(0, 1.57, 0), (male ? 0.18 : 0.135) * t, (male ? 0.18 : 0.135) * t,
       Mat.spike, seg: ps + 4, capA: false, capB: false);
 
+  // ---- Bụng nối liền hông với ngực (cho thân liền mạch) ----
+  m.part();
+  m.ellipsoid(const V3(0, 1.74, 0),
+      male ? V3(0.21 * t, 0.24, 0.14 * t) : V3(0.15 * t, 0.22, 0.115 * t), Mat.outfit,
+      seg: ps + 2, rings: pr + 2);
+
   // ---- Thân trên ----
   if (male) {
     m.part();
@@ -376,11 +382,11 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
 
   // ---- Vai + tay ----
   final shX = (male ? 0.33 : 0.22) * t;
-  final upR = (male ? 0.085 : 0.055) * l, loR = (male ? 0.065 : 0.045) * l;
+  final upR = (male ? 0.1 : 0.055) * l, loR = (male ? 0.08 : 0.045) * l;
   for (final s in [-1.0, 1.0]) {
     if (male) {
       m.part();
-      m.ellipsoid(V3(shX * s, 2.17, 0), V3(0.1 * l, 0.09 * l, 0.1 * l), Mat.outfit, seg: ps, rings: pr);
+      m.ellipsoid(V3(shX * s, 2.16, 0), V3(0.115 * l, 0.1 * l, 0.11 * l), Mat.outfit, seg: ps, rings: pr);
     }
     final elbow = V3((shX + 0.07) * s, 1.73, 0.02);
     final wrist = V3((shX + 0.1) * s, 1.33, 0.07);
@@ -394,7 +400,8 @@ void _realHero(ChibiMesh m, bool male, int ps, int pr, int hs, int hr, double t,
           Mat.spike, seg: ps, capA: false, capB: false);
     }
     m.part();
-    m.ellipsoid(V3((shX + 0.105) * s, 1.27, 0.08), V3(0.045 * l, 0.06 * l, 0.04 * l),
+    m.ellipsoid(V3((shX + 0.105) * s, 1.27, 0.08),
+        male ? V3(0.06 * l, 0.07 * l, 0.055 * l) : V3(0.045 * l, 0.06 * l, 0.04 * l),
         male ? Mat.outfitDark : Mat.skin, seg: ps, rings: pr);
   }
 
