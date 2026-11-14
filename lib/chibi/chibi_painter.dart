@@ -28,6 +28,8 @@ const List<Color> kOutfitColors = [
   Color(0xFF6D4C41), // nâu
   Color(0xFF37474F), // xám đậm
   Color(0xFFFAFAFA), // trắng
+  Color(0xFF7FD8BE), // bạc hà
+  Color(0xFF212121), // đen
 ];
 
 // =====================================================================

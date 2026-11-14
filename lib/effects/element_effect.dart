@@ -34,15 +34,17 @@ bool elementHasColor(ElementType e) =>
     e == ElementType.phaLe || e == ElementType.haoQuangNgan || e == ElementType.haoQuangDai;
 
 /// Màu cho hệ Pha lê / Hào quang.
-enum ElemColor { tuDong, trongSuot, cauVong, vang, ngocBich, lucBao, lam, tim, hong, doo, bachKim }
+enum ElemColor { tuDong, trongSuot, cauVong, vang, cam, ngocBich, lucBao, bacHa, lam, tim, hong, doo, bachKim }
 
 const Map<ElemColor, String> kElemColorNames = {
   ElemColor.tuDong: 'Màu tự động',
   ElemColor.trongSuot: 'Trong suốt',
   ElemColor.cauVong: '🌈 Cầu vồng',
   ElemColor.vang: 'Vàng',
+  ElemColor.cam: 'Cam',
   ElemColor.ngocBich: 'Ngọc bích (xanh lá)',
   ElemColor.lucBao: 'Lục bảo (xanh lục)',
+  ElemColor.bacHa: 'Bạc hà',
   ElemColor.lam: 'Lam',
   ElemColor.tim: 'Tím',
   ElemColor.hong: 'Hồng',
@@ -73,6 +75,10 @@ Color elemColorValue(ElementType e, ElemColor c, double t) {
       return Color.lerp(_rainbow[i % _rainbow.length], _rainbow[(i + 1) % _rainbow.length], x - i)!;
     case ElemColor.vang:
       return const Color(0xFFFFD54F);
+    case ElemColor.cam:
+      return const Color(0xFFFF9F43);
+    case ElemColor.bacHa:
+      return const Color(0xFFA8F0D8);
     case ElemColor.ngocBich:
       return const Color(0xFF66D19E);
     case ElemColor.lucBao:
