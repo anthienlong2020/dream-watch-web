@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/app_state.dart';
+import '../themes/theme_overlay.dart';
 import '../utils/vn_format.dart';
 import '../widgets/dream_clock.dart';
 import '../widgets/tick_builder.dart';
@@ -17,6 +18,8 @@ class ClockScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
+        final season = app.activeSeason();
+        final accent = season?.accent ?? kCyan;
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -37,7 +40,7 @@ class ClockScreen extends StatelessWidget {
                       builder: (_) => Text(
                         formatClock(DateTime.now()),
                         style: TextStyle(
-                          color: kCyan,
+                          color: accent,
                           fontSize: timeSize,
                           fontWeight: FontWeight.w300,
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -58,6 +61,9 @@ class ClockScreen extends StatelessWidget {
                         elements: app.resolvedElements,
                         effectsOn: app.effectsOn,
                         elemColors: app.resolvedElemColors,
+                        ringColor: season == null
+                            ? const Color(0x99FFFFFF)
+                            : season.accent.withAlpha(190),
                         hourSpeed: app.hourSpeed,
                         minuteSpeed: app.minuteSpeed,
                         secondSpeed: app.secondSpeed,
@@ -72,7 +78,7 @@ class ClockScreen extends StatelessWidget {
                       builder: (_) => Text(
                         formatDateVn(DateTime.now()),
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: kCyan, fontSize: dateSize),
+                        style: TextStyle(color: accent, fontSize: dateSize),
                       ),
                     ),
                   ),
@@ -81,6 +87,8 @@ class ClockScreen extends StatelessWidget {
               );
             }),
             ),
+            // Theme mùa & lễ hội: hiệu ứng phủ lên trên, không nhận chạm
+            if (season != null) Positioned.fill(child: AnimatedThemeOverlay(theme: season)),
           ],
         );
       },

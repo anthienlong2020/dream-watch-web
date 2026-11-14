@@ -40,6 +40,9 @@ class DreamClock extends StatefulWidget {
   /// Màu của hệ (Pha lê / Hào quang) theo từng vị trí.
   final List<ElemColor> elemColors;
 
+  /// Màu vòng tròn mặt đồng hồ (theo theme mùa).
+  final Color ringColor;
+
   /// Hệ số tốc độ: 1.0 = mặc định, nhỏ hơn = chậm hơn.
   final double hourSpeed;
   final double minuteSpeed;
@@ -56,6 +59,7 @@ class DreamClock extends StatefulWidget {
     this.elements = const [],
     this.effectsOn = true,
     this.elemColors = const [],
+    this.ringColor = const Color(0x99FFFFFF),
     this.hourSpeed = 1.0,
     this.minuteSpeed = 1.0,
     this.secondSpeed = 1.0,
@@ -117,7 +121,7 @@ class _DreamClockState extends State<DreamClock>
     final children = <Widget>[
       Positioned.fill(
         child: CustomPaint(
-          painter: _SkyPainter(ringR: ringR, showStars: widget.showStars),
+          painter: _SkyPainter(ringR: ringR, showStars: widget.showStars, ringColor: widget.ringColor),
         ),
       ),
     ];
@@ -383,8 +387,9 @@ class _DreamClockState extends State<DreamClock>
 class _SkyPainter extends CustomPainter {
   final double ringR;
   final bool showStars;
+  final Color ringColor;
 
-  _SkyPainter({required this.ringR, required this.showStars});
+  _SkyPainter({required this.ringR, required this.showStars, required this.ringColor});
 
   static final List<_Star> _stars = _makeStars();
 
@@ -412,8 +417,8 @@ class _SkyPainter extends CustomPainter {
       ringR,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0
-        ..color = const Color(0x99FFFFFF),
+        ..strokeWidth = ringColor == const Color(0x99FFFFFF) ? 1.0 : 1.6
+        ..color = ringColor,
     );
     if (!showStars) return;
 
@@ -455,7 +460,7 @@ class _SkyPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SkyPainter old) =>
-      old.showStars != showStars || old.ringR != ringR;
+      old.showStars != showStars || old.ringR != ringR || old.ringColor != ringColor;
 }
 
 class _Star {

@@ -9,6 +9,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../chibi/chibi3d.dart';
 import '../effects/element_effect.dart';
 import '../models/alarm.dart';
+import '../themes/season_theme.dart';
 import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
 import 'sound_service.dart';
@@ -55,6 +56,17 @@ class AppState extends ChangeNotifier {
   ElementType defaultElement = ElementType.none;
   List<ElementType?> slotElement = List<ElementType?>.filled(12, null);
   bool effectsOn = true;
+
+  /// Theme mùa & lễ hội: 'off' = tắt, 'auto' = tự động theo ngày, hoặc id theme.
+  String seasonMode = 'auto';
+
+  /// Theme đang áp dụng (null nếu tắt).
+  SeasonTheme? activeSeason([DateTime? at]) {
+    final now = at ?? DateTime.now();
+    if (seasonMode == 'off') return null;
+    final id = seasonMode == 'auto' ? autoThemeId(now) : seasonMode;
+    return themeById(id, now);
+  }
 
   /// Màu hệ (Pha lê / Hào quang) mặc định và riêng từng vị trí.
   ElemColor defaultElemColor = ElemColor.tuDong;
@@ -199,6 +211,7 @@ class AppState extends ChangeNotifier {
         'defaultElement': defaultElement.name,
         'slotElement': slotElement.map((e) => e?.name).toList(),
         'effectsOn': effectsOn,
+        'seasonMode': seasonMode,
         'defaultElemColor': defaultElemColor.name,
         'slotElemColor': slotElemColor.map((e) => e?.name).toList(),
         'spin360': spin360,
@@ -242,6 +255,7 @@ class AppState extends ChangeNotifier {
       defaultElement = elementFromName(j['defaultElement'] as String);
     }
     effectsOn = (j['effectsOn'] as bool?) ?? effectsOn;
+    seasonMode = (j['seasonMode'] as String?) ?? seasonMode;
     if (j['defaultElemColor'] is String) {
       defaultElemColor = elemColorFromName(j['defaultElemColor'] as String);
     }

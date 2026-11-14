@@ -8,6 +8,7 @@ import '../services/app_state.dart';
 import '../effects/element_effect.dart';
 import '../three_d/body_type.dart';
 import '../services/file_saver.dart';
+import '../themes/season_theme.dart';
 import '../utils/image_utils.dart';
 import '../widgets/slot_image_view.dart';
 import 'chibi_maker_screen.dart';
@@ -25,6 +26,8 @@ class SettingsScreen extends StatelessWidget {
         children: const [
           _Header('Bộ cấu hình của tôi'),
           _PresetSettings(),
+          _Header('Theme mùa & lễ hội'),
+          _SeasonSettings(),
           _Header('Chủ đề hình ảnh'),
           _ThemePicker(),
           SizedBox(height: 8),
@@ -1098,6 +1101,59 @@ class _StyleSettings extends StatelessWidget {
                     child: const Text('Đưa tất cả về mặc định'),
                   ),
                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// =====================================================================
+// Theme mùa & lễ hội
+// =====================================================================
+
+class _SeasonSettings extends StatelessWidget {
+  const _SeasonSettings();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final now = DateTime.now();
+        final themes = allThemes(now);
+        final today = themeById(autoThemeId(now), now);
+        final ids = ['off', 'auto', ...themes.map((t) => t.id)];
+        String label(String id) {
+          if (id == 'off') return 'Tắt';
+          if (id == 'auto') return '🗓️ Tự động theo ngày';
+          final t = themes.firstWhere((t) => t.id == id);
+          return '${t.emoji} ${t.name}';
+        }
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Thêm hiệu ứng theo mùa và ngày lễ (hoa rơi, tuyết, pháo hoa, lồng đèn...) '
+                  'và màu nhấn cho vòng đồng hồ. Không thay đổi ảnh bạn đã chọn.',
+                  style: TextStyle(fontSize: 12.5, color: Colors.white60),
+                ),
+                DropdownButton<String>(
+                  isExpanded: true,
+                  value: ids.contains(app.seasonMode) ? app.seasonMode : 'auto',
+                  items: [
+                    for (final id in ids) DropdownMenuItem(value: id, child: Text(label(id))),
+                  ],
+                  onChanged: (v) => app.update(() => app.seasonMode = v ?? 'auto'),
+                ),
+                if (app.seasonMode == 'auto' && today != null)
+                  Text('Hôm nay: ${today.emoji} ${today.name}',
+                      style: const TextStyle(fontSize: 13, color: Colors.white70)),
               ],
             ),
           ),
