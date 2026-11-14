@@ -359,11 +359,10 @@ class _DreamClockState extends State<DreamClock>
     } else {
       angle = swingAngleAt(swingPhase(ms, 14000), maxAngle: 0.65) + 0.08 * wave(7.1, 0.4);
     }
-    // Vừa quay vừa phóng to / thu nhỏ liên tục (khoảng 0.85x – 1.35x),
-    // to hơn một chút khi mặt trước quay ra.
-    final breathe = 0.6 * wave(11.0, 0.0) + 0.4 * wave(17.3, 1.3);
-    final facing = (1 + math.cos(angle)) / 2;
-    final zoom = 1.08 + 0.2 * breathe + 0.07 * facing;
+    // Vừa quay vừa phóng to / thu nhỏ liên tục: nhỏ nhất ~0.9x, to nhất 2x
+    // (= bằng đường kính vòng đồng hồ, vì ảnh giữa rộng 40% còn vòng là 80%).
+    final breathe = 0.7 * wave(11.0, 0.0) + 0.3 * wave(17.3, 1.3); // -1..1
+    final zoom = (1.45 + 0.55 * breathe).clamp(0.9, 2.0);
     // Bồng bềnh lên xuống nhẹ
     final floatY = s * 0.012 * wave(9.4, 2.0);
 
