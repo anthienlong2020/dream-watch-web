@@ -5,13 +5,15 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 /// Các kiểu trang phục chibi.
-enum ChibiOutfit { aoThun, vay, vest, khungLong }
+enum ChibiOutfit { aoThun, vay, vest, khungLong, heroNam, heroNu }
 
 const Map<ChibiOutfit, String> kOutfitNames = {
   ChibiOutfit.aoThun: 'Áo thun',
   ChibiOutfit.vay: 'Váy',
   ChibiOutfit.vest: 'Vest',
   ChibiOutfit.khungLong: 'Đồ khủng long',
+  ChibiOutfit.heroNam: '💪 Siêu anh hùng (nam)',
+  ChibiOutfit.heroNu: '🦸 Nữ anh hùng',
 };
 
 /// Bảng màu trang phục.
@@ -112,6 +114,8 @@ void paintChibi(
       ChibiOutfit.vay => skin,
       ChibiOutfit.vest => const Color(0xFF263238),
       ChibiOutfit.khungLong => color,
+      ChibiOutfit.heroNam => color,
+      ChibiOutfit.heroNu => color,
     };
     canvas.drawRRect(leg, fill(legColor));
     canvas.drawRRect(leg, outline);
@@ -192,6 +196,16 @@ void paintChibi(
         ..lineTo(cx - s * 0.02, torsoTop + s * 0.09)
         ..close();
       canvas.drawPath(tie, fill(color));
+      break;
+    case ChibiOutfit.heroNam:
+    case ChibiOutfit.heroNu:
+      // Đai lưng vàng + huy hiệu tròn trên ngực
+      canvas.drawRect(
+          Rect.fromLTRB(cx - torsoW / 2, torsoBottom - s * 0.04, cx + torsoW / 2, torsoBottom - s * 0.015),
+          fill(const Color(0xFFFFC107)));
+      if (outfit == ChibiOutfit.heroNam) {
+        canvas.drawCircle(Offset(cx, torsoTop + s * 0.06), s * 0.03, fill(const Color(0xFFFFC107)));
+      }
       break;
     case ChibiOutfit.khungLong:
       // Bụng sáng màu

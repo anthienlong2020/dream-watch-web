@@ -83,7 +83,7 @@ class V3 {
 // ---------------------------------------------------------------------
 
 /// Vật liệu = một ô màu trong ảnh "atlas" (trừ mặt dùng ảnh khuôn mặt).
-enum Mat { face, skin, hair, outfit, outfitDark, outfitLight, pants, shoe, white, spike }
+enum Mat { face, skin, hair, outfit, outfitDark, outfitLight, pants, shoe, white, spike, cape }
 
 class MeshVert {
   final V3 p;
@@ -204,8 +204,13 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
   V3 up(double x, double y, double z) => V3(x, y + dy, z);
   final legX = 0.17 * math.min(t, 1.25);
 
+  final hero = outfit == ChibiOutfit.heroNam || outfit == ChibiOutfit.heroNu;
+  if (hero) {
+    _heroBody(m, outfit == ChibiOutfit.heroNam, ps, pr, t, l, up);
+  }
+
   // Chân + giày
-  for (final s in [-1.0, 1.0]) {
+  for (final s in hero ? const <double>[] : const [-1.0, 1.0]) {
     m.part();
     m.tube(up(legX * s, 0.4, 0), V3(legX * s, 0.14, 0.02), 0.13 * l, 0.12 * l,
         outfit == ChibiOutfit.vay ? Mat.skin : (outfit == ChibiOutfit.khungLong ? Mat.outfit : Mat.pants),
@@ -218,7 +223,7 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
   }
 
   // Thân
-  switch (outfit) {
+  if (!hero) switch (outfit) {
     case ChibiOutfit.vay:
       m.part();
       m.tube(up(0, 0.95, 0), up(0, 0.3, 0), 0.3 * t, 0.52 * t, Mat.outfit, seg: ps + 4, capA: true, capB: false);
@@ -251,12 +256,15 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
       m.part(0.05);
       m.ellipsoid(up(0, 0.7, 0.3 * t), const V3(0.11, 0.11, 0.07), Mat.outfitLight, seg: 10, rings: 6);
       break;
+    case ChibiOutfit.heroNam:
+    case ChibiOutfit.heroNu:
+      break;
   }
 
   // Tay
   final sleeve = outfit == ChibiOutfit.vay ? Mat.skin : Mat.outfit;
   final shoulderX = 0.32 * t;
-  for (final s in [-1.0, 1.0]) {
+  for (final s in hero ? const <double>[] : const [-1.0, 1.0]) {
     m.part();
     m.tube(up(shoulderX * s, 0.86, 0), up((shoulderX + 0.28) * s, 0.55, 0.1), 0.11 * l, 0.1 * l,
         sleeve, seg: ps, capB: false);
@@ -275,6 +283,13 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
   m.part(headBias);
   m.ellipsoid(headC, headR, Mat.hair, seg: hs, rings: hr, faceFront: true);
 
+  // Nữ anh hùng: mái tóc dài buông sau lưng
+  if (outfit == ChibiOutfit.heroNu) {
+    m.part();
+    m.ellipsoid(headC + const V3(0, -0.5, -0.3), const V3(0.72, 0.8, 0.28), Mat.hair,
+        seg: hs, rings: hr, phiFrom: math.pi * 0.55, phiTo: math.pi * 1.45);
+  }
+
   // Mũ trùm khủng long: chỉ nửa sau đầu (để lộ mặt) + gai
   if (outfit == ChibiOutfit.khungLong) {
     m.part(headBias);
@@ -289,6 +304,110 @@ ChibiMesh buildChibiMesh(ChibiOutfit outfit, {int lod = 1, BodyType body = BodyT
     }
   }
   return m;
+}
+
+/// Thân siêu anh hùng: [male] = nam lực lưỡng (vai rộng, ngực nở, bụng 6 múi,
+/// áo choàng); nữ = dáng đồng hồ cát (ngực, eo thon, hông), chân dài, vòng tay vàng.
+void _heroBody(ChibiMesh m, bool male, int ps, int pr, double t, double l,
+    V3 Function(double, double, double) up) {
+  if (male) {
+    for (final s in [-1.0, 1.0]) {
+      // đùi + ống chân + giày ống
+      m.part();
+      m.tube(up(0.18 * t * s, 0.5, 0), up(0.19 * t * s, 0.28, 0.01), 0.15 * l, 0.13 * l, Mat.outfit,
+          seg: ps, capB: false);
+      m.part();
+      m.tube(up(0.19 * t * s, 0.3, 0.01), V3(0.19 * t * s, 0.1, 0.02), 0.14 * l, 0.12 * l, Mat.outfitDark,
+          seg: ps, capA: false, capB: false);
+      m.part();
+      m.ellipsoid(V3(0.19 * t * s, 0.06, 0.06), V3(0.14 * l, 0.08, 0.2), Mat.outfitDark, seg: ps, rings: pr);
+    }
+    m.part();
+    m.ellipsoid(up(0, 0.5, 0), V3(0.34 * t, 0.13, 0.27 * t), Mat.outfitDark, seg: ps, rings: pr);
+    m.part(0.02);
+    m.tube(up(0, 0.57, 0), up(0, 0.62, 0), 0.325 * t, 0.325 * t, Mat.spike, seg: ps + 4, capA: false, capB: false);
+    m.part();
+    m.tube(up(0, 0.6, 0), up(0, 0.74, 0), 0.3 * t, 0.33 * t, Mat.outfit, seg: ps, capA: false, capB: false);
+    // ngực nở hình chữ V
+    m.part();
+    m.ellipsoid(up(0, 0.86, 0), V3(0.47 * t, 0.2, 0.3 * t), Mat.outfit, seg: ps + 4, rings: pr + 2);
+    // cơ ngực
+    for (final s in [-1.0, 1.0]) {
+      m.part(0.05);
+      m.ellipsoid(up(0.13 * t * s, 0.87, 0.2 * t), V3(0.15 * t, 0.1, 0.1), Mat.outfit, seg: ps, rings: pr);
+    }
+    // bụng 6 múi
+    for (final y in [0.765, 0.7, 0.635]) {
+      for (final s in [-1.0, 1.0]) {
+        m.part(0.06);
+        m.ellipsoid(up(0.06 * t * s, y, 0.27 * t), V3(0.052 * t, 0.03, 0.035), Mat.outfit, seg: 8, rings: 6);
+      }
+    }
+    // huy hiệu vàng trên ngực
+    m.part(0.1);
+    m.ellipsoid(up(0, 0.93, 0.29 * t), const V3(0.08, 0.06, 0.03), Mat.spike, seg: 10, rings: 6);
+    // vai + tay to khoẻ + găng tay
+    for (final s in [-1.0, 1.0]) {
+      m.part();
+      m.ellipsoid(up(0.44 * t * s, 0.92, 0), V3(0.16 * l, 0.15 * l, 0.16 * l), Mat.outfit, seg: ps, rings: pr);
+      m.part();
+      m.tube(up(0.47 * t * s, 0.88, 0), up((0.47 * t + 0.13) * s, 0.68, 0.03), 0.135 * l, 0.12 * l,
+          Mat.outfit, seg: ps, capA: false);
+      m.part();
+      m.tube(up((0.47 * t + 0.13) * s, 0.68, 0.03), up((0.47 * t + 0.18) * s, 0.5, 0.08), 0.12 * l, 0.11 * l,
+          Mat.outfitDark, seg: ps, capA: false, capB: false);
+      m.part();
+      m.ellipsoid(up((0.47 * t + 0.19) * s, 0.47, 0.09), V3(0.12 * l, 0.12 * l, 0.12 * l), Mat.outfitDark,
+          seg: ps, rings: pr);
+    }
+    // áo choàng sau lưng
+    m.part();
+    m.ellipsoid(up(0, 0.6, -0.2 * t), V3(0.52 * t, 0.5, 0.17 * t), Mat.cape,
+        seg: ps + 4, rings: pr + 2, phiFrom: math.pi * 0.6, phiTo: math.pi * 1.4);
+  } else {
+    for (final s in [-1.0, 1.0]) {
+      // chân thon dài + bốt cao
+      m.part();
+      m.tube(up(0.13 * t * s, 0.5, 0), up(0.135 * t * s, 0.33, 0.01), 0.12 * l, 0.1 * l, Mat.outfit,
+          seg: ps, capB: false);
+      m.part();
+      m.tube(up(0.135 * t * s, 0.34, 0.01), V3(0.14 * t * s, 0.09, 0.02), 0.105 * l, 0.09 * l, Mat.outfitDark,
+          seg: ps, capA: false, capB: false);
+      m.part();
+      m.ellipsoid(V3(0.14 * t * s, 0.055, 0.05), V3(0.1 * l, 0.065, 0.17), Mat.outfitDark, seg: ps, rings: pr);
+    }
+    // hông
+    m.part();
+    m.ellipsoid(up(0, 0.5, 0), V3(0.35 * t, 0.15, 0.27 * t), Mat.outfit, seg: ps + 2, rings: pr);
+    // đai vàng
+    m.part(0.02);
+    m.tube(up(0, 0.6, 0), up(0, 0.635, 0), 0.245 * t, 0.24 * t, Mat.spike, seg: ps + 4, capA: false, capB: false);
+    // eo thon
+    m.part();
+    m.tube(up(0, 0.56, 0), up(0, 0.74, 0), 0.25 * t, 0.23 * t, Mat.outfit, seg: ps, capA: false, capB: false);
+    // thân trên + ngực
+    m.part();
+    m.ellipsoid(up(0, 0.84, 0), V3(0.3 * t, 0.15, 0.23 * t), Mat.outfit, seg: ps + 2, rings: pr);
+    for (final s in [-1.0, 1.0]) {
+      m.part(0.05);
+      m.ellipsoid(up(0.11 * t * s, 0.83, 0.15 * t), V3(0.115 * t, 0.11, 0.11), Mat.outfit, seg: ps, rings: pr);
+    }
+    // tay thon + vòng tay vàng
+    for (final s in [-1.0, 1.0]) {
+      m.part();
+      m.tube(up(0.3 * t * s, 0.9, 0), up((0.3 * t + 0.15) * s, 0.67, 0.04), 0.075 * l, 0.07 * l, Mat.skin,
+          seg: ps);
+      m.part();
+      m.tube(up((0.3 * t + 0.15) * s, 0.67, 0.04), up((0.3 * t + 0.19) * s, 0.5, 0.08), 0.07 * l, 0.065 * l,
+          Mat.skin, seg: ps, capA: false, capB: false);
+      m.part(0.02);
+      m.tube(up((0.3 * t + 0.17) * s, 0.6, 0.06), up((0.3 * t + 0.185) * s, 0.53, 0.075), 0.082 * l, 0.078 * l,
+          Mat.spike, seg: ps, capA: false, capB: false);
+      m.part();
+      m.ellipsoid(up((0.3 * t + 0.2) * s, 0.47, 0.09), V3(0.085 * l, 0.085 * l, 0.085 * l), Mat.skin,
+          seg: ps, rings: pr);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -333,7 +452,16 @@ Future<ui.Image> buildAtlas(ChibiSpec spec) async {
     Mat.shoe: const Color(0xFF5D4037),
     Mat.white: const Color(0xFFF5F5F5),
     Mat.spike: Color.lerp(c, const Color(0xFFFFEB3B), 0.45)!,
+    // áo choàng: màu tương phản với bộ đồ
+    Mat.cape: HSVColor.fromColor(c)
+        .withHue((HSVColor.fromColor(c).hue + 180) % 360)
+        .withSaturation(0.75)
+        .withValue(0.75)
+        .toColor(),
   };
+  if (spec.outfit == ChibiOutfit.heroNam || spec.outfit == ChibiOutfit.heroNu) {
+    colors[Mat.spike] = const Color(0xFFFFC107); // đai, huy hiệu, vòng tay: vàng
+  }
   if (spec.outfit == ChibiOutfit.vest) {
     colors[Mat.outfit] = const Color(0xFF263238);
     colors[Mat.pants] = const Color(0xFF263238);

@@ -47,7 +47,7 @@ void main() {
       final spec = ChibiSpec(
         face: face,
         outfit: ChibiOutfit.values[r],
-        outfitColor: kOutfitColors[r * 2 + 3],
+        outfitColor: kOutfitColors[(r * 2 + 3) % kOutfitColors.length],
         skin: const Color(0xFFF1C27D),
         hair: const Color(0xFF3E2723),
       );
