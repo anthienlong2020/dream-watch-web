@@ -25,11 +25,11 @@ class SoundService {
     } catch (_) {}
   }
 
-  Future<void> _playOnce(String file, {double? vol}) async {
+  Future<void> _playOnce(String file, {double? vol, String ext = 'wav'}) async {
     try {
       final p = AudioPlayer();
       unawaited(p.onPlayerComplete.first.then((_) => p.dispose()));
-      await p.play(AssetSource('sounds/$file.wav'), volume: vol ?? volume);
+      await p.play(AssetSource('sounds/$file.$ext'), volume: vol ?? volume);
     } catch (_) {}
   }
 
@@ -54,6 +54,28 @@ class SoundService {
   }
 
   void stopStrikes() => _strikeRun++;
+
+  // ------------------------------------------------------------------
+  // Chuông Westminster (chuông nhà thờ / Big Ben, giai điệu năm 1793)
+  // ------------------------------------------------------------------
+
+  /// Thời điểm (giây) nốt cuối của từng đoạn: 1 = :15, 2 = :30, 3 = :45, 4 = tròn giờ.
+  static const _westLastNote = {1: 2.34, 2: 7.31, 3: 12.28, 4: 17.25};
+
+  /// Đoạn nhạc Westminster: [quarter] = 1 (15 phút), 2 (30), 3 (45), 4 (tròn giờ).
+  Future<void> playWestminster(int quarter) => _playOnce('west_q$quarter', ext: 'mp3');
+
+  /// Tròn giờ kiểu Big Ben: đủ 4 câu nhạc, nghỉ một nhịp, rồi chuông lớn đánh số tiếng theo giờ.
+  Future<void> playWestminsterHour(int count) async {
+    final run = ++_strikeRun;
+    await playWestminster(4);
+    await Future.delayed(Duration(milliseconds: ((_westLastNote[4]! + 2.6) * 1000).round()));
+    for (var i = 0; i < count; i++) {
+      if (run != _strikeRun) return;
+      await _playOnce('strike_big', ext: 'mp3');
+      await Future.delayed(const Duration(milliseconds: 2300));
+    }
+  }
 
   /// Nghe thử một âm báo thức (không lặp).
   Future<void> preview(String sound) => _playOnce(sound);

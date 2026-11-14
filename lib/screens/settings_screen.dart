@@ -427,28 +427,52 @@ class _ChimeSettings extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'dem', label: Text('Đánh số tiếng')),
-                ButtonSegment(value: 'chuong', label: Text('Giai điệu')),
-                ButtonSegment(value: 'ca_hai', label: Text('Cả hai')),
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: const ['westminster', 'dem', 'chuong', 'ca_hai'].contains(app.chimeMode)
+                  ? app.chimeMode
+                  : 'dem',
+              items: const [
+                DropdownMenuItem(value: 'westminster', child: Text('🔔 Chuông nhà thờ Westminster (Big Ben)')),
+                DropdownMenuItem(value: 'dem', child: Text('Đánh số tiếng theo giờ')),
+                DropdownMenuItem(value: 'chuong', child: Text('Giai điệu ngắn')),
+                DropdownMenuItem(value: 'ca_hai', child: Text('Giai điệu ngắn + đánh số tiếng')),
               ],
-              selected: {app.chimeMode},
-              onSelectionChanged: on
-                  ? (v) => app.update(() => app.chimeMode = v.first)
-                  : null,
+              onChanged: on ? (v) => app.update(() => app.chimeMode = v ?? app.chimeMode) : null,
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
-              '"Đánh số tiếng": 3 giờ đánh 3 tiếng, 12 giờ đánh 12 tiếng, như đồng hồ quả lắc.',
-              style: TextStyle(fontSize: 12.5, color: Colors.white60),
+              app.chimeMode == 'westminster'
+                  ? 'Như đồng hồ quả lắc xưa: tròn giờ ngân đủ 4 câu "téng tèng teng tèng…", '
+                      'rồi chuông lớn đánh số tiếng theo giờ (3 giờ đánh 3 tiếng, 12 giờ đánh 12 tiếng).'
+                  : '"Đánh số tiếng": 3 giờ đánh 3 tiếng, 12 giờ đánh 12 tiếng, như đồng hồ quả lắc.',
+              style: const TextStyle(fontSize: 12.5, color: Colors.white60),
             ),
           ),
+          if (app.chimeMode == 'westminster')
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  const Text('Nghe thử:', style: TextStyle(color: Colors.white70)),
+                  for (final (q, label) in const [(1, '15 phút'), (2, '30 phút'), (3, '45 phút')])
+                    ActionChip(label: Text(label), onPressed: () => app.sound.playWestminster(q)),
+                  ActionChip(
+                    label: const Text('Tròn giờ'),
+                    onPressed: () => app.playHourChime(DateTime.now().hour),
+                  ),
+                ],
+              ),
+            ),
           SwitchListTile(
-            title: const Text('Báo cả nửa giờ'),
-            subtitle: const Text('Đánh 1 tiếng lúc :30'),
+            title: Text(app.chimeMode == 'westminster' ? 'Báo cả 15, 30, 45 phút' : 'Báo cả nửa giờ'),
+            subtitle: Text(app.chimeMode == 'westminster'
+                ? 'Mỗi 15 phút ngân thêm 1 câu: :15 một câu, :30 hai câu, :45 ba câu'
+                : 'Đánh 1 tiếng lúc :30'),
             value: app.chimeHalfHour,
             onChanged: on ? (v) => app.update(() => app.chimeHalfHour = v) : null,
           ),

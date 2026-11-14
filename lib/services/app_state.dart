@@ -99,7 +99,7 @@ class AppState extends ChangeNotifier {
   // ---------- Âm báo mỗi giờ ----------
   bool chimeEnabled = true;
   /// 'chuong' = giai điệu, 'dem' = đánh số tiếng theo giờ, 'ca_hai' = cả hai
-  String chimeMode = 'dem';
+  String chimeMode = 'westminster';
   bool chimeHalfHour = false;
   bool quietEnabled = true;
   int quietStart = 22; // từ 22 giờ
@@ -606,8 +606,13 @@ class AppState extends ChangeNotifier {
     if (isQuietHour(t.hour)) return;
     if (t.minute == 0) {
       playHourChime(t.hour);
-    } else if (t.minute == 30 && chimeHalfHour) {
-      sound.playStrikes(1);
+    } else if (chimeHalfHour) {
+      if (chimeMode == 'westminster') {
+        // nhạc chuông nhà thờ lúc 15, 30, 45 phút
+        if (t.minute % 15 == 0) sound.playWestminster(t.minute ~/ 15);
+      } else if (t.minute == 30) {
+        sound.playStrikes(1);
+      }
     }
   }
 
@@ -620,6 +625,9 @@ class AppState extends ChangeNotifier {
         break;
       case 'ca_hai':
         sound.playChimeThenStrikes(count);
+        break;
+      case 'westminster':
+        sound.playWestminsterHour(count);
         break;
       default:
         sound.playStrikes(count);
