@@ -167,9 +167,9 @@ ColorFilter? materialFilter(ElementType e) {
     case ElementType.moc:
       // gỗ - lá: nâu ấm pha xanh rêu
       return const ColorFilter.matrix(<double>[
-        0.30, 0.38, 0.06, 0, 30, //
-        0.22, 0.48, 0.08, 0, 30, //
-        0.10, 0.20, 0.04, 0, 8, //
+        0.15, 0.30, 0.05, 0, 18, //
+        0.28, 0.55, 0.10, 0, 55, //
+        0.06, 0.12, 0.02, 0, 10, //
         0, 0, 0, 1, 0, //
       ]);
     case ElementType.kim:
@@ -518,13 +518,13 @@ class _FrontPainter extends CustomPainter {
     // lá mọc trên viền (cố định chỗ, đung đưa theo gió)
     final top = a.edges.where((e) => e.dy < 0.15).toList();
     final src = top.isEmpty ? a.edges : top;
-    final ng = a.full ? 9 : 4;
+    final ng = a.full ? 13 : 5;
     for (var k = 0; k < ng; k++) {
       final e = src[(_rnd(k, 5, a.seed) * src.length).floor() % src.length];
       final p = c + e * s;
       final out = math.atan2(e.dy, e.dx) + math.pi / 2; // hướng ra ngoài
       final sway = math.sin(a.t * 1.6 + k * 1.3) * 0.25;
-      leaf(p, s * (0.07 + 0.04 * _rnd(k, 6, a.seed)), out + sway, greens[k % greens.length], 235);
+      leaf(p, s * (0.1 + 0.06 * _rnd(k, 6, a.seed)), out + sway, greens[k % greens.length], 240);
     }
     // lá rơi
     final nf = a.full ? 8 : 3;
@@ -536,7 +536,7 @@ class _FrontPainter extends CustomPainter {
       final start = _edge(k + 50, cyc, c, s);
       final p = start + Offset(math.sin(ph * 5 + k) * s * 0.08, ph * s * 0.45);
       final ang = math.sin(ph * 4 + k) * 1.2 + k;
-      leaf(p, s * 0.05, ang, greens[(k + 1) % greens.length], ((1 - ph) * 230).round());
+      leaf(p, s * 0.075, ang, greens[(k + 1) % greens.length], ((1 - ph) * 230).round());
     }
   }
 
