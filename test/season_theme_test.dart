@@ -21,7 +21,7 @@ void main() {
       expect(lunarToSolar(15, 8, e.key), DateTime(e.key, e.value.$1, e.value.$2), reason: 'Trung thu ${e.key}');
     }
     expect(lunarToSolar(15, 4, 2026), DateTime(2026, 5, 31)); // Phật Đản 2026
-    expect(lunarToSolar(15, 10, 2026), DateTime(2026, 11, 24)); // Loy Krathong 2026
+    expect(lunarToSolar(15, 10, 2026), DateTime(2026, 11, 23)); // rằm tháng 10 âm (Thái: 24/11)
     expect(nthWeekday(2026, 11, DateTime.thursday, 4), DateTime(2026, 11, 26));
     expect(nthWeekday(2026, 8, DateTime.wednesday, -1), DateTime(2026, 8, 26));
     expect(autoThemeId(DateTime(2026, 11, 24)), 'thaDen');

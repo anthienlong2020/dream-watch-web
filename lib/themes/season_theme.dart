@@ -568,7 +568,7 @@ String autoThemeId(DateTime d) {
   if (nearLunar(15, 4, 2)) return 'phatDan';
   if (nearLunar(5, 5, 1)) return 'doanNgo';
   if (nearLunar(15, 7, 5)) return 'vuLan';
-  if (nearLunar(15, 10, 2)) return 'thaDen';
+  if (nearLunar(15, 10, 2, 1)) return 'thaDen';
   if (d.month == 9 && d.day <= 2) return 'quocKhanh';
   if (d.month == 4 && d.day >= 21 && d.day <= 22) return 'traiDat';
   final me = nthWeekday(y, 5, DateTime.sunday, 2);
