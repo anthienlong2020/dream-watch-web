@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
+
 import '../chibi/chibi3d.dart';
 
 /// Một hình hiển thị trên mặt đồng hồ: ảnh do người dùng chọn (bytes),
@@ -59,16 +61,51 @@ const List<String> _zodiacNames = [
 
 String zodiacName(int index) => _zodiacNames[index % 12];
 
+/// Ảnh khủng long có sẵn trong thư mục assets/themes/khung_long/ (tên file tuỳ ý),
+/// đã sắp theo tên kiểu tự nhiên (2 đứng trước 10), lấy tối đa 12 ảnh đầu tiên.
+List<String> _dinoFiles = const [];
+
+final _imageExt = RegExp(r'\.(png|jpe?g|webp|gif|bmp)$', caseSensitive: false);
+
+/// So sánh tên file kiểu tự nhiên: "2.png" < "10.png", "anh 3" < "anh 12".
+int naturalCompare(String a, String b) {
+  final re = RegExp(r'(\d+)|(\D+)');
+  final pa = re.allMatches(a.toLowerCase()).map((m) => m[0]!).toList();
+  final pb = re.allMatches(b.toLowerCase()).map((m) => m[0]!).toList();
+  for (var i = 0; i < pa.length && i < pb.length; i++) {
+    final na = int.tryParse(pa[i]), nb = int.tryParse(pb[i]);
+    final c = (na != null && nb != null) ? na.compareTo(nb) : pa[i].compareTo(pb[i]);
+    if (c != 0) return c;
+  }
+  return pa.length.compareTo(pb.length);
+}
+
+/// Tìm ảnh trong thư mục khủng long (gọi 1 lần lúc mở app).
+Future<void> loadDinoAssets() async {
+  try {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final files = manifest
+        .listAssets()
+        .where((p) => p.startsWith('assets/themes/khung_long/') && _imageExt.hasMatch(p))
+        .toList()
+      ..sort(naturalCompare);
+    _dinoFiles = files.take(12).toList();
+  } catch (_) {
+    _dinoFiles = const [];
+  }
+}
+
+/// Ảnh thứ 1 → vị trí I, ảnh thứ 2 → II, ..., ảnh thứ 12 → XII. Thiếu ảnh thì dùng emoji.
 ClockTheme buildDinoTheme() => ClockTheme(
       id: 'khung_long',
       name: 'Khủng long',
-      slots: List.generate(
-        12,
-        (i) => SlotImage(
-          asset: 'assets/themes/khung_long/${slotNumber(i)}.png',
+      slots: List.generate(12, (i) {
+        final n = slotNumber(i) - 1; // vị trí XII (i = 0) dùng ảnh thứ 12
+        return SlotImage(
+          asset: n < _dinoFiles.length ? _dinoFiles[n] : null,
           emoji: _dinoEmoji[i],
-        ),
-      ),
+        );
+      }),
     );
 
 ClockTheme buildZodiacTheme() => ClockTheme(

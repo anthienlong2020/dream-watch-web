@@ -5,10 +5,12 @@ import 'screens/clock_screen.dart';
 import 'screens/ring_overlay.dart';
 import 'screens/settings_screen.dart';
 import 'screens/timer_screen.dart';
+import 'models/clock_theme.dart';
 import 'services/app_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await loadDinoAssets();
   await app.init();
   runApp(const DreamWatchApp());
 }

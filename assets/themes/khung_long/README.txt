@@ -1,9 +1,12 @@
-Chép 12 ảnh khủng long (PNG nền trong suốt) từ project Unity cũ vào thư mục này,
-đặt tên theo vị trí trên mặt đồng hồ:
+Chép ảnh khủng long (nên dùng PNG nền trong suốt) vào thư mục này. Tên file đặt tuỳ ý.
 
-  1.png  (vị trí I)
-  2.png  (vị trí II)
+App tự lấy 12 ảnh đầu tiên, xếp theo tên file:
+  ảnh thứ 1  -> vị trí I
+  ảnh thứ 2  -> vị trí II
   ...
-  12.png (vị trí XII)
+  ảnh thứ 12 -> vị trí XII
+Tên có số được xếp theo số (2 đứng trước 10). Muốn chắc thứ tự thì đặt tên
+01, 02, ... 12 hoặc 1, 2, ... 12.
 
-Nếu thiếu ảnh nào, app tự dùng hình emoji thay thế.
+Nhận các đuôi: png, jpg, jpeg, webp, gif, bmp. Nếu thiếu ảnh nào, app dùng emoji thay thế.
+Sau khi chép ảnh: git add, commit rồi push lên GitHub thì bản web mới có ảnh.
