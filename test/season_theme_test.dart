@@ -13,7 +13,19 @@ void main() {
     expect(autoThemeId(DateTime(2026, 9, 25)), 'trungThu');
     expect(autoThemeId(DateTime(2026, 12, 24)), 'giangSinh');
     expect(autoThemeId(DateTime(2026, 10, 31)), 'halloween');
-    expect(autoThemeId(DateTime(2026, 1, 1)), 'namMoi');
+    expect(autoThemeId(DateTime(2026, 1, 1)), 'tet');
+    for (final e in kTetDates.entries) {
+      expect(lunarToSolar(1, 1, e.key), DateTime(e.key, e.value.$1, e.value.$2), reason: 'Tết ${e.key}');
+    }
+    for (final e in kTrungThuDates.entries) {
+      expect(lunarToSolar(15, 8, e.key), DateTime(e.key, e.value.$1, e.value.$2), reason: 'Trung thu ${e.key}');
+    }
+    expect(lunarToSolar(15, 4, 2026), DateTime(2026, 5, 31)); // Phật Đản 2026
+    expect(lunarToSolar(15, 10, 2026), DateTime(2026, 11, 24)); // Loy Krathong 2026
+    expect(nthWeekday(2026, 11, DateTime.thursday, 4), DateTime(2026, 11, 26));
+    expect(nthWeekday(2026, 8, DateTime.wednesday, -1), DateTime(2026, 8, 26));
+    expect(autoThemeId(DateTime(2026, 11, 24)), 'thaDen');
+    expect(autoThemeId(DateTime(2026, 9, 2)), 'quocKhanh');
     expect(autoThemeId(DateTime(2026, 11, 14)), 'dong');
     expect(autoThemeId(DateTime(2026, 8, 1)), 'thu');
     expect(easterOf(2026), DateTime(2026, 4, 5));

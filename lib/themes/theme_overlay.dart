@@ -552,7 +552,28 @@ class ThemePainter extends CustomPainter {
       final y = y0 + sag * 2 * 2 * f * (1 - f);
       final col = l.colors[i % l.colors.length];
       final on = 0.55 + 0.45 * math.sin(t * 3 + i * 1.7);
-      if (l.shape == Shape.lantern) {
+      if (l.shape == Shape.confetti) {
+        // cờ giấy cắt hoa (papel picado) đung đưa
+        final fw = w / l.count * 0.8, fh = unit * 0.06;
+        canvas.save();
+        canvas.translate(x, y);
+        canvas.rotate(math.sin(t * 1.7 + i) * 0.08);
+        final flag = Path()
+          ..moveTo(-fw / 2, 0)
+          ..lineTo(fw / 2, 0)
+          ..lineTo(fw / 2, fh)
+          ..lineTo(fw / 4, fh * 0.85)
+          ..lineTo(0, fh)
+          ..lineTo(-fw / 4, fh * 0.85)
+          ..lineTo(-fw / 2, fh)
+          ..close();
+        canvas.drawPath(flag, Paint()..color = col.withAlpha(220));
+        final hole = Paint()..color = const Color(0x66000000);
+        canvas.drawCircle(Offset(0, fh * 0.45), fh * 0.14, hole);
+        canvas.drawCircle(Offset(-fw * 0.25, fh * 0.3), fh * 0.07, hole);
+        canvas.drawCircle(Offset(fw * 0.25, fh * 0.3), fh * 0.07, hole);
+        canvas.restore();
+      } else if (l.shape == Shape.lantern) {
         _lantern(canvas, Offset(x, y + unit * 0.035), unit * 0.035, col, swing: math.sin(t * 1.5 + i) * 0.12);
       } else {
         canvas.drawCircle(Offset(x, y + unit * 0.012), unit * 0.014,
