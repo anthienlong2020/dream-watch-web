@@ -12,8 +12,8 @@ const Map<ChibiOutfit, String> kOutfitNames = {
   ChibiOutfit.vay: 'Váy',
   ChibiOutfit.vest: 'Vest',
   ChibiOutfit.khungLong: 'Đồ khủng long',
-  ChibiOutfit.heroNam: '💪 Siêu anh hùng (nam)',
-  ChibiOutfit.heroNu: '🦸 Nữ anh hùng',
+  ChibiOutfit.heroNam: '💪 Siêu anh hùng nam (tỷ lệ thật)',
+  ChibiOutfit.heroNu: '🦸 Nữ anh hùng (tỷ lệ thật)',
 };
 
 /// Bảng màu trang phục.
