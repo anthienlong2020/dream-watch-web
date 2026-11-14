@@ -139,6 +139,49 @@ class ThemePainter extends CustomPainter {
           final y = baseY - hop * unit * 0.08;
           _shape(canvas, l, Offset(x, y), sz, col, t * 0.8 + k, seed);
           break;
+        case Motion.firecracker:
+          _firecracker(canvas, size, l, k, unit);
+          break;
+        case Motion.bloom:
+          // hoa bung nở ở chỗ ngẫu nhiên, khoe sắc một lúc rồi khép lại; mỗi lượt một chỗ mới
+          final x = t * speed + r0;
+          final cyc = x.floor();
+          final ph = x - cyc;
+          final p = Offset(w * (0.04 + 0.92 * _rnd(seed, cyc, 21)), h * (0.08 + 0.88 * _rnd(seed, cyc, 22)));
+          final double sc;
+          if (ph < 0.2) {
+            sc = Curves.elasticOut.transform(ph / 0.2);
+          } else if (ph < 0.8) {
+            sc = 1 + 0.06 * math.sin((ph - 0.2) * 20);
+          } else {
+            sc = 1 - Curves.easeIn.transform((ph - 0.8) / 0.2);
+          }
+          if (sc <= 0.02) break;
+          final g = l.glyphs[(seed + cyc) % l.glyphs.length];
+          _emoji(canvas, g, p, sz * sc, math.sin(t + k) * 0.15);
+          break;
+        case Motion.pair:
+          // một đôi chim bay cùng nhau, lượn quanh nhau, thỉnh thoảng nảy tim
+          final ph = (t * speed + r0) % 1.0;
+          final cyc = (t * speed + r0).floor();
+          final dir = _rnd(seed, cyc, 31) < 0.5 ? 1.0 : -1.0;
+          final x = dir > 0 ? -0.15 * w + ph * 1.3 * w : 1.15 * w - ph * 1.3 * w;
+          final y = h * (0.08 + 0.6 * _rnd(seed, cyc, 32)) + math.sin(t * 1.5 + k) * unit * 0.04;
+          final g = l.glyphs[(seed + cyc) % l.glyphs.length];
+          final o = t * 2.2 + k;
+          for (final sgn in [1.0, -1.0]) {
+            final q = Offset(x + sgn * (sz * 0.6 + math.cos(o) * sz * 0.25), y + sgn * math.sin(o) * sz * 0.35);
+            canvas.save();
+            canvas.translate(q.dx, q.dy);
+            if (dir > 0) canvas.scale(-1, 1);
+            _emoji(canvas, g, Offset.zero, sz, math.sin(t * 9 + sgn) * 0.12);
+            canvas.restore();
+          }
+          final hp = (t * 0.5 + k * 0.37) % 1.0;
+          if (hp < 0.4) {
+            _emoji(canvas, '💕', Offset(x, y - sz * (0.6 + hp * 1.5)), sz * 0.45 * (1 - hp / 0.4 * 0.5), 0);
+          }
+          break;
         case Motion.moon:
           final c = Offset(w * 0.82, h * 0.12);
           final r = unit * 0.07;
@@ -192,6 +235,10 @@ class ThemePainter extends CustomPainter {
     final cb = l.colors[(cyc * 3 + k + 2) % l.colors.length];
     final r = unit * (l.minSize + (l.maxSize - l.minSize) * _rnd(seed, cyc, 4)) / 2;
     const hit = 0.45;
+    if (l.shape == Shape.waterBall) {
+      _waterBalls(canvas, m, dir, r, ph, hit, seed, cyc, unit);
+      return;
+    }
     if (ph < hit) {
       final d = unit * 0.45 * (1 - Curves.easeIn.transform(ph / hit)) + r;
       for (final (c, sign) in [(ca, 1.0), (cb, -1.0)]) {
@@ -219,6 +266,130 @@ class ThemePainter extends CustomPainter {
     }
   }
 
+  /// Bóng nước trong suốt lao vào nhau, vỡ ra thành giọt nước rơi xuống.
+  void _waterBalls(Canvas canvas, Offset m, Offset dir, double r, double ph, double hit, int seed, int cyc,
+      double unit) {
+    if (ph < hit) {
+      final d = unit * 0.45 * (1 - Curves.easeIn.transform(ph / hit)) + r * 0.95;
+      for (final sign in [1.0, -1.0]) {
+        final p = m + dir * (d * sign);
+        // hơi méo khi gần chạm nhau
+        final squash = 1 - 0.12 * Curves.easeIn.transform(ph / hit);
+        final rect = Rect.fromCenter(center: p, width: r * 2 * squash, height: r * 2 / squash);
+        canvas.drawOval(
+            rect,
+            Paint()
+              ..shader = RadialGradient(
+                center: const Alignment(-0.3, -0.3),
+                colors: [const Color(0x22FFFFFF), const Color(0x334FC3F7), const Color(0x9981D4FA)],
+                stops: const [0.0, 0.75, 1.0],
+              ).createShader(rect));
+        canvas.drawOval(
+            rect,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = math.max(1, r * 0.05)
+              ..color = const Color(0xAAE1F5FE));
+        canvas.drawOval(
+            Rect.fromCenter(center: p + Offset(-r * 0.38, -r * 0.4), width: r * 0.45, height: r * 0.25),
+            Paint()..color = const Color(0xCCFFFFFF));
+      }
+      return;
+    }
+    // vỡ: giọt nước văng ra rồi rơi xuống theo trọng lực
+    final p = (ph - hit) / (1 - hit);
+    final alpha = ((1 - p * p) * 230).round();
+    final drop = Paint()..color = const Color(0xFFB3E5FC).withAlpha(alpha);
+    final glint = Paint()..color = Colors.white.withAlpha(alpha);
+    for (var i = 0; i < 22; i++) {
+      final a = _rnd(seed, cyc * 60 + i, 8) * 2 * math.pi;
+      final v = unit * (0.08 + 0.12 * _rnd(seed, cyc * 60 + i, 9));
+      final q = m + Offset(math.cos(a) * v * p, math.sin(a) * v * p * 0.7 + p * p * unit * 0.45);
+      final rr = unit * (0.005 + 0.006 * _rnd(seed, cyc * 60 + i, 10));
+      // giọt hình nước: tròn đáy, nhọn đầu theo hướng rơi
+      canvas.drawOval(Rect.fromCenter(center: q, width: rr * 1.6, height: rr * 2.4), drop);
+      canvas.drawCircle(q + Offset(-rr * 0.3, -rr * 0.4), rr * 0.35, glint);
+    }
+    // vòng nước loé ra lúc vỡ
+    if (p < 0.35) {
+      canvas.drawCircle(
+          m,
+          r * (1 + p * 3),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(1, r * 0.08 * (1 - p / 0.35))
+            ..color = Colors.white.withAlpha(((1 - p / 0.35) * 200).round()));
+    }
+  }
+
+  /// Dây pháo đỏ treo hai bên, nổ tí tách lần lượt từ dưới lên.
+  void _firecracker(Canvas canvas, Size size, Layer l, int k, double unit) {
+    final w = size.width, h = size.height;
+    final x0 = k.isEven ? w * 0.06 : w * 0.94;
+    const n = 16;
+    final len = h * 0.42;
+    final step = len / n;
+    final sway = math.sin(t * 1.3 + k) * unit * 0.008;
+    // dây treo
+    canvas.drawLine(Offset(x0, 0), Offset(x0 + sway, len + step),
+        Paint()
+          ..color = const Color(0xFFFFD740)
+          ..strokeWidth = math.max(1, unit * 0.003));
+    // cứ ~8 giây là một lượt nổ chạy dọc từ dưới lên, sau đó dây pháo "mọc" lại
+    const period = 8.0;
+    final tt = (t + k * 3.7) % period;
+    final burning = (tt / 5.0 * n).floor(); // số quả đã nổ (từ dưới lên)
+    final cw = unit * 0.016, ch = step * 0.85;
+    for (var i = 0; i < n; i++) {
+      final fromBottom = n - 1 - i;
+      final y = step * (i + 0.7);
+      final side = i.isEven ? -1.0 : 1.0;
+      final c = Offset(x0 + sway * (i / n) + side * cw * 0.7, y);
+      if (fromBottom < burning) continue; // đã nổ
+      final rect = Rect.fromCenter(center: c, width: cw, height: ch);
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(side * 0.5);
+      canvas.translate(-c.dx, -c.dy);
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, Radius.circular(cw * 0.2)),
+          Paint()..color = l.colors.first);
+      canvas.drawRect(Rect.fromLTWH(rect.left, rect.top + ch * 0.15, cw, ch * 0.12),
+          Paint()..color = l.colors.last);
+      canvas.restore();
+    }
+    // quả đang nổ: chớp sáng + tia lửa + xác pháo đỏ bay
+    if (burning < n) {
+      final f = (tt / 5.0 * n) - burning; // 0..1 trong quả hiện tại
+      final i = n - 1 - burning;
+      final c = Offset(x0 + sway * (i / n), step * (i + 0.7));
+      final flash = (1 - f);
+      canvas.drawCircle(c, unit * 0.03 * (0.5 + f),
+          Paint()
+            ..color = Color.lerp(Colors.white, const Color(0xFFFFD740), f)!.withAlpha((flash * 230).round())
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, unit * 0.012));
+      for (var j = 0; j < 8; j++) {
+        final a = j * math.pi / 4 + burning;
+        final d = unit * 0.045 * f;
+        canvas.drawLine(c + Offset(math.cos(a), math.sin(a)) * d * 0.5, c + Offset(math.cos(a), math.sin(a)) * d,
+            Paint()
+              ..color = const Color(0xFFFFF59D).withAlpha((flash * 255).round())
+              ..strokeWidth = math.max(1, unit * 0.003));
+      }
+    }
+    // xác pháo đỏ rơi lả tả bên dưới dây
+    final paper = Paint()..color = l.colors.first.withAlpha(210);
+    for (var j = 0; j < 14; j++) {
+      final ph = (t * 0.25 + _rnd(k, j, 11)) % 1.0;
+      final px = x0 + (_rnd(k, j, 12) - 0.5) * unit * 0.12 + math.sin(t * 2 + j) * unit * 0.01;
+      final py = len * (0.3 + 0.7 * _rnd(k, j, 13)) + ph * h * 0.6;
+      canvas.save();
+      canvas.translate(px, py);
+      canvas.rotate(t * 3 + j);
+      canvas.drawRect(Rect.fromCenter(center: Offset.zero, width: unit * 0.008, height: unit * 0.005), paper);
+      canvas.restore();
+    }
+  }
+
   /// Dải cực quang uốn lượn như rèm sáng ở nửa trên màn hình.
   void _aurora(Canvas canvas, Size size, Layer l, int k, double unit) {
     final w = size.width, h = size.height;
@@ -234,7 +405,7 @@ class ThemePainter extends CustomPainter {
     final f = Curves.easeInOut.transform(cx - ci);
     Color at(int i) => elemColorValue(ElementType.none, order[i % order.length], t + k);
     final col = Color.lerp(at(ci + k * 5), at(ci + 1 + k * 5), f)!;
-    final baseY = h * (0.06 + 0.09 * k);
+    final baseY = h * (0.02 + 0.86 * k / l.count);
     final height = unit * (0.16 + 0.05 * math.sin(t * 0.3 + k));
     const steps = 48;
     double yAt(double x) =>
@@ -532,6 +703,9 @@ class ThemePainter extends CustomPainter {
         if (l.glyphs.isEmpty) break;
         _emoji(canvas, l.glyphs[seed % l.glyphs.length], p,
             s, l.motion == Motion.fly ? 0 : math.sin(spin * 0.7) * 0.25);
+        break;
+      case Shape.waterBall:
+        canvas.drawCircle(p, s / 2, Paint()..color = const Color(0x5581D4FA));
         break;
       case Shape.sun:
         // mặt trời tí hon: tia nắng xoay + mặt cười

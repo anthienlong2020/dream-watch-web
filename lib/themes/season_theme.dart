@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 // =====================================================================
 
 /// Các kiểu chuyển động của hạt.
-enum Motion { fall, rise, fly, wander, burst, twinkle, garland, moon, collide, aurora, waterfall, sleigh, bounce }
+enum Motion { fall, rise, fly, wander, burst, twinkle, garland, moon, collide, aurora, waterfall, sleigh, bounce, bloom, pair, firecracker }
 
 /// Hình dạng hạt (vẽ bằng code) hoặc emoji.
-enum Shape { dot, petal, leaf, snowflake, confetti, heart, sparkle, balloon, lantern, bat, feather, firefly, emoji, sun }
+enum Shape { dot, petal, leaf, snowflake, confetti, heart, sparkle, balloon, lantern, bat, feather, firefly, emoji, sun, waterBall }
 
 class Layer {
   final Motion motion;
@@ -85,6 +85,9 @@ SeasonTheme tetTheme(int lunarYear) {
       const Layer(motion: Motion.fall, shape: Shape.petal, count: 10, colors: _pinks, speed: 0.06),
       const Layer(motion: Motion.burst, shape: Shape.dot, count: 2,
           colors: [Color(0xFFFF5252), Color(0xFFFFD740)], speed: 0.35),
+      // dây pháo đỏ treo hai bên nổ tí tách
+      const Layer(motion: Motion.firecracker, shape: Shape.dot, count: 2,
+          colors: [Color(0xFFE53935), Color(0xFFFFD740)], speed: 1.0),
       // con giáp của năm (nguyên con) chạy / bay ngang trời
       Layer(motion: Motion.fly, shape: Shape.emoji, count: 2, glyphs: [kZodiacFullBody[z]],
           minSize: 0.08, maxSize: 0.1, speed: 0.045),
@@ -97,8 +100,17 @@ List<SeasonTheme> allThemes(DateTime now) => [
       const SeasonTheme(
         id: 'xuan', name: 'Mùa xuân', emoji: '🌸', accent: Color(0xFFFF8FB1),
         layers: [
-          Layer(motion: Motion.fall, shape: Shape.petal, count: 24, colors: _pinks, speed: 0.06),
-          Layer(motion: Motion.fall, shape: Shape.petal, count: 8, colors: _mai, speed: 0.07),
+          // trăm hoa đua nở: hoa, mầm non bung ra khắp nơi rồi khép lại
+          Layer(motion: Motion.bloom, shape: Shape.emoji, count: 22,
+              glyphs: ['🌸', '🌼', '🌷', '🌺', '🌻', '🌱', '💮', '🌿', '🏵️'], speed: 0.12,
+              minSize: 0.035, maxSize: 0.06),
+          // chim bay từng đôi tìm bạn
+          Layer(motion: Motion.pair, shape: Shape.emoji, count: 3, glyphs: ['🐦', '🕊️'], speed: 0.05,
+              minSize: 0.045, maxSize: 0.055),
+          Layer(motion: Motion.wander, shape: Shape.emoji, count: 4, glyphs: ['🦋', '🐝'],
+              minSize: 0.03, maxSize: 0.04),
+          Layer(motion: Motion.fall, shape: Shape.leaf, count: 6, colors: [Color(0xFF9CCC65), Color(0xFF66BB6A)],
+              speed: 0.05),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 8, colors: [Color(0xFFFFF59D)]),
         ],
       ),
@@ -238,7 +250,7 @@ List<SeasonTheme> allThemes(DateTime now) => [
         id: 'holi', name: 'Lễ hội sắc màu Holi (Ấn Độ)', emoji: '🎨', accent: Color(0xFFE040FB),
         layers: [
           // bi màu lao vào nhau, chạm nhau mới nổ tung thành bụi màu
-          Layer(motion: Motion.collide, shape: Shape.dot, count: 4, colors: _party, speed: 0.22,
+          Layer(motion: Motion.collide, shape: Shape.dot, count: 10, colors: _party, speed: 0.22,
               minSize: 0.035, maxSize: 0.05),
         ],
       ),
@@ -247,7 +259,7 @@ List<SeasonTheme> allThemes(DateTime now) => [
         glow: Color(0x33FF6F00),
         layers: [
           // dải cực quang uốn lượn
-          Layer(motion: Motion.aurora, shape: Shape.dot, count: 4,
+          Layer(motion: Motion.aurora, shape: Shape.dot, count: 8,
               colors: [Color(0xFF00E676), Color(0xFF1DE9B6), Color(0xFF7C4DFF), Color(0xFFFF4081)], speed: 0.05),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 14, colors: [Colors.white]),
           Layer(motion: Motion.wander, shape: Shape.firefly, count: 10, colors: [Color(0xFFFFCA28)]),
@@ -257,8 +269,12 @@ List<SeasonTheme> allThemes(DateTime now) => [
         id: 'songkran', name: 'Té nước Songkran (Thái Lan)', emoji: '💦', accent: Color(0xFF29B6F6),
         layers: [
           // dòng nước đổ xuống như thác, từng đợt một, bắn tung toé ở dưới
-          Layer(motion: Motion.waterfall, shape: Shape.dot, count: 5,
+          Layer(motion: Motion.waterfall, shape: Shape.dot, count: 8,
               colors: [Color(0xFF4FC3F7), Color(0xFFB3E5FC), Color(0xFF81D4FA)], speed: 0.3),
+          // bóng nước trong suốt va nhau, vỡ ra thành giọt nước rơi xuống
+          Layer(motion: Motion.collide, shape: Shape.waterBall, count: 8,
+              colors: [Color(0xFF81D4FA), Color(0xFFB3E5FC), Color(0xFF4FC3F7)], speed: 0.2,
+              minSize: 0.06, maxSize: 0.09),
         ],
       ),
       const SeasonTheme(
