@@ -301,7 +301,7 @@ ColorFilter? materialFilter(ElementType e, [Color tint = const Color(0xFFFFFFFF)
         0.3 * 0.9 * r, 0.59 * 0.9 * r, 0.11 * 0.9 * r, 0, 60 * r + 20, //
         0.3 * 0.9 * g, 0.59 * 0.9 * g, 0.11 * 0.9 * g, 0, 60 * g + 20, //
         0.3 * 0.9 * b, 0.59 * 0.9 * b, 0.11 * 0.9 * b, 0, 60 * b + 20, //
-        0, 0, 0, 0.74, 0, //
+        0, 0, 0, 0.8, 0, //
       ]);
     case ElementType.haoQuangNgan:
     case ElementType.haoQuangDai:
@@ -571,13 +571,14 @@ class _BackPainter extends CustomPainter {
       final hc = c + hg.headC * s;
       final r = hg.headR * s;
       // mái tóc dài: những lọn to rủ xuống sau lưng tới tận chân
-      for (var k = 0; k < 9; k++) {
-        final ang = math.pi * (0.05 + 0.9 * k / 8); // từ phải sang trái, phía dưới đầu
-        final dir = Offset(math.cos(ang), math.sin(ang));
-        final base = hc + Offset(dir.dx * r * 0.9, -r * 0.3);
-        final sway = math.sin(a.t * 1.5 + k) * s * 0.02;
-        final tip = Offset(c.dx + (dir.dx * 0.32) * s + sway, c.dy + s * (0.44 + 0.08 * _rnd(k, 8, a.seed)));
-        _spike(canvas, base, tip, s * 0.09, col, s);
+      for (var k = 0; k < 11; k++) {
+        final f = k / 10; // 0 = bên phải, 1 = bên trái
+        final side = 1 - 2 * f;
+        final base = hc + Offset(side * r * 1.05, -r * 0.2 + (1 - side.abs()) * r * 0.1);
+        final sway = math.sin(a.t * 1.5 + k) * s * 0.025;
+        final tip = Offset(c.dx + side * s * (0.46 + 0.06 * _rnd(k, 8, a.seed)) + sway,
+            c.dy + s * (0.5 + 0.1 * _rnd(k, 9, a.seed)));
+        _spike(canvas, base, tip, s * 0.16, col, s);
       }
     }
   }
