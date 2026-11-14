@@ -47,6 +47,9 @@ void main() {
       (ImageStyle.standard, ElementType.dat),
       (ImageStyle.nguoiQue, ElementType.lua),
       (ImageStyle.chibi, ElementType.dien),
+      (ImageStyle.thoiPhong, ElementType.bongBong),
+      (ImageStyle.chibi, ElementType.moc),
+      (ImageStyle.phuDieu, ElementType.kim),
     ];
     for (final (style, element) in configs) {
       final key = GlobalKey();

@@ -11,7 +11,7 @@ import 'package:flutter/services.dart' show rootBundle;
 // Hiệu ứng tính theo thời gian thực (không lưu trạng thái) nên nhẹ và ổn định.
 // =====================================================================
 
-enum ElementType { none, lua, nuoc, dien, may, khoi, sap, dat }
+enum ElementType { none, lua, nuoc, dien, may, khoi, sap, dat, bongBong, moc, kim }
 
 const Map<ElementType, String> kElementNames = {
   ElementType.none: 'Không',
@@ -22,6 +22,9 @@ const Map<ElementType, String> kElementNames = {
   ElementType.khoi: '💨 Gió/Khói',
   ElementType.sap: '🕯️ Sáp',
   ElementType.dat: '🪨 Đất',
+  ElementType.bongBong: '🫧 Bong bóng',
+  ElementType.moc: '🌿 Mộc (cây)',
+  ElementType.kim: '🛡️ Kim (vàng kim)',
 };
 
 ElementType elementFromName(String? s) =>
@@ -92,6 +95,12 @@ double _rnd(int a, int b, [int c = 0]) {
   return (x & 0xFFFFFF) / 0xFFFFFF;
 }
 
+/// Khung bong bóng bao quanh hình, phập phồng nhẹ như bong bóng xà phòng.
+Rect _bubbleRect(double t, double s, Offset c) {
+  final w = math.sin(t * 2.2) * 0.03;
+  return Rect.fromCenter(center: c, width: s * 1.0 * (1 + w), height: s * 1.0 * (1 - w));
+}
+
 // ---------------------------------------------------------------------
 // Chất liệu: phủ màu lên chính hình
 // ---------------------------------------------------------------------
@@ -145,6 +154,30 @@ ColorFilter? materialFilter(ElementType e) {
         0.20, 0.38, 0.08, 0, 45, //
         0.15, 0.28, 0.06, 0, 28, //
         0.10, 0.18, 0.04, 0, 12, //
+        0, 0, 0, 1, 0, //
+      ]);
+    case ElementType.bongBong:
+      // giữ màu gốc, sáng và mát hơn một chút như nhìn qua lớp bong bóng
+      return const ColorFilter.matrix(<double>[
+        0.85, 0, 0, 0, 22, //
+        0, 0.85, 0, 0, 25, //
+        0, 0, 0.88, 0, 40, //
+        0, 0, 0, 0.96, 0, //
+      ]);
+    case ElementType.moc:
+      // gỗ - lá: nâu ấm pha xanh rêu
+      return const ColorFilter.matrix(<double>[
+        0.30, 0.38, 0.06, 0, 30, //
+        0.22, 0.48, 0.08, 0, 30, //
+        0.10, 0.20, 0.04, 0, 8, //
+        0, 0, 0, 1, 0, //
+      ]);
+    case ElementType.kim:
+      // vàng kim: độ sáng -> dải màu vàng
+      return const ColorFilter.matrix(<double>[
+        0.42, 0.75, 0.14, 0, 40, //
+        0.32, 0.58, 0.10, 0, 22, //
+        0.09, 0.18, 0.03, 0, 0, //
         0, 0, 0, 1, 0, //
       ]);
     case ElementType.none:
@@ -245,6 +278,20 @@ extension on _ElementLayerState {
       final sigma = widget.size * 0.01;
       w = ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma), child: w);
     }
+    if (widget.element == ElementType.kim) {
+      // Vệt sáng loá chạy chéo qua thân, chỉ hiện trên chính hình (như áo giáp vàng)
+      final p = (widget.time * 0.35 + widget.seed * 0.13) % 1.8 - 0.4;
+      w = ShaderMask(
+        blendMode: BlendMode.srcATop,
+        shaderCallback: (r) => LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: const [Color(0x00FFFFFF), Color(0xCCFFF8E1), Color(0x00FFFFFF)],
+          stops: [(p - 0.12).clamp(0.0, 1.0), p.clamp(0.0, 1.0), (p + 0.12).clamp(0.0, 1.0)],
+        ).createShader(r),
+        child: w,
+      );
+    }
     return w;
   }
 }
@@ -294,6 +341,15 @@ class _BackPainter extends CustomPainter {
       case ElementType.dat:
         glow = Color.fromARGB(70, 60, 35, 15);
         break;
+      case ElementType.moc:
+        glow = Color.fromARGB((45 + 25 * pulse).round(), 120, 200, 90);
+        break;
+      case ElementType.kim:
+        glow = Color.fromARGB((60 + 50 * pulse).round(), 255, 200, 60);
+        break;
+      case ElementType.bongBong:
+        _bubbleBack(canvas, s, c);
+        return;
       case ElementType.none:
         return;
     }
@@ -302,6 +358,21 @@ class _BackPainter extends CustomPainter {
       Paint()
         ..color = glow
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.12),
+    );
+  }
+
+  /// Thân bong bóng phía sau hình: tím xanh trong suốt như ảnh mẫu.
+  void _bubbleBack(Canvas canvas, double s, Offset c) {
+    final rect = _bubbleRect(a.t, s, c);
+    canvas.drawOval(
+      rect,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-0.35, -0.45),
+          radius: 1.0,
+          colors: [Color(0x55FFFFFF), Color(0x55B3B0FF), Color(0x707C83FF), Color(0x6080D8FF)],
+          stops: [0.0, 0.35, 0.75, 1.0],
+        ).createShader(rect),
     );
   }
 
@@ -341,8 +412,165 @@ class _FrontPainter extends CustomPainter {
       case ElementType.dat:
         _earth(canvas, size.width);
         break;
+      case ElementType.bongBong:
+        _bubble(canvas, size.width);
+        break;
+      case ElementType.moc:
+        _wood(canvas, size.width);
+        break;
+      case ElementType.kim:
+        _metal(canvas, size.width);
+        break;
       case ElementType.none:
         break;
+    }
+  }
+
+  /// Bong bóng: viền tím xanh, đốm sáng trắng góc trên-trái, đốm xanh nhạt
+  /// góc dưới-phải (giống ảnh mẫu), thêm bong bóng nhỏ bay lên.
+  void _bubble(Canvas canvas, double s) {
+    final c = Offset(s / 2, s / 2);
+    final rect = _bubbleRect(a.t, s, c);
+    // viền đậm dần ra mép
+    canvas.drawOval(
+      rect,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Color(0x00FFFFFF), Color(0x00FFFFFF), Color(0x707268FF), Color(0xB05A6CFF)],
+          stops: [0.0, 0.72, 0.93, 1.0],
+        ).createShader(rect),
+    );
+    // đốm sáng trắng trên-trái
+    canvas.save();
+    final hl = rect.topLeft + Offset(rect.width * 0.3, rect.height * 0.2);
+    canvas.translate(hl.dx, hl.dy);
+    canvas.rotate(-0.55);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: rect.width * 0.26, height: rect.height * 0.13),
+      Paint()
+        ..color = const Color(0xE6FFFFFF)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.025),
+    );
+    canvas.restore();
+    // đốm xanh nhạt dưới-phải
+    canvas.save();
+    final hl2 = rect.topLeft + Offset(rect.width * 0.76, rect.height * 0.82);
+    canvas.translate(hl2.dx, hl2.dy);
+    canvas.rotate(-0.5);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: rect.width * 0.22, height: rect.height * 0.1),
+      Paint()
+        ..color = const Color(0xAAE0FFFF)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03),
+    );
+    canvas.restore();
+    // bong bóng nhỏ bay lên quanh
+    final n = a.full ? 6 : 2;
+    const life = 3.5;
+    for (var k = 0; k < n; k++) {
+      final x = a.t / life + k / n;
+      final cyc = x.floor();
+      final ph = x - cyc;
+      final side = _rnd(k, cyc, a.seed) < 0.5 ? -1.0 : 1.0;
+      final p = c +
+          Offset(side * s * (0.42 + 0.08 * _rnd(k, cyc, 2)) + math.sin(ph * 6 + k) * s * 0.02,
+              s * 0.4 - ph * s * 0.9);
+      final r = s * (0.025 + 0.025 * _rnd(k, cyc, 3));
+      final al = math.sin(ph * math.pi);
+      final br = Rect.fromCircle(center: p, radius: r);
+      canvas.drawCircle(
+          p,
+          r,
+          Paint()
+            ..shader = RadialGradient(
+              center: const Alignment(-0.3, -0.3),
+              colors: [
+                Color.fromARGB((90 * al).round(), 255, 255, 255),
+                Color.fromARGB((110 * al).round(), 140, 150, 255),
+              ],
+            ).createShader(br));
+      canvas.drawCircle(p + Offset(-r * 0.35, -r * 0.35), r * 0.22,
+          Paint()..color = Colors.white.withAlpha((220 * al).round()));
+    }
+  }
+
+  /// Mộc: lá non mọc quanh viền đung đưa, lá rơi lả tả.
+  void _wood(Canvas canvas, double s) {
+    final c = Offset(s / 2, s / 2);
+    const greens = [Color(0xFF66BB6A), Color(0xFF9CCC65), Color(0xFF43A047), Color(0xFFC0CA33)];
+    void leaf(Offset p, double len, double angle, Color col, int alpha) {
+      canvas.save();
+      canvas.translate(p.dx, p.dy);
+      canvas.rotate(angle);
+      final w = len * 0.42;
+      final path = Path()
+        ..moveTo(0, 0)
+        ..quadraticBezierTo(w, -len * 0.5, 0, -len)
+        ..quadraticBezierTo(-w, -len * 0.5, 0, 0);
+      canvas.drawPath(path, Paint()..color = col.withAlpha(alpha));
+      canvas.drawLine(Offset.zero, Offset(0, -len * 0.85),
+          Paint()
+            ..color = const Color(0x5533691E)
+            ..strokeWidth = math.max(0.6, len * 0.05));
+      canvas.restore();
+    }
+
+    // lá mọc trên viền (cố định chỗ, đung đưa theo gió)
+    final top = a.edges.where((e) => e.dy < 0.15).toList();
+    final src = top.isEmpty ? a.edges : top;
+    final ng = a.full ? 9 : 4;
+    for (var k = 0; k < ng; k++) {
+      final e = src[(_rnd(k, 5, a.seed) * src.length).floor() % src.length];
+      final p = c + e * s;
+      final out = math.atan2(e.dy, e.dx) + math.pi / 2; // hướng ra ngoài
+      final sway = math.sin(a.t * 1.6 + k * 1.3) * 0.25;
+      leaf(p, s * (0.07 + 0.04 * _rnd(k, 6, a.seed)), out + sway, greens[k % greens.length], 235);
+    }
+    // lá rơi
+    final nf = a.full ? 8 : 3;
+    const life = 4.0;
+    for (var k = 0; k < nf; k++) {
+      final x = a.t / life + k / nf;
+      final cyc = x.floor();
+      final ph = x - cyc;
+      final start = _edge(k + 50, cyc, c, s);
+      final p = start + Offset(math.sin(ph * 5 + k) * s * 0.08, ph * s * 0.45);
+      final ang = math.sin(ph * 4 + k) * 1.2 + k;
+      leaf(p, s * 0.05, ang, greens[(k + 1) % greens.length], ((1 - ph) * 230).round());
+    }
+  }
+
+  /// Kim: những ngôi sao lấp lánh trên viền giáp vàng.
+  void _metal(Canvas canvas, double s) {
+    final c = Offset(s / 2, s / 2);
+    final n = a.full ? 8 : 3;
+    for (var k = 0; k < n; k++) {
+      final x = a.t * 0.9 + k * 0.37;
+      final cyc = x.floor();
+      final ph = x - cyc;
+      final tw = math.sin(ph * math.pi);
+      if (tw < 0.05) continue;
+      final p = _edge(k + 200, cyc, c, s);
+      final r = s * 0.05 * tw;
+      final star = Path();
+      for (var i = 0; i < 8; i++) {
+        final ang = i * math.pi / 4;
+        final rr = i.isEven ? r : r * 0.18;
+        final q = p + Offset(math.cos(ang), math.sin(ang)) * rr;
+        if (i == 0) {
+          star.moveTo(q.dx, q.dy);
+        } else {
+          star.lineTo(q.dx, q.dy);
+        }
+      }
+      star.close();
+      canvas.drawPath(star, Paint()..color = const Color(0xFFFFF8E1).withAlpha((tw * 255).round()));
+      canvas.drawCircle(
+          p,
+          r * 0.5,
+          Paint()
+            ..color = const Color(0xFFFFE082).withAlpha((tw * 160).round())
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.4));
     }
   }
 
