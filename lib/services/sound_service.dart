@@ -110,8 +110,19 @@ class SoundService {
   // ------------------------------------------------------------------
   // Tiếng tích – tắc của quả lắc (2 trình phát dùng lại, không tạo mới mỗi giây)
   // ------------------------------------------------------------------
-  final AudioPlayer _tickA = AudioPlayer(), _tockB = AudioPlayer();
+  AudioPlayer _tickA = AudioPlayer(), _tockB = AudioPlayer();
   bool _tickReady = false;
+
+  /// Gọi khi quay lại app (đổi tab/cửa sổ): trình duyệt đã treo trình phát tích tắc,
+  /// nên tạo trình phát mới để tiếng giây chạy lại ngay.
+  void resetTick() {
+    final a = _tickA, b = _tockB;
+    _tickA = AudioPlayer();
+    _tockB = AudioPlayer();
+    _tickReady = false;
+    a.dispose();
+    b.dispose();
+  }
 
   /// Nạp sẵn tiếng tích – tắc 1 lần, sau đó mỗi giây chỉ tua về đầu rồi phát (nhẹ, không trễ).
   Future<void> _prepareTick() async {

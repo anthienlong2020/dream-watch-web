@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -209,7 +210,14 @@ class AppState extends ChangeNotifier {
   // Khởi động / lưu trữ
   // ====================================================================
 
+  late final AppLifecycleListener _life = AppLifecycleListener(
+    // quay lại tab/cửa sổ → làm mới tiếng tích tắc (trình duyệt treo âm thanh khi ẩn tab)
+    onResume: () => sound.resetTick(),
+    onShow: () => sound.resetTick(),
+  );
+
   Future<void> init() async {
+    _life; // bắt đầu theo dõi ẩn/hiện app
     _prefs = await SharedPreferences.getInstance();
     _load();
     sound.volume = volume;

@@ -33,7 +33,6 @@ class ClockScreen extends StatelessWidget {
               child: TickBuilder(
                 interval: const Duration(seconds: 30),
                 builder: (_) => PendulumClock(
-                  dateText: formatDateVn(DateTime.now()),
                   onTick: (even) {
                     if (app.tickTock && app.started) app.sound.tick(even);
                   },
