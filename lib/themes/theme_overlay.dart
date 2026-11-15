@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'festive_shapes.dart';
 import 'season_theme.dart';
 import '../effects/element_effect.dart';
 
@@ -184,6 +185,51 @@ class ThemePainter extends CustomPainter {
             _emoji(canvas, '💕', Offset(x, y - sz * (0.6 + hp * 1.5)), sz * 0.45 * (1 - hp / 0.4 * 0.5), 0);
           }
           break;
+        case Motion.drift:
+          // hoa đăng trôi theo dòng suối (dải nước phía dưới màn hình), dập dềnh
+          final lane = k % 3;
+          final x = ((t * speed * (0.8 + 0.2 * lane) + r0) % 1.0) * (w + sz * 3) - sz * 1.5;
+          final y = h * (0.86 + 0.045 * lane) + math.sin(t * 1.6 + k) * unit * 0.006;
+          canvas.save();
+          canvas.translate(x, y);
+          canvas.rotate(math.sin(t * 1.2 + k) * 0.05);
+          _shape(canvas, l, Offset.zero, sz * (0.75 + 0.15 * lane), col, t, seed);
+          canvas.restore();
+          break;
+        case Motion.hangNga:
+          // chị Hằng (tiên) kéo tay chú Cuội bay lên cung trăng, thỏ ngọc ngồi đón trên trăng
+          final moon = Offset(w * 0.82, h * 0.12);
+          _emoji(canvas, l.glyphs.length > 2 ? l.glyphs[2] : '🐇', moon + Offset(-unit * 0.05, unit * 0.045),
+              sz * 0.5, 0);
+          final ph = (t * speed) % 1.0;
+          if (ph < 0.7) {
+            final p = Curves.easeInOut.transform(ph / 0.7);
+            final start = Offset(w * 0.12, h * 0.78);
+            final mid = Offset(w * 0.2, h * 0.3);
+            final pos = Offset.lerp(Offset.lerp(start, mid, p)!, Offset.lerp(mid, moon, p)!, p)!;
+            final fade = p > 0.85 ? (1 - p) / 0.15 : 1.0;
+            final scale = 1 - 0.55 * p;
+            // dải lụa óng ánh phía sau
+            for (var i = 1; i < 14; i++) {
+              final pp = (p - i * 0.012).clamp(0.0, 1.0);
+              final q = Offset.lerp(Offset.lerp(start, mid, pp)!, Offset.lerp(mid, moon, pp)!, pp)!;
+              canvas.drawCircle(q + Offset(math.sin(t * 4 + i) * 3, 0), sz * 0.07 * (1 - i / 14) * scale,
+                  Paint()..color = col.withAlpha((180 * fade * (1 - i / 14)).round()));
+            }
+            if (fade > 0.05) {
+              _emoji(canvas, l.glyphs[0], pos, sz * scale, -0.2 + math.sin(t * 3) * 0.08);
+              _emoji(canvas, l.glyphs.length > 1 ? l.glyphs[1] : '🧒',
+                  pos + Offset(sz * 0.45 * scale, sz * 0.55 * scale), sz * 0.8 * scale, 0.3 + math.sin(t * 3 + 1) * 0.1);
+            }
+          }
+          break;
+        case Motion.cake:
+          // bánh sinh nhật ở góc dưới bên phải, nến lung linh
+          canvas.save();
+          canvas.translate(w * 0.8, h * 0.8);
+          drawCake(canvas, sz, t, l.colors);
+          canvas.restore();
+          break;
         case Motion.moon:
           final c = Offset(w * 0.82, h * 0.12);
           final r = unit * 0.07;
@@ -239,6 +285,24 @@ class ThemePainter extends CustomPainter {
     const hit = 0.45;
     if (l.shape == Shape.waterBall) {
       _waterBalls(canvas, m, dir, r, ph, hit, seed, cyc, unit);
+      return;
+    }
+    if (l.shape == Shape.tomato) {
+      if (ph < hit) {
+        final d = unit * 0.45 * (1 - Curves.easeIn.transform(ph / hit)) + r;
+        for (final (c, sign) in [(ca, 1.0), (cb, -1.0)]) {
+          canvas.save();
+          canvas.translate(m.dx + dir.dx * d * sign, m.dy + dir.dy * d * sign);
+          canvas.rotate(ph * 8 * sign);
+          drawTomato(canvas, r, c);
+          canvas.restore();
+        }
+      } else {
+        canvas.save();
+        canvas.translate(m.dx, m.dy);
+        drawTomatoSplat(canvas, r, (ph - hit) / (1 - hit), seed * 31 + cyc, _rnd3);
+        canvas.restore();
+      }
       return;
     }
     if (ph < hit) {
@@ -301,15 +365,22 @@ class ThemePainter extends CustomPainter {
     // vỡ: giọt nước văng ra rồi rơi xuống theo trọng lực
     final p = (ph - hit) / (1 - hit);
     final alpha = ((1 - p * p) * 230).round();
-    final drop = Paint()..color = const Color(0xFFB3E5FC).withAlpha(alpha);
+    // giọt xanh đậm + viền + ánh trắng: nổi rõ cả trên nền xanh sáng
+    final drop = Paint()..color = const Color(0xFF1E88E5).withAlpha(alpha);
+    final edge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(0.8, unit * 0.0015)
+      ..color = const Color(0xFF0D47A1).withAlpha(alpha);
     final glint = Paint()..color = Colors.white.withAlpha(alpha);
     for (var i = 0; i < 22; i++) {
       final a = _rnd(seed, cyc * 60 + i, 8) * 2 * math.pi;
       final v = unit * (0.08 + 0.12 * _rnd(seed, cyc * 60 + i, 9));
       final q = m + Offset(math.cos(a) * v * p, math.sin(a) * v * p * 0.7 + p * p * unit * 0.45);
-      final rr = unit * (0.005 + 0.006 * _rnd(seed, cyc * 60 + i, 10));
+      final rr = unit * (0.007 + 0.007 * _rnd(seed, cyc * 60 + i, 10));
       // giọt hình nước: tròn đáy, nhọn đầu theo hướng rơi
-      canvas.drawOval(Rect.fromCenter(center: q, width: rr * 1.6, height: rr * 2.4), drop);
+      final dr = Rect.fromCenter(center: q, width: rr * 1.6, height: rr * 2.4);
+      canvas.drawOval(dr, drop);
+      canvas.drawOval(dr, edge);
       canvas.drawCircle(q + Offset(-rr * 0.3, -rr * 0.4), rr * 0.35, glint);
     }
     // vòng nước loé ra lúc vỡ
@@ -488,35 +559,66 @@ class ThemePainter extends CustomPainter {
     }
   }
 
-  /// Ông già Noel trên xe tuần lộc bay ngang trời, để lại vệt kim tuyến.
+  /// Xe tuần lộc cỡ lớn bay ngang trời: 2 tuần lộc kéo xe, ông già Noel vẫy tay,
+  /// túi quà bắn hộp quà và kẹo (gậy, mút, sao, tim, bọc giấy) ra khắp các hướng.
   void _sleigh(Canvas canvas, Size size, Layer l, double unit) {
-    final ph = (t * l.speed) % 1.0;
-    if (ph > 0.6) return; // nghỉ giữa các lần bay qua
-    final p = ph / 0.6;
     final s = unit * l.minSize;
-    final x = size.width * 1.15 - p * (size.width * 1.15 + s * 5);
-    final y = size.height * 0.14 + math.sin(p * math.pi * 4) * unit * 0.02 - math.sin(p * math.pi) * unit * 0.04;
-    // vệt kim tuyến phía sau
-    for (var i = 0; i < 14; i++) {
-      final q = Offset(x + s * 3.3 + i * s * 0.35, y + math.sin(i * 0.9 + t * 6) * s * 0.15);
-      final a = ((1 - i / 14) * 200).round();
-      canvas.drawCircle(q, s * 0.06 * (1 - i / 16),
-          Paint()
-            ..color = l.colors.first.withAlpha(a)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.04));
+    const cross = 0.65; // phần chu kỳ xe đang bay qua; còn lại nghỉ
+    double xAt(double p) => size.width + s * 1.2 - p * (size.width + s * 5.2);
+    double yAt(double p) =>
+        size.height * 0.2 + math.sin(p * math.pi * 3) * unit * 0.025 - math.sin(p * math.pi) * unit * 0.05;
+    final period = 1 / l.speed;
+    final cyc = (t / period).floor();
+    final ph = (t / period) - cyc;
+    // quà bắn ra (kể cả khi xe đã qua, quà vẫn rơi nốt)
+    const n = 46;
+    for (var i = 0; i < n; i++) {
+      final pe = cross * i / n; // lúc quà được bắn ra (phần chu kỳ)
+      final age = (ph - pe) * period;
+      if (age < 0 || age > 3.2) continue;
+      final p0 = pe / cross;
+      final sack = Offset(xAt(p0) + s * 2.6 + s * 0.38, yAt(p0) - s * 0.62);
+      final ang = -math.pi * (0.1 + 0.8 * _rnd(cyc, i, 51)) + (_rnd(cyc, i, 55) - 0.5) * 1.2;
+      final v = unit * (0.18 + 0.22 * _rnd(cyc, i, 52));
+      final q = sack + Offset(math.cos(ang) * v * age, math.sin(ang) * v * age + 0.5 * unit * 0.35 * age * age);
+      if (q.dy > size.height + 40) continue;
+      canvas.save();
+      canvas.translate(q.dx, q.dy);
+      canvas.rotate(age * (2 + 4 * _rnd(cyc, i, 53)));
+      drawGift(canvas, (i * 7 + cyc) % 6, unit * (0.028 + 0.018 * _rnd(cyc, i, 54)),
+          const [Color(0xFFE53935), Color(0xFF43A047), Color(0xFF1E88E5), Color(0xFFAB47BC), Color(0xFFFF9800)][i % 5]);
+      canvas.restore();
     }
-    // dây cương nối tuần lộc với xe
-    canvas.drawLine(Offset(x + s * 0.3, y + s * 0.1), Offset(x + s * 2.2, y + s * 0.15),
-        Paint()
-          ..color = const Color(0xCCFFD54F)
-          ..strokeWidth = math.max(1, s * 0.03));
-    final g = l.glyphs;
-    _emoji(canvas, g[0], Offset(x, y + math.sin(t * 10) * s * 0.05), s, 0);
-    _emoji(canvas, g[1], Offset(x + s * 1.05, y + math.sin(t * 10 + 1.5) * s * 0.05), s, 0);
-    _emoji(canvas, g[2], Offset(x + s * 2.5, y + s * 0.15), s * 1.1, 0);
-    // ông già Noel ngồi trên xe (vẽ sau để nổi lên trên chiếc xe)
-    _emoji(canvas, g[3], Offset(x + s * 2.6, y - s * 0.45 + math.sin(t * 8) * s * 0.04), s * 0.9, 0);
+    if (ph > cross) return;
+    final p = ph / cross;
+    final x = xAt(p), y = yAt(p);
+    // vệt kim tuyến phía sau xe
+    for (var i = 0; i < 18; i++) {
+      final q = Offset(x + s * 3.4 + i * s * 0.22, y + math.sin(i * 0.9 + t * 6) * s * 0.08);
+      canvas.drawCircle(q, s * 0.035 * (1 - i / 20),
+          Paint()
+            ..color = l.colors.first.withAlpha(((1 - i / 18) * 220).round())
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03));
+    }
+    // dây cương vàng
+    final rein = Paint()
+      ..color = const Color(0xFFFFD54F)
+      ..strokeWidth = math.max(1, s * 0.02);
+    canvas.drawLine(Offset(x + s * 0.25, y), Offset(x + s * 2.0, y - s * 0.2), rein);
+    canvas.drawLine(Offset(x + s * 1.2, y), Offset(x + s * 2.0, y - s * 0.2), rein);
+    // 2 tuần lộc chạy (emoji quay mặt sang trái đúng hướng bay)
+    final g = l.glyphs.isEmpty ? '🦌' : l.glyphs.first;
+    _emoji(canvas, g, Offset(x, y + math.sin(t * 10) * s * 0.06), s * 0.85, math.sin(t * 10) * 0.06);
+    _emoji(canvas, g, Offset(x + s * 0.95, y + math.sin(t * 10 + 1.5) * s * 0.06), s * 0.85,
+        math.sin(t * 10 + 1.5) * 0.06);
+    // xe + ông già Noel + túi quà
+    canvas.save();
+    canvas.translate(x + s * 2.6, y + s * 0.05 + math.sin(t * 4) * s * 0.03);
+    drawSleighSanta(canvas, s, t);
+    canvas.restore();
   }
+
+  double _rnd3(int a, int b, int c) => _rnd(a, b, c);
 
   void _emoji(Canvas canvas, String g, Offset p, double s, double rot) {
     final key = '$g|${s.round()}';
@@ -726,6 +828,51 @@ class ThemePainter extends CustomPainter {
         if (l.glyphs.isEmpty) break;
         _emoji(canvas, l.glyphs[seed % l.glyphs.length], p,
             s, l.motion == Motion.fly ? 0 : math.sin(spin * 0.7) * 0.25);
+        break;
+      case Shape.envelope:
+        canvas.save();
+        canvas.translate(p.dx, p.dy);
+        canvas.rotate(math.sin(spin * 0.9) * 0.6);
+        canvas.scale(math.cos(spin * 1.3).abs() * 0.7 + 0.3, 1); // lật qua lật lại khi rơi
+        drawEnvelope(canvas, s, col);
+        canvas.restore();
+        break;
+      case Shape.tomato:
+        canvas.save();
+        canvas.translate(p.dx, p.dy);
+        canvas.rotate(spin * 0.5);
+        drawTomato(canvas, s / 2, col);
+        canvas.restore();
+        break;
+      case Shape.festivalLantern:
+        canvas.save();
+        canvas.translate(p.dx, p.dy);
+        canvas.rotate(math.sin(t * 1.3 + seed) * 0.08);
+        switch (seed % 4) {
+          case 0:
+            drawStarLantern(canvas, s, const Color(0xFFE53935), t, seed);
+          case 1:
+            drawRevolvingLantern(canvas, s, const Color(0xFFFF9800), t + seed);
+          case 2:
+            drawRabbitLantern(canvas, s, t);
+          default:
+            drawZodiacLantern(canvas, s, col, t);
+            if (l.glyphs.isNotEmpty) _emoji(canvas, l.glyphs[(seed ~/ 4) % l.glyphs.length], Offset.zero, s * 0.5, 0);
+        }
+        canvas.restore();
+        break;
+      case Shape.skyLantern:
+        canvas.save();
+        canvas.translate(p.dx, p.dy);
+        canvas.rotate(math.sin(t * 0.8 + seed) * 0.06);
+        drawSkyLantern(canvas, s, col, t, seed);
+        canvas.restore();
+        break;
+      case Shape.lotusLantern:
+        canvas.save();
+        canvas.translate(p.dx, p.dy);
+        drawLotusLantern(canvas, s, col, t, seed);
+        canvas.restore();
         break;
       case Shape.waterBall:
         canvas.drawCircle(p, s / 2, Paint()..color = const Color(0x5581D4FA));

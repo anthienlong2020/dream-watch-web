@@ -5,7 +5,7 @@ Mặc định mỗi lễ hội đã có cảnh nền vẽ sẵn trong app. Muố
 
   tet  xuan  ha  thu  dong  giangSinh  valentine  carnival  phuNu  phucSinh
   thieuNhi  trungThu  halloween  nhaGiao  hanami  holi  diwali  songkran  hoiAn
-  sinhNhat  phatDan  doanNgo  vuLan  thaDen  quocKhanh  traiDat  ngayCuaMe
+  sinhNhat  phatGiao  doanNgo  thaDen  quocKhanh  traiDat  ngayCuaMe
   tomatina  taOn  diaDeMuertos
 
 Ví dụ: tet.jpg, giangSinh.png, diwali.webp. Ảnh dọc (9:16), 1080x1920 trở xuống.

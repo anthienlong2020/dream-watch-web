@@ -8,10 +8,10 @@ import 'package:flutter/material.dart';
 // =====================================================================
 
 /// Các kiểu chuyển động của hạt.
-enum Motion { fall, rise, fly, wander, burst, twinkle, garland, moon, collide, aurora, waterfall, sleigh, bounce, bloom, pair, firecracker }
+enum Motion { fall, rise, fly, wander, burst, twinkle, garland, moon, collide, aurora, waterfall, sleigh, bounce, bloom, pair, firecracker, drift, hangNga, cake }
 
 /// Hình dạng hạt (vẽ bằng code) hoặc emoji.
-enum Shape { dot, petal, leaf, snowflake, confetti, heart, sparkle, balloon, lantern, bat, feather, firefly, emoji, sun, waterBall }
+enum Shape { dot, petal, leaf, snowflake, confetti, heart, sparkle, balloon, lantern, bat, feather, firefly, emoji, sun, waterBall, envelope, tomato, festivalLantern, skyLantern, lotusLantern }
 
 class Layer {
   final Motion motion;
@@ -47,7 +47,7 @@ class SeasonTheme {
   /// Lễ hội "ban đêm": hiệu ứng ánh sáng (cực quang, pháo hoa, đèn lồng, đom đóm...)
   /// chỉ nổi khi nền tối, nên nền sáng sẽ được phủ "trời chạng vạng" nhẹ.
   bool get night => const {
-        'tet', 'giangSinh', 'trungThu', 'halloween', 'diwali', 'hoiAn', 'phatDan', 'vuLan',
+        'tet', 'giangSinh', 'trungThu', 'halloween', 'diwali', 'hoiAn', 'phatGiao',
         'thaDen', 'quocKhanh', 'diaDeMuertos',
       }.contains(id);
 
@@ -95,6 +95,9 @@ SeasonTheme tetTheme(int lunarYear) {
       const Layer(motion: Motion.fall, shape: Shape.petal, count: 10, colors: _pinks, speed: 0.06),
       const Layer(motion: Motion.burst, shape: Shape.dot, count: 3, colors: _fireworks, speed: 0.38),
       const Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 8, colors: [Colors.white, Color(0xFFFFD740)]),
+      // bao lì xì đỏ rơi xoay xoay
+      const Layer(motion: Motion.fall, shape: Shape.envelope, count: 5,
+          colors: [Color(0xFFD32F2F), Color(0xFFE53935)], speed: 0.05, minSize: 0.04, maxSize: 0.06),
       // dây pháo đỏ treo hai bên nổ tí tách
       const Layer(motion: Motion.firecracker, shape: Shape.dot, count: 2,
           colors: [Color(0xFFE53935), Color(0xFFFFD740)], speed: 1.0),
@@ -162,17 +165,20 @@ List<SeasonTheme> allThemes(DateTime now) => [
               minSize: 0.04, maxSize: 0.055),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 8, colors: [Color(0xFFFFD740)]),
           // ông già Noel trên xe tuần lộc bay ngang trời
-          Layer(motion: Motion.sleigh, shape: Shape.emoji, count: 1, glyphs: ['🦌', '🦌', '🛷', '🎅'],
-              colors: [Color(0xFFFFE082)], minSize: 0.07, maxSize: 0.07, speed: 0.05),
+          // xe tuần lộc cỡ lớn: ông già Noel vung túi quà, quà & kẹo bắn ra khắp nơi
+          Layer(motion: Motion.sleigh, shape: Shape.emoji, count: 1, glyphs: ['🦌'],
+              colors: [Color(0xFFFFE082)], minSize: 0.16, maxSize: 0.16, speed: 0.045),
         ],
       ),
       tetTheme(lunarYearOf(now)),
       const SeasonTheme(
         id: 'valentine', name: 'Valentine', emoji: '💝', accent: Color(0xFFFF4F8B), glow: Color(0x33FF4081),
         layers: [
-          Layer(motion: Motion.fall, shape: Shape.heart, count: 18,
-              colors: [Color(0xFFFF4081), Color(0xFFFF8FB1), Color(0xFFE53935)], speed: 0.05),
-          Layer(motion: Motion.rise, shape: Shape.heart, count: 6, colors: [Color(0x88FFFFFF)], speed: 0.04),
+          Layer(motion: Motion.fall, shape: Shape.heart, count: 9,
+              colors: [Color(0xFFFF4081), Color(0xFFFF8FB1), Color(0xFFE53935)], speed: 0.045,
+              minSize: 0.05, maxSize: 0.1),
+          Layer(motion: Motion.rise, shape: Shape.heart, count: 3, colors: [Color(0xAAFFFFFF)], speed: 0.035,
+              minSize: 0.06, maxSize: 0.12),
         ],
       ),
       const SeasonTheme(
@@ -217,11 +223,13 @@ List<SeasonTheme> allThemes(DateTime now) => [
         layers: [
           Layer(motion: Motion.moon, shape: Shape.dot, count: 1, colors: [Color(0xFFFFF8E1)]),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 14, colors: [Colors.white]),
-          Layer(motion: Motion.rise, shape: Shape.lantern, count: 7,
-              colors: [Color(0xFFE53935), Color(0xFFFF9800), Color(0xFFFFEB3B)], speed: 0.03,
-              minSize: 0.03, maxSize: 0.05),
-          Layer(motion: Motion.rise, shape: Shape.emoji, count: 1, glyphs: ['🐇'], speed: 0.025,
-              minSize: 0.06, maxSize: 0.06),
+          // đèn ông sao, đèn kéo quân, đèn thỏ, đèn 12 con giáp
+          Layer(motion: Motion.rise, shape: Shape.festivalLantern, count: 3,
+              colors: [Color(0xFFE53935), Color(0xFFFF9800), Color(0xFFFFEB3B)], glyphs: kZodiacFullBody,
+              speed: 0.022, minSize: 0.07, maxSize: 0.1, sway: 0.02),
+          // chị Hằng kéo chú Cuội bay lên cung trăng
+          Layer(motion: Motion.hangNga, shape: Shape.emoji, count: 1, glyphs: ['🧚‍♀️', '🧒', '🐇'],
+              colors: [Color(0xFFFFF59D)], minSize: 0.07, maxSize: 0.07, speed: 0.04),
         ],
       ),
       const SeasonTheme(
@@ -294,16 +302,23 @@ List<SeasonTheme> allThemes(DateTime now) => [
               minSize: 0.035, maxSize: 0.055),
           Layer(motion: Motion.fall, shape: Shape.confetti, count: 35, colors: _party, speed: 0.08),
           Layer(motion: Motion.burst, shape: Shape.dot, count: 1, colors: _fireworks, speed: 0.35),
+          // bánh sinh nhật nến lung linh
+          Layer(motion: Motion.cake, shape: Shape.dot, count: 1,
+              colors: [Color(0xFFFF80AB), Color(0xFFFFF3E0), Color(0xFF8D6E63)], minSize: 0.26, maxSize: 0.26),
         ],
       ),
       const SeasonTheme(
-        id: 'phatDan', name: 'Lễ Phật Đản (rằm tháng 4 âm)', emoji: '🪷', accent: Color(0xFFFFCA28),
+        id: 'phatGiao', name: 'Phật Đản & Vu Lan', emoji: '🪷', accent: Color(0xFFFFCA28),
         glow: Color(0x33FFD54F),
         layers: [
-          Layer(motion: Motion.bloom, shape: Shape.emoji, count: 14, glyphs: ['🪷', '🪷', '🌸'], speed: 0.08,
-              minSize: 0.045, maxSize: 0.07),
-          Layer(motion: Motion.rise, shape: Shape.lantern, count: 5,
-              colors: [Color(0xFFFFCA28), Color(0xFFFF8A65), Color(0xFFF48FB1)], speed: 0.025),
+          // hoa đăng hình hoa sen trôi theo dòng suối
+          Layer(motion: Motion.drift, shape: Shape.lotusLantern, count: 7,
+              colors: [Color(0xFFF8BBD0), Color(0xFFFFF59D), Color(0xFFFFCDD2)], speed: 0.02,
+              minSize: 0.06, maxSize: 0.085),
+          Layer(motion: Motion.bloom, shape: Shape.emoji, count: 8, glyphs: ['🪷', '🌹', '🪷'], speed: 0.07,
+              minSize: 0.04, maxSize: 0.06),
+          Layer(motion: Motion.fall, shape: Shape.petal, count: 5,
+              colors: [Color(0xFFF8BBD0), Color(0xFFFFFFFF), Color(0xFFE53935)], speed: 0.035),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 10, colors: [Color(0xFFFFF59D)]),
         ],
       ),
@@ -316,25 +331,18 @@ List<SeasonTheme> allThemes(DateTime now) => [
         ],
       ),
       const SeasonTheme(
-        id: 'vuLan', name: 'Lễ Vu Lan (rằm tháng 7 âm)', emoji: '🌹', accent: Color(0xFFE57373),
-        glow: Color(0x22FF8A80),
-        layers: [
-          Layer(motion: Motion.fall, shape: Shape.petal, count: 10,
-              colors: [Color(0xFFE53935), Color(0xFFFFFFFF), Color(0xFFF48FB1)], speed: 0.04),
-          Layer(motion: Motion.bloom, shape: Shape.emoji, count: 8, glyphs: ['🌹', '🪷', '🌹'], speed: 0.07,
-              minSize: 0.04, maxSize: 0.06),
-          Layer(motion: Motion.rise, shape: Shape.lantern, count: 4,
-              colors: [Color(0xFFFFCA28), Color(0xFFFF8A65)], speed: 0.02),
-        ],
-      ),
-      const SeasonTheme(
-        id: 'thaDen', name: 'Lễ hội thả đèn trời Loy Krathong (Thái Lan)', emoji: '🏮',
+        id: 'thaDen', name: 'Lễ hội thả đèn trời Yi Peng (Thái Lan)', emoji: '🏮',
         accent: Color(0xFFFFB74D), glow: Color(0x33FF9800),
         layers: [
           Layer(motion: Motion.moon, shape: Shape.dot, count: 1, colors: [Color(0xFFFFF8E1)]),
-          Layer(motion: Motion.rise, shape: Shape.lantern, count: 6,
-              colors: [Color(0xFFFFB74D), Color(0xFFFFCC80), Color(0xFFFF8A65)], speed: 0.018,
-              minSize: 0.015, maxSize: 0.035, sway: 0.02),
+          // đèn trời cỡ lớn bay gần, thấy rõ đốm lửa bên trong
+          Layer(motion: Motion.rise, shape: Shape.skyLantern, count: 2,
+              colors: [Color(0xFFFFB74D), Color(0xFFFFCC80), Color(0xFFFF8A65)], speed: 0.016,
+              minSize: 0.09, maxSize: 0.13, sway: 0.015),
+          // đèn trời nhỏ ở xa
+          Layer(motion: Motion.rise, shape: Shape.skyLantern, count: 6,
+              colors: [Color(0xFFFFB74D), Color(0xFFFFCC80)], speed: 0.012,
+              minSize: 0.02, maxSize: 0.04, sway: 0.01),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 10, colors: [Color(0xFFFFE0B2)]),
         ],
       ),
@@ -373,11 +381,11 @@ List<SeasonTheme> allThemes(DateTime now) => [
         id: 'tomatina', name: 'Lễ hội ném cà chua La Tomatina (Tây Ban Nha)', emoji: '🍅',
         accent: Color(0xFFE53935),
         layers: [
-          Layer(motion: Motion.collide, shape: Shape.dot, count: 10,
-              colors: [Color(0xFFE53935), Color(0xFFD32F2F), Color(0xFFFF5252), Color(0xFFC62828)], speed: 0.25,
-              minSize: 0.04, maxSize: 0.055),
-          Layer(motion: Motion.fall, shape: Shape.emoji, count: 3, glyphs: ['🍅'], speed: 0.06,
-              minSize: 0.035, maxSize: 0.05),
+          Layer(motion: Motion.collide, shape: Shape.tomato, count: 10,
+              colors: [Color(0xFFE53935), Color(0xFFD32F2F), Color(0xFFF44336), Color(0xFFC62828)], speed: 0.25,
+              minSize: 0.045, maxSize: 0.06),
+          Layer(motion: Motion.fall, shape: Shape.tomato, count: 3,
+              colors: [Color(0xFFE53935), Color(0xFFD32F2F)], speed: 0.06, minSize: 0.035, maxSize: 0.05),
         ],
       ),
       const SeasonTheme(
@@ -409,6 +417,7 @@ List<SeasonTheme> allThemes(DateTime now) => [
 
 SeasonTheme? themeById(String id, DateTime now) {
   if (id == 'namMoi') id = 'tet'; // Năm mới đã gộp chung với Tết
+  if (id == 'phatDan' || id == 'vuLan') id = 'phatGiao'; // gộp chung lễ Phật giáo
   for (final t in allThemes(now)) {
     if (t.id == id) return t;
   }
@@ -578,9 +587,9 @@ String autoThemeId(DateTime d) {
     return false;
   }
 
-  if (nearLunar(15, 4, 2)) return 'phatDan';
+  if (nearLunar(15, 4, 2)) return 'phatGiao';
   if (nearLunar(5, 5, 1)) return 'doanNgo';
-  if (nearLunar(15, 7, 5)) return 'vuLan';
+  if (nearLunar(15, 7, 5)) return 'phatGiao';
   if (nearLunar(15, 10, 2, 1)) return 'thaDen';
   if (d.month == 9 && d.day <= 2) return 'quocKhanh';
   if (d.month == 4 && d.day >= 21 && d.day <= 22) return 'traiDat';
