@@ -72,8 +72,8 @@ class _HandsPainter extends CustomPainter {
     final bounce = ms < 150 ? math.sin(ms / 150 * math.pi) * 0.15 : 0.0;
     final secA = (s + bounce) / 60 * 2 * math.pi;
 
-    _ornateHand(canvas, c, hourA, ring * 0.58, ring * 0.075);
-    _ornateHand(canvas, c, minA, ring * 0.88, ring * 0.055);
+    _ornateHand(canvas, c, hourA, ring * 0.6, ring * 0.1);
+    _ornateHand(canvas, c, minA, ring * 0.9, ring * 0.075);
     // kim giây mảnh màu đồng
     _rotated(canvas, c, secA, () {
       final p = Paint()
