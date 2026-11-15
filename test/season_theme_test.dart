@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:dream_watch/themes/event_background.dart';
 import 'package:dream_watch/themes/season_theme.dart';
 import 'package:dream_watch/themes/theme_overlay.dart';
 
@@ -46,6 +47,7 @@ void main() {
       c.save();
       c.translate((i % cols) * w, (i ~/ cols) * h);
       c.clipRect(const Rect.fromLTWH(0, 0, w, h));
+      paintEventScene(c, const Size(w, h), themes[i].id);
       ThemePainter(themes[i], 12.3).paint(c, const Size(w, h));
       c.drawCircle(const Offset(w / 2, h / 2), w * 0.4,
           Paint()

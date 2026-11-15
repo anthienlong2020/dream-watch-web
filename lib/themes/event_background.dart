@@ -149,6 +149,12 @@ class EventBackground extends StatelessWidget {
   }
 }
 
+/// Vẽ cảnh nền của lễ hội [id] lên [canvas] (dùng cho ảnh xem thử).
+void paintEventScene(Canvas canvas, Size size, String id) {
+  final s = kEventScenes[id];
+  if (s != null) _ScenePainter(s).paint(canvas, size);
+}
+
 class _ScenePainter extends CustomPainter {
   final EventScene s;
   _ScenePainter(this.s);
