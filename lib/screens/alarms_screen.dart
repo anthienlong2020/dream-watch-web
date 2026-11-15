@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/alarm.dart';
 import '../services/app_state.dart';
+import '../services/voice_recorder.dart';
 import '../utils/vn_format.dart';
 
 class AlarmsScreen extends StatelessWidget {
@@ -10,7 +11,9 @@ class AlarmsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Báo thức')),
+      appBar: AppBar(
+          title: ListenableBuilder(
+              listenable: app, builder: (_, __) => Text(app.isPro ? 'Báo thức & Lời nhắc' : 'Báo thức'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _edit(context, app.newAlarmDraft(), isNew: true),
         icon: const Icon(Icons.add_alarm),
@@ -81,6 +84,7 @@ class _AlarmTile extends StatelessWidget {
     final until = app.timeUntil(alarm);
     final sub = StringBuffer(describeDays(alarm.days));
     if (alarm.label.isNotEmpty) sub.write(' · ${alarm.label}');
+    if (app.isPro && alarm.isReminder) sub.write(alarm.hasVoice ? ' · 🎙️' : ' · 🗣️');
     if (until != null) {
       final h = until.inHours;
       final m = until.inMinutes % 60;
@@ -132,11 +136,47 @@ class _AlarmEditorState extends State<_AlarmEditor> {
       TextEditingController(text: widget.draft.label);
 
   Alarm get a => widget.draft;
+  bool _recording = false;
+  DateTime? _recStart;
 
   @override
   void dispose() {
     _label.dispose();
+    if (_recording) stopVoiceRecording();
     super.dispose();
+  }
+
+  Future<void> _toggleRecord() async {
+    if (_recording) {
+      final r = await stopVoiceRecording();
+      setState(() => _recording = false);
+      if (r != null && r.$1.isNotEmpty) {
+        await saveVoice(voiceKeyFor(a.id), r.$1, r.$2);
+        setState(() => a.hasVoice = true);
+      }
+      return;
+    }
+    final ok = await startVoiceRecording();
+    if (!ok) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Không mở được micro. Hãy cho phép trình duyệt dùng micro rồi thử lại.')));
+      }
+      return;
+    }
+    setState(() {
+      _recording = true;
+      _recStart = DateTime.now();
+    });
+    // tự dừng sau 20 giây cho gọn dung lượng
+    Future.delayed(const Duration(seconds: 20), () {
+      if (mounted && _recording && DateTime.now().difference(_recStart!).inSeconds >= 19) _toggleRecord();
+    });
+  }
+
+  Future<void> _playRecord() async {
+    final v = await loadVoice(voiceKeyFor(a.id));
+    if (v != null) await playVoiceBytes(v.$1, v.$2, volume: app.volume);
   }
 
   Future<void> _pickTime() async {
@@ -207,11 +247,46 @@ class _AlarmEditorState extends State<_AlarmEditor> {
             const SizedBox(height: 12),
             TextField(
               controller: _label,
-              decoration: const InputDecoration(
-                labelText: 'Tên báo thức (không bắt buộc)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: app.isPro ? 'Tên báo thức / nội dung lời nhắc' : 'Tên báo thức (không bắt buộc)',
+                hintText: app.isPro ? 'Ví dụ: Uống thuốc, Đón con lúc 5 giờ' : null,
+                border: const OutlineInputBorder(),
               ),
             ),
+            if (app.isPro) ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('🗣️ Đọc lời nhắc bằng giọng nói'),
+                subtitle: const Text('Đến giờ: chuông ngắn rồi đọc nội dung ở trên, nhắc lại mỗi 30 giây'),
+                value: a.speak,
+                onChanged: (v) => setState(() => a.speak = v),
+              ),
+              Row(
+                children: [
+                  FilledButton.tonalIcon(
+                    onPressed: _toggleRecord,
+                    icon: Icon(_recording ? Icons.stop : Icons.mic),
+                    label: Text(_recording ? 'Dừng ghi' : (a.hasVoice ? 'Ghi âm lại' : '🎙️ Ghi âm giọng nhắc')),
+                  ),
+                  if (a.hasVoice && !_recording) ...[
+                    IconButton(tooltip: 'Nghe lại', onPressed: _playRecord, icon: const Icon(Icons.play_circle_outline)),
+                    IconButton(
+                      tooltip: 'Xoá giọng ghi',
+                      onPressed: () => setState(() => a.hasVoice = false),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                ],
+              ),
+              if (_recording)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text('🔴 Đang ghi… nói lời nhắc của bạn (tối đa 20 giây)',
+                      style: TextStyle(color: Colors.redAccent)),
+                ),
+              const Text('Giọng tự ghi được phát lúc đến giờ, nghe thân quen như người nhà nhắc.',
+                  style: TextStyle(fontSize: 12.5, color: Colors.white60)),
+            ],
             const SizedBox(height: 12),
             Row(
               children: [

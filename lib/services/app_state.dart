@@ -14,6 +14,8 @@ import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
 import 'blob_store.dart';
 import 'pro_code.dart';
+import 'speech.dart';
+import 'voice_recorder.dart';
 import 'sound_service.dart';
 
 /// Thông tin khi đang reo (báo thức hoặc hết giờ hẹn).
@@ -837,6 +839,10 @@ class AppState extends ChangeNotifier {
   // ====================================================================
 
   void _ringAlarm(Alarm a) {
+    if (isPro && a.isReminder) {
+      _ringReminder(a);
+      return;
+    }
     _ring(
       RingInfo(
         title: a.timeText,
@@ -857,7 +863,44 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Timer? _remindRepeat;
+
+  /// Lời nhắc: chuông ngắn rồi đọc lời nhắc / phát giọng tự ghi, nhắc lại mỗi 30 giây
+  /// tới khi bấm Tắt (tối đa 3 phút).
+  void _ringReminder(Alarm a) {
+    sound.stopStrikes();
+    ringing = RingInfo(title: a.timeText, subtitle: a.label.isEmpty ? 'Lời nhắc' : a.label, alarm: a);
+    _autoStop?.cancel();
+    _autoStop = Timer(const Duration(minutes: 3), dismissRing);
+    _remindRepeat?.cancel();
+    void announce() {
+      sound.playChime();
+      Future.delayed(const Duration(milliseconds: 2600), () => playReminderVoice(a));
+    }
+
+    announce();
+    _remindRepeat = Timer.periodic(const Duration(seconds: 30), (_) => announce());
+    notifyListeners();
+  }
+
+  /// Phát nội dung lời nhắc: giọng tự ghi (nếu có), rồi đọc chữ (nếu bật).
+  Future<void> playReminderVoice(Alarm a) async {
+    if (a.hasVoice) {
+      final v = await loadVoice(voiceKeyFor(a.id));
+      if (v != null) {
+        await playVoiceBytes(v.$1, v.$2, volume: volume);
+        if (!a.speak) return;
+        await Future.delayed(const Duration(seconds: 3));
+      }
+    }
+    if (a.speak && a.label.isNotEmpty) {
+      speakVi(a.label, male: hourVoice == 'nam', volume: volume,
+          voiceName: hourVoice == 'nam' ? voiceNameNam : voiceNameNu);
+    }
+  }
+
   void dismissRing() {
+    _remindRepeat?.cancel();
     _autoStop?.cancel();
     ringing = null;
     sound.stopRing();

@@ -9,6 +9,13 @@ class Alarm {
   bool enabled;
   String sound; // 'alarm' hoặc 'alarm_soft'
 
+  /// Lời nhắc (bản Pro): đọc [label] bằng giọng nói và/hoặc phát đoạn tự ghi âm.
+  bool speak;
+  bool hasVoice;
+
+  /// Có phải lời nhắc (đọc chữ hoặc phát giọng ghi âm) thay vì chuông reo liên tục.
+  bool get isReminder => (speak && label.isNotEmpty) || hasVoice;
+
   Alarm({
     required this.id,
     required this.hour,
@@ -17,6 +24,8 @@ class Alarm {
     Set<int>? days,
     this.enabled = true,
     this.sound = 'alarm',
+    this.speak = false,
+    this.hasVoice = false,
   }) : days = days ?? <int>{};
 
   bool get isOnce => days.isEmpty;
@@ -38,6 +47,8 @@ class Alarm {
         'days': days.toList()..sort(),
         'enabled': enabled,
         'sound': sound,
+        'speak': speak,
+        'hasVoice': hasVoice,
       };
 
   factory Alarm.fromJson(Map<String, dynamic> j) => Alarm(
@@ -50,5 +61,7 @@ class Alarm {
             .toSet(),
         enabled: (j['enabled'] as bool?) ?? true,
         sound: (j['sound'] as String?) ?? 'alarm',
+        speak: (j['speak'] as bool?) ?? false,
+        hasVoice: (j['hasVoice'] as bool?) ?? false,
       );
 }
