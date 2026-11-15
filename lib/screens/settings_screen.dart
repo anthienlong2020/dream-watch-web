@@ -82,59 +82,85 @@ class _ThemePicker extends StatelessWidget {
   }
 
   Widget _build(BuildContext context) {
-    final themes = [
-      buildDinoTheme(),
-      buildZodiacTheme(),
-      buildCustomTheme(app.customImages, app.customChibi),
-    ];
-    return Column(
-      children: [
-        for (final t in themes)
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: app.themeId == t.id
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.transparent,
-                width: 2,
+    // Danh sách: Chuẩn (Standard), Ảnh của tôi, rồi các bộ mở từ file cấu hình
+    final ids = ['khung_long', 'tu_chon', for (final n in app.imageSets) 'set:$n'];
+    String label(String id) => switch (id) {
+          'khung_long' => '⭐ Chuẩn (Standard)',
+          'tu_chon' => '🖼️ Ảnh của tôi',
+          _ => '📁 ${id.substring(4)}',
+        };
+    final current = ids.contains(app.themeId) ? app.themeId : 'khung_long';
+    final t = app.themeOf(current);
+    final setName = current.startsWith('set:') ? current.substring(4) : null;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 6, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButton<String>(
+              isExpanded: true,
+              value: current,
+              items: [for (final id in ids) DropdownMenuItem(value: id, child: Text(label(id)))],
+              onChanged: (v) => app.update(() => app.themeId = v ?? 'khung_long'),
+            ),
+            const SizedBox(height: 6),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (var i = 1; i <= 12; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: SlotImageView(image: t.slot(i % 12), size: 34),
+                    ),
+                ],
               ),
             ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => app.update(() => app.themeId = t.id),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  children: [
-                    Icon(app.themeId == t.id
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      width: 92,
-                      child: Text(t.name, style: const TextStyle(fontSize: 15)),
-                    ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (var i = 1; i <= 6; i++)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 4),
-                                child: SlotImageView(image: t.slot(i), size: 34),
-                              ),
+            if (setName != null)
+              Wrap(
+                spacing: 8,
+                children: [
+                  TextButton.icon(
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('Chép sang Ảnh của tôi để sửa'),
+                    onPressed: () async {
+                      final ok = await app.copySetToCustom(setName);
+                      if (!ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text('Không lưu được: bộ nhớ trình duyệt đầy, hãy bớt ảnh nền.')));
+                      }
+                    },
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Xoá khỏi danh sách'),
+                    onPressed: () async {
+                      final yes = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text('Xoá bộ "$setName"?'),
+                          content: const Text('Chỉ xoá khỏi app. File .dreamwatch trên máy vẫn còn, '
+                              'mở lại lúc nào cũng được.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+                            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xoá')),
                           ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
+                      );
+                      if (yes == true) await app.deleteImageSet(setName);
+                    },
+                  ),
+                ],
               ),
+            const Text(
+              'Mở file cấu hình (.dreamwatch) ở mục "Bộ cấu hình" bên dưới thì bộ ảnh trong file '
+              'tự thêm vào danh sách này.',
+              style: TextStyle(fontSize: 12.5, color: Colors.white60),
             ),
-          ),
-      ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1038,8 +1064,9 @@ class _PresetSettingsState extends State<_PresetSettings> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Mở bộ cấu hình?'),
-        content: Text('Ảnh giờ, ảnh nền và cài đặt hiện tại sẽ được thay bằng nội dung '
-            'của "${file!.name}".\nNếu chưa lưu bộ hiện tại, hãy bấm Huỷ và lưu trước.'),
+        content: Text('Ảnh nền và cài đặt hiện tại sẽ được thay bằng nội dung của "${file!.name}". '
+            'Bộ ảnh giờ trong file được thêm thành một mục mới trong "Chủ đề hình ảnh" '
+            '(Ảnh của tôi giữ nguyên).\nNếu chưa lưu bộ hiện tại, hãy bấm Huỷ và lưu trước.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Mở')),
@@ -1049,7 +1076,7 @@ class _PresetSettingsState extends State<_PresetSettings> {
     if (yes != true) return;
     setState(() => _busy = true);
     try {
-      final missing = await app.importPreset(bytes);
+      final missing = await app.importPreset(bytes, fileName: file!.name);
       _toast(missing == 0
           ? 'Đã mở bộ "${app.presetName ?? file!.name}".'
           : 'Đã mở bộ, nhưng $missing ảnh nền không vừa bộ nhớ trình duyệt.');

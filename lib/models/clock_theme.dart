@@ -98,7 +98,7 @@ Future<void> loadDinoAssets() async {
 /// Ảnh thứ 1 → vị trí I, ảnh thứ 2 → II, ..., ảnh thứ 12 → XII. Thiếu ảnh thì dùng emoji.
 ClockTheme buildDinoTheme() => ClockTheme(
       id: 'khung_long',
-      name: 'Khủng long',
+      name: 'Chuẩn (Standard)',
       slots: List.generate(12, (i) {
         final n = slotNumber(i) - 1; // vị trí XII (i = 0) dùng ảnh thứ 12
         return SlotImage(

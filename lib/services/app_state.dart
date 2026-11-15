@@ -12,6 +12,7 @@ import '../models/alarm.dart';
 import '../themes/season_theme.dart';
 import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
+import 'blob_store.dart';
 import 'sound_service.dart';
 
 /// Thông tin khi đang reo (báo thức hoặc hết giờ hẹn).
@@ -36,6 +37,12 @@ class AppState extends ChangeNotifier {
   // ---------- Giao diện ----------
   String themeId = 'khung_long';
   List<Uint8List?> customImages = List<Uint8List?>.filled(12, null);
+
+  /// Các bộ ảnh mở từ file cấu hình (.dreamwatch), hiện trong danh sách Chủ đề hình ảnh.
+  /// Ảnh lưu trong IndexedDB (key 'set:<tên>'), ở đây chỉ giữ tên + bản nạp sẵn.
+  List<String> imageSets = [];
+  final Map<String, ({List<Uint8List?> images, List<ChibiSpec?> chibi})> _setCache = {};
+  final Set<String> _setLoading = {};
 
   /// Chibi 3D theo từng vị trí (null = ảnh thường).
   List<ChibiSpec?> customChibi = List<ChibiSpec?>.filled(12, null);
@@ -204,6 +211,7 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic> _settingsMap() => {
         'presetName': presetName,
         'themeId': themeId,
+        'imageSets': imageSets,
         'showTime': showTime,
         'showDate': showDate,
         'showRoman': showRoman,
@@ -243,6 +251,8 @@ class AppState extends ChangeNotifier {
   void _applySettings(Map<String, dynamic> j) {
     presetName = (j['presetName'] as String?) ?? presetName;
     themeId = (j['themeId'] as String?) ?? themeId;
+    final sets = j['imageSets'];
+    if (sets is List) imageSets = sets.whereType<String>().toList();
     showTime = (j['showTime'] as bool?) ?? showTime;
     showDate = (j['showDate'] as bool?) ?? showDate;
     showRoman = (j['showRoman'] as bool?) ?? showRoman;
@@ -372,14 +382,99 @@ class AppState extends ChangeNotifier {
   // Chủ đề
   // ====================================================================
 
-  ClockTheme get theme {
-    switch (themeId) {
-      case 'con_giap':
-        return buildZodiacTheme();
-      case 'tu_chon':
-        return buildCustomTheme(customImages, customChibi);
-      default:
-        return buildDinoTheme();
+  ClockTheme get theme => themeOf(themeId);
+
+  /// Chủ đề theo id: 'khung_long' = Chuẩn (Standard), 'tu_chon' = Ảnh của tôi,
+  /// 'set:<tên>' = bộ ảnh mở từ file cấu hình.
+  ClockTheme themeOf(String id) {
+    if (id == 'tu_chon') return buildCustomTheme(customImages, customChibi);
+    if (id.startsWith('set:')) {
+      final name = id.substring(4);
+      final s = _setCache[name];
+      if (s == null) {
+        _loadSet(name);
+        return buildCustomTheme(const [], const []);
+      }
+      return buildCustomTheme(s.images, s.chibi);
+    }
+    return buildDinoTheme();
+  }
+
+  static String _setKey(String name) => 'set:$name';
+
+  Future<void> _loadSet(String name) async {
+    if (!_setLoading.add(name)) return;
+    try {
+      final raw = await blobGet(_setKey(name));
+      if (raw == null) return;
+      final j = jsonDecode(raw) as Map<String, dynamic>;
+      final imgs = (j['images'] as List?) ?? const [];
+      final ch = (j['chibi'] as List?) ?? const [];
+      _setCache[name] = (
+        images: List<Uint8List?>.generate(12, (i) {
+          final v = i < imgs.length ? imgs[i] : null;
+          return v is String ? base64Decode(v) : null;
+        }),
+        chibi: List<ChibiSpec?>.generate(12, (i) => i < ch.length ? ChibiSpec.fromJson(ch[i]) : null),
+      );
+      notifyListeners();
+    } catch (_) {
+    } finally {
+      _setLoading.remove(name);
+    }
+  }
+
+  /// Thêm một bộ ảnh vào danh sách (tên trùng thì thêm số), chọn luôn bộ đó.
+  Future<String> addImageSet(String name, List<Uint8List?> images, List<ChibiSpec?> chibi) async {
+    var n = name.trim().isEmpty ? 'Bộ ảnh' : name.trim();
+    if (imageSets.contains(n)) {
+      var k = 2;
+      while (imageSets.contains('$n ($k)')) {
+        k++;
+      }
+      n = '$n ($k)';
+    }
+    await blobPut(
+        _setKey(n),
+        jsonEncode({
+          'images': images.map((b) => b == null ? null : base64Encode(b)).toList(),
+          'chibi': chibi.map((c) => c?.toJson()).toList(),
+        }));
+    _setCache[n] = (
+      images: List<Uint8List?>.generate(12, (i) => i < images.length ? images[i] : null),
+      chibi: List<ChibiSpec?>.generate(12, (i) => i < chibi.length ? chibi[i] : null),
+    );
+    imageSets = [...imageSets, n];
+    themeId = 'set:$n';
+    _saveSettings();
+    notifyListeners();
+    return n;
+  }
+
+  Future<void> deleteImageSet(String name) async {
+    imageSets = imageSets.where((s) => s != name).toList();
+    _setCache.remove(name);
+    if (themeId == 'set:$name') themeId = 'tu_chon';
+    _saveSettings();
+    notifyListeners();
+    try {
+      await blobDelete(_setKey(name));
+    } catch (_) {}
+  }
+
+  /// Chép bộ ảnh đang chọn sang "Ảnh của tôi" để sửa từng ô.
+  Future<bool> copySetToCustom(String name) async {
+    final s = _setCache[name];
+    if (s == null) return false;
+    customImages = List.of(s.images);
+    customChibi = List.of(s.chibi);
+    themeId = 'tu_chon';
+    _saveSettings();
+    notifyListeners();
+    try {
+      return await _saveImages();
+    } catch (_) {
+      return false;
     }
   }
 
@@ -477,18 +572,26 @@ class AppState extends ChangeNotifier {
       'name': name,
       'savedAt': DateTime.now().toIso8601String(),
       'settings': _settingsMap(),
-      'customImages':
-          customImages.map((b) => b == null ? null : base64Encode(b)).toList(),
-      'customChibi': customChibi.map((c) => c?.toJson()).toList(),
+      // xuất bộ ảnh đang dùng (Ảnh của tôi, hoặc bộ đang chọn trong danh sách)
+      'customImages': _activeImages().images.map((b) => b == null ? null : base64Encode(b)).toList(),
+      'customChibi': _activeImages().chibi.map((c) => c?.toJson()).toList(),
       'backgrounds': backgrounds.map(base64Encode).toList(),
       if (withAlarms) 'alarms': alarms.map((a) => a.toJson()).toList(),
     };
     return Uint8List.fromList(utf8.encode(jsonEncode(data)));
   }
 
+  ({List<Uint8List?> images, List<ChibiSpec?> chibi}) _activeImages() {
+    if (themeId.startsWith('set:')) {
+      final s = _setCache[themeId.substring(4)];
+      if (s != null) return s;
+    }
+    return (images: customImages, chibi: customChibi);
+  }
+
   /// Đọc file bộ cấu hình. Ném FormatException nếu không phải file của app.
   /// Trả về số ảnh nền KHÔNG lưu được vì bộ nhớ đầy (0 = lưu đủ).
-  Future<int> importPreset(Uint8List bytes) async {
+  Future<int> importPreset(Uint8List bytes, {String fileName = ''}) async {
     Map<String, dynamic>? parsed;
     try {
       parsed = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
@@ -501,17 +604,34 @@ class AppState extends ChangeNotifier {
     }
 
     final settings = data['settings'];
+    final keepSets = imageSets; // danh sách bộ ảnh là của máy này, không lấy theo file
     if (settings is Map<String, dynamic>) _applySettings(settings);
+    imageSets = keepSets;
+    if (themeId.startsWith('set:') && !imageSets.contains(themeId.substring(4))) themeId = 'tu_chon';
+    if (themeId == 'con_giap') themeId = 'khung_long';
     presetName = (data['name'] as String?) ?? presetName;
 
+    // Bộ ảnh trong file → thêm thành 1 mục mới trong danh sách Chủ đề hình ảnh
+    // ("Ảnh của tôi" giữ nguyên, không bị ghi đè).
     final imgs = (data['customImages'] as List?) ?? const [];
-    customImages = List<Uint8List?>.generate(12, (i) {
+    final setImages = List<Uint8List?>.generate(12, (i) {
       final v = i < imgs.length ? imgs[i] : null;
       return v is String ? base64Decode(v) : null;
     });
     final chibiList = (data['customChibi'] as List?) ?? const [];
-    customChibi = List<ChibiSpec?>.generate(
+    final setChibi = List<ChibiSpec?>.generate(
         12, (i) => i < chibiList.length ? ChibiSpec.fromJson(chibiList[i]) : null);
+    if (setImages.any((b) => b != null) || setChibi.any((c) => c != null)) {
+      final base = fileName.replaceAll(RegExp(r'\.dreamwatch$', caseSensitive: false), '');
+      try {
+        await addImageSet((data['name'] as String?) ?? base, setImages, setChibi);
+      } catch (_) {
+        // không lưu được vào kho riêng → dùng cách cũ: đưa vào Ảnh của tôi
+        customImages = setImages;
+        customChibi = setChibi;
+        themeId = 'tu_chon';
+      }
+    }
 
     final alarmList = data['alarms'];
     if (alarmList is List) {
