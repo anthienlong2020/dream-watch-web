@@ -27,7 +27,7 @@ class _ClassicDialState extends State<ClassicDial> with SingleTickerProviderStat
     return LayoutBuilder(builder: (context, c) {
       final s = math.min(c.maxWidth, c.maxHeight);
       final ring = s * 0.40;
-      final slot = s * 0.17;
+      final slot = s * 0.19;
       return Center(
         child: SizedBox(
           width: s,

@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 /// Đồng hồ quả lắc cổ (bản Standard): ảnh đồng hồ cây gỗ, mặt đồng thau đã xoá số,
 /// quả lắc đàn lia đung đưa; 12 hình (con số hoặc ảnh riêng) đặt khớp lên vành số.
 ///
-/// Toạ độ tính theo ảnh nền gốc 725 × 2049 px (assets/standard/clock_bg.webp).
+/// Ảnh đầu đồng hồ (Gemini tạo, đã xoá số + kim): assets/standard/head.webp 1200 × 1385.
+/// Ảnh thân quả lắc: assets/standard/trunk.webp 725 × 1035 + quả lắc pendulum.webp.
 class PendulumClock extends StatefulWidget {
   /// Gọi mỗi khi qua 1 giây (để phát tiếng tích tắc), [even] = giây chẵn.
   final void Function(bool even)? onTick;
@@ -15,11 +16,13 @@ class PendulumClock extends StatefulWidget {
   final Widget? face;
   const PendulumClock({super.key, this.onTick, this.dateText = '', this.face});
 
-  // ---- toạ độ trong ảnh nền ----
-  static const double imgW = 725, imgH = 2049;
-  static const Offset dialCenter = Offset(362, 565);
-  static const double ringRadius = 190; // bán kính vòng đặt 12 hình
-  static const Offset spriteTopLeft = Offset(160, 920); // vị trí ảnh quả lắc
+  // ---- toạ độ trong ảnh đầu đồng hồ ----
+  static const double headW = 1200, headH = 1385;
+  static const Offset dialCenter = Offset(599.7, 838.2);
+  static const double ringRadius = 354.2; // bán kính vòng 12 ô số
+  // ---- toạ độ trong ảnh thân ----
+  static const double trunkW = 725, trunkH = 1035;
+  static const Offset spriteTopLeft = Offset(160, -5); // vị trí ảnh quả lắc trong ảnh thân
   static const Offset pivotInSprite = Offset(202, 20); // điểm treo trong ảnh quả lắc
   static const double spriteW = 405, spriteH = 1129;
 
@@ -43,27 +46,19 @@ class _PendulumClockState extends State<PendulumClock> with SingleTickerProvider
     return LayoutBuilder(builder: (context, c) {
       final w = c.maxWidth, h = c.maxHeight;
       // Đầu đồng hồ (mặt số + trăng lịch) phóng to, căn giữa
-      const hx0 = 40.0, headW = 645.0, headH = 925.0;
+      const headW = PendulumClock.headW, headH = PendulumClock.headH;
       var hs = w / headW;
       if (headH * hs > h * 0.7) hs = h * 0.7 / headH; // màn hình ngang / máy tính bảng
       final headLeft = (w - headW * hs) / 2;
       final headPx = headH * hs;
       // Thân đồng hồ (quả lắc) thu gọn cho vừa phần còn lại, căn giữa
-      const tY0 = 925.0, tH = 1035.0, tW = PendulumClock.imgW;
+      const tH = PendulumClock.trunkH, tW = PendulumClock.trunkW;
       final rest = math.max(0.0, h - headPx);
       final ts = rest / tH;
       final trunkW = tW * ts;
       final trunkLeft = (w - trunkW) / 2;
-      final dial = Offset(headLeft + (PendulumClock.dialCenter.dx - hx0) * hs, PendulumClock.dialCenter.dy * hs);
+      final dial = Offset(headLeft + PendulumClock.dialCenter.dx * hs, PendulumClock.dialCenter.dy * hs);
       final side = PendulumClock.ringRadius * hs / 0.40;
-
-      Widget bg(double scale, double dx, double dy) => Positioned(
-            left: -dx * scale,
-            top: -dy * scale,
-            width: PendulumClock.imgW * scale,
-            height: PendulumClock.imgH * scale,
-            child: Image.asset('assets/standard/clock_bg.webp', fit: BoxFit.fill),
-          );
 
       return Stack(
         clipBehavior: Clip.hardEdge,
@@ -93,10 +88,10 @@ class _PendulumClockState extends State<PendulumClock> with SingleTickerProvider
                   child: Stack(
                     clipBehavior: Clip.hardEdge,
                     children: [
-                      bg(ts, 0, tY0),
+                      Positioned.fill(child: Image.asset('assets/standard/trunk.webp', fit: BoxFit.fill)),
                       Positioned(
                         left: PendulumClock.spriteTopLeft.dx * ts,
-                        top: (PendulumClock.spriteTopLeft.dy - tY0) * ts,
+                        top: PendulumClock.spriteTopLeft.dy * ts,
                         width: PendulumClock.spriteW * ts,
                         height: PendulumClock.spriteH * ts,
                         child: AnimatedBuilder(
@@ -134,7 +129,7 @@ class _PendulumClockState extends State<PendulumClock> with SingleTickerProvider
             height: headPx,
             child: DecoratedBox(
               decoration: const BoxDecoration(boxShadow: [BoxShadow(color: Color(0x99000000), blurRadius: 14)]),
-              child: ClipRect(child: Stack(clipBehavior: Clip.hardEdge, children: [bg(hs, hx0, 0)])),
+              child: Image.asset('assets/standard/head.webp', fit: BoxFit.fill),
             ),
           ),
           if (widget.face != null)
@@ -148,10 +143,10 @@ class _PendulumClockState extends State<PendulumClock> with SingleTickerProvider
           // ngày tháng trên thanh gỗ dưới mặt số
           if (widget.dateText.isNotEmpty)
             Positioned(
-              left: headLeft + 50 * hs,
-              width: (headW - 100) * hs,
-              top: 866 * hs,
-              height: 50 * hs,
+              left: headLeft + 150 * hs,
+              width: (headW - 300) * hs,
+              top: 1328 * hs,
+              height: 52 * hs,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
