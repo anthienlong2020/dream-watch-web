@@ -27,6 +27,7 @@
   #info b{color:#f6d98b;font-size:15px;display:block;margin-bottom:3px}
   body.embed #top{display:none} body.embed #hint{top:10px}
   body.embed #bar button{padding:6px 10px;font-size:12px} body.embed #bar{bottom:8px}
+  body.clean #top, body.clean #hint, body.clean #bar, body.clean #opts{display:none!important}
   #hint{position:fixed;top:56px;left:0;right:0;text-align:center;font-size:12px;opacity:.55;pointer-events:none;transition:opacity 1s}
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
@@ -700,6 +701,10 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+// hooks for scripted recordings (promo videos)
+window.mv = { THREE, camera, controls, TARGET, P, dial, pend, tb, tourb, comp, barrel, info,
+  setEsc, setSecMode, setComp, select, showNote, frame, fast: () => document.getElementById('bFast').click() };
+if (new URLSearchParams(location.search).has('clean')) document.body.classList.add('clean');
 </script>
 </body>
 </html>
