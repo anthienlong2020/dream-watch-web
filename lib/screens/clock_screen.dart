@@ -3,9 +3,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../widgets/classic_dial.dart';
 import '../widgets/pendulum_clock.dart';
 
-import '../models/clock_theme.dart';
 import '../services/app_state.dart';
 import '../themes/event_background.dart';
 import '../themes/theme_overlay.dart';
@@ -37,9 +37,11 @@ class ClockScreen extends StatelessWidget {
                   onTick: (even) {
                     if (app.tickTock && app.started) app.sound.tick(even);
                   },
-                  // Standard: 12 con số; Pro chọn mặt quả lắc: dùng bộ ảnh của mình
-                  face: DreamClock(
-                    theme: app.isPro ? app.theme : buildNumberTheme(),
+                  // Standard: 12 số đứng yên + kim như đồng hồ thật; Pro: hình ảnh chuyển động
+                  face: !app.isPro
+                      ? const ClassicDial()
+                      : DreamClock(
+                    theme: app.theme,
                     showRoman: false,
                     showStars: false,
                     ringColor: const Color(0x00000000),

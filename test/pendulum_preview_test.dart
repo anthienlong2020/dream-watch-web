@@ -1,8 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:dream_watch/models/clock_theme.dart';
-import 'package:dream_watch/widgets/dream_clock.dart';
+import 'package:dream_watch/widgets/classic_dial.dart';
 import 'package:dream_watch/widgets/pendulum_clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -22,12 +21,7 @@ void main() {
         key: key,
         child: PendulumClock(
           dateText: 'Chủ Nhật, 15/11/2026',
-          face: DreamClock(
-            theme: buildNumberTheme(),
-            showRoman: false,
-            showStars: false,
-            ringColor: const Color(0x00000000),
-          ),
+          face: const ClassicDial(),
         ),
       ),
     ));
