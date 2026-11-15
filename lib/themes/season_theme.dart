@@ -167,7 +167,7 @@ List<SeasonTheme> allThemes(DateTime now) => [
           // ông già Noel trên xe tuần lộc bay ngang trời
           // xe tuần lộc cỡ lớn: ông già Noel vung túi quà, quà & kẹo bắn ra khắp nơi
           Layer(motion: Motion.sleigh, shape: Shape.emoji, count: 1, glyphs: ['🦌'],
-              colors: [Color(0xFFFFE082)], minSize: 0.16, maxSize: 0.16, speed: 0.045),
+              colors: [Color(0xFFFFE082)], minSize: 0.28, maxSize: 0.28, speed: 0.04),
         ],
       ),
       tetTheme(lunarYearOf(now)),
@@ -226,7 +226,7 @@ List<SeasonTheme> allThemes(DateTime now) => [
           // đèn ông sao, đèn kéo quân, đèn thỏ, đèn 12 con giáp
           Layer(motion: Motion.rise, shape: Shape.festivalLantern, count: 3,
               colors: [Color(0xFFE53935), Color(0xFFFF9800), Color(0xFFFFEB3B)], glyphs: kZodiacFullBody,
-              speed: 0.022, minSize: 0.07, maxSize: 0.1, sway: 0.02),
+              speed: 0.022, minSize: 0.11, maxSize: 0.15, sway: 0.02),
           // chị Hằng kéo chú Cuội bay lên cung trăng
           Layer(motion: Motion.hangNga, shape: Shape.emoji, count: 1, glyphs: ['🧚‍♀️', '🧒', '🐇'],
               colors: [Color(0xFFFFF59D)], minSize: 0.07, maxSize: 0.07, speed: 0.04),
@@ -314,7 +314,7 @@ List<SeasonTheme> allThemes(DateTime now) => [
           // hoa đăng hình hoa sen trôi theo dòng suối
           Layer(motion: Motion.drift, shape: Shape.lotusLantern, count: 7,
               colors: [Color(0xFFF8BBD0), Color(0xFFFFF59D), Color(0xFFFFCDD2)], speed: 0.02,
-              minSize: 0.06, maxSize: 0.085),
+              minSize: 0.09, maxSize: 0.12),
           Layer(motion: Motion.bloom, shape: Shape.emoji, count: 8, glyphs: ['🪷', '🌹', '🪷'], speed: 0.07,
               minSize: 0.04, maxSize: 0.06),
           Layer(motion: Motion.fall, shape: Shape.petal, count: 5,
@@ -338,7 +338,7 @@ List<SeasonTheme> allThemes(DateTime now) => [
           // đèn trời cỡ lớn bay gần, thấy rõ đốm lửa bên trong
           Layer(motion: Motion.rise, shape: Shape.skyLantern, count: 2,
               colors: [Color(0xFFFFB74D), Color(0xFFFFCC80), Color(0xFFFF8A65)], speed: 0.016,
-              minSize: 0.09, maxSize: 0.13, sway: 0.015),
+              minSize: 0.13, maxSize: 0.18, sway: 0.015),
           // đèn trời nhỏ ở xa
           Layer(motion: Motion.rise, shape: Shape.skyLantern, count: 6,
               colors: [Color(0xFFFFB74D), Color(0xFFFFCC80)], speed: 0.012,
