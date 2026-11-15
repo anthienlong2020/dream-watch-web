@@ -167,34 +167,58 @@ double _rnd(int a, int b, [int c = 0]) {
   return (x & 0xFFFFFF) / 0xFFFFFF;
 }
 
-/// Một lọn tóc nhọn từ [base] tới [tip], bề ngang gốc [w], màu [col] phát sáng.
-void _spike(Canvas canvas, Offset base, Offset tip, double w, Color col, double s) {
+/// Một lọn tóc kiểu hoạt hình: gốc rộng, thân cong như ngọn lửa, đầu vuốt nhọn,
+/// có dải sáng bóng chạy dọc lọn. [bend] > 0 cong sang phải theo hướng lọn.
+void _lock(Canvas canvas, Offset base, Offset tip, double w, double bend, Color col, double s) {
   final d = tip - base;
-  final perp = Offset(-d.dy, d.dx) / (d.distance + 0.001);
+  final len = d.distance + 0.001;
+  final dir = d / len;
+  final perp = Offset(-dir.dy, dir.dx);
   final l = base + perp * (w / 2), r = base - perp * (w / 2);
-  final mid = base + d * 0.55;
+  final bendV = perp * (bend * len);
+  // 2 mép lọn: phình ở 1/3 thân rồi thon dần, cùng uốn theo [bend]
   final path = Path()
     ..moveTo(l.dx, l.dy)
-    ..quadraticBezierTo(mid.dx + perp.dx * w * 0.25, mid.dy + perp.dy * w * 0.25, tip.dx, tip.dy)
-    ..quadraticBezierTo(mid.dx - perp.dx * w * 0.1, mid.dy - perp.dy * w * 0.1, r.dx, r.dy)
+    ..cubicTo(
+      (base + d * 0.35 + perp * (w * 0.55) + bendV).dx, (base + d * 0.35 + perp * (w * 0.55) + bendV).dy,
+      (base + d * 0.75 + perp * (w * 0.2) + bendV * 1.4).dx, (base + d * 0.75 + perp * (w * 0.2) + bendV * 1.4).dy,
+      tip.dx, tip.dy)
+    ..cubicTo(
+      (base + d * 0.7 - perp * (w * 0.1) + bendV * 1.1).dx, (base + d * 0.7 - perp * (w * 0.1) + bendV * 1.1).dy,
+      (base + d * 0.3 - perp * (w * 0.5) + bendV * 0.6).dx, (base + d * 0.3 - perp * (w * 0.5) + bendV * 0.6).dy,
+      r.dx, r.dy)
     ..close();
+  final dark = Color.lerp(col, Colors.black, 0.3)!;
+  final light = Color.lerp(col, Colors.white, 0.6)!;
   canvas.drawPath(
       path,
       Paint()
-        ..color = col.withAlpha(140)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.02));
+        ..color = col.withAlpha(110)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.025));
   canvas.drawPath(
       path,
       Paint()
-        ..shader = LinearGradient(
-          colors: [Color.lerp(col, Colors.black, 0.15)!, Color.lerp(col, Colors.white, 0.55)!],
-        ).createShader(Rect.fromPoints(base, tip)));
+        ..shader = LinearGradient(colors: [dark, col, light], stops: const [0.0, 0.55, 1.0])
+            .createShader(Rect.fromPoints(base, tip)));
+  // dải sáng bóng dọc lọn tóc
+  final hl = Path()
+    ..moveTo((base + perp * (w * 0.12)).dx, (base + perp * (w * 0.12)).dy)
+    ..quadraticBezierTo((base + d * 0.45 + perp * (w * 0.22) + bendV * 0.9).dx,
+        (base + d * 0.45 + perp * (w * 0.22) + bendV * 0.9).dy, (base + d * 0.85 + bendV * 1.2).dx,
+        (base + d * 0.85 + bendV * 1.2).dy);
+  canvas.drawPath(
+      hl,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = math.max(0.8, w * 0.12)
+        ..color = Colors.white.withAlpha(150));
   canvas.drawPath(
       path,
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = math.max(0.6, s * 0.004)
-        ..color = Color.lerp(col, Colors.black, 0.45)!.withAlpha(160));
+        ..color = dark.withAlpha(170));
 }
 
 /// Vị trí đầu ước lượng từ viền hình: đỉnh cao nhất + bề ngang phần trên.
@@ -584,7 +608,7 @@ class _BackPainter extends CustomPainter {
         final sway = math.sin(a.t * 1.5 + k) * s * 0.025;
         final tip = Offset(c.dx + side * s * (0.46 + 0.06 * _rnd(k, 8, a.seed)) + sway,
             c.dy + s * (0.5 + 0.1 * _rnd(k, 9, a.seed)));
-        _spike(canvas, base, tip, s * 0.16, col, s);
+        _lock(canvas, base, tip, s * 0.2, side * 0.12 + math.sin(a.t * 1.2 + k) * 0.04, col, s);
       }
     }
   }
@@ -780,17 +804,23 @@ class _FrontPainter extends CustomPainter {
     final hc = c + hg.headC * s;
     final r = hg.headR * s;
     final long = a.e == ElementType.haoQuangDai;
-    final n = long ? 7 : 9;
-    for (var k = 0; k < n; k++) {
-      // xoè hình quạt phía trên đầu: từ trái (-160°) sang phải (-20°)
-      final ang = -math.pi * (0.89 - 0.78 * k / (n - 1));
+    // Ít lọn nhưng to, cong như ngọn lửa, xếp thành vương miện tóc: vẽ từ 2 bên vào giữa
+    // để lọn giữa (cao nhất) nằm trên cùng.
+    final n = long ? 5 : 7;
+    final order = [for (var i = 0; i < n ~/ 2; i++) ...[i, n - 1 - i], n ~/ 2];
+    for (final k in order) {
+      final f = k / (n - 1); // 0 = trái, 1 = phải
+      final ang = -math.pi * (0.86 - 0.72 * f);
       final dir = Offset(math.cos(ang), math.sin(ang));
-      final base = hc + dir * (r * 0.75);
-      final len = r * (long ? 0.75 : 1.0) * (0.8 + 0.5 * _rnd(k, 1, a.seed)) *
-          (1 + 0.04 * math.sin(a.t * 6 + k));
-      final up = Offset(dir.dx * 0.8, dir.dy - 0.5);
+      final base = hc + dir * (r * 0.62);
+      final center = 1 - (2 * f - 1).abs(); // 1 ở giữa
+      final len = r * (long ? 0.8 : 1.05) * (0.75 + 0.45 * center + 0.15 * _rnd(k, 1, a.seed)) *
+          (1 + 0.035 * math.sin(a.t * 5 + k));
+      final up = Offset(dir.dx * 0.7, dir.dy - 0.55);
       final tip = base + up / up.distance * len;
-      _spike(canvas, base, tip, r * 0.38, col, s);
+      // lọn bên trái cong ra trái, bên phải cong ra phải, đung đưa nhẹ
+      final bend = (f - 0.5) * 0.35 + math.sin(a.t * 2.2 + k) * 0.03;
+      _lock(canvas, base, tip, r * 0.62, bend, col, s);
     }
     // tia điện nhỏ
     if (a.full) {
