@@ -7,6 +7,7 @@ import 'screens/settings_screen.dart';
 import 'screens/timer_screen.dart';
 import 'models/clock_theme.dart';
 import 'services/app_state.dart';
+import 'widgets/touch_dot.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,9 @@ class DreamWatchApp extends StatelessWidget {
     return MaterialApp(
       title: 'Đồng hồ mộng mơ',
       debugShowCheckedModeBanner: false,
+      // kéo bằng chuột cũng cuộn được như vuốt trên điện thoại
+      scrollBehavior: const DragAllScrollBehavior(),
+      builder: (context, child) => TouchDot.enabled ? TouchDot(child: child!) : child!,
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
