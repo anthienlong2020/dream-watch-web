@@ -6,43 +6,10 @@ import 'package:dream_watch/widgets/dream_clock.dart';
 import 'package:dream_watch/widgets/pendulum_clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  test('vẽ thử đồng hồ quả lắc', () async {
-    // máy test không có font chữ thật → nạp font hệ thống (nếu có) để nhìn rõ con số
-    for (final f in [
-      '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-      '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-    ]) {
-      print('font $f: ${File(f).existsSync()}');
-      if (File(f).existsSync()) {
-        final bytes = File(f).readAsBytesSync();
-        await (FontLoader('PreviewSans')..addFont(Future.value(ByteData.view(bytes.buffer)))).load();
-        PendulumPainter.fontFamily = 'PreviewSans';
-        break;
-      }
-    }
-    const w = 400.0, h = 760.0;
-    final times = [DateTime(2026, 11, 15, 10, 9, 30, 400), DateTime(2026, 11, 15, 17, 0, 5, 300)];
-    final rec = ui.PictureRecorder();
-    final c = Canvas(rec);
-    for (var i = 0; i < times.length; i++) {
-      c.save();
-      c.translate(i * w, 0);
-      c.clipRect(const Rect.fromLTWH(0, 0, w, h));
-      PendulumPainter(times[i], dateText: 'Chủ Nhật, 15/11/2026').paint(c, const Size(w, h));
-      c.restore();
-    }
-    final img = await rec.endRecording().toImage((w * times.length).round(), h.round());
-    final png = await img.toByteData(format: ui.ImageByteFormat.png);
-    File('build/preview/pendulum.png')
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(png!.buffer.asUint8List());
-  });
 
   testWidgets('vẽ thử bản Standard: quả lắc + 12 con số', (tester) async {
     tester.view.physicalSize = const Size(400, 760);
@@ -69,6 +36,8 @@ void main() {
       for (var n = 1; n <= 12; n++) {
         await precacheImage(AssetImage('assets/themes/so/$n.png'), ctx);
       }
+      await precacheImage(const AssetImage('assets/standard/clock_bg.webp'), ctx);
+      await precacheImage(const AssetImage('assets/standard/pendulum.webp'), ctx);
     });
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));

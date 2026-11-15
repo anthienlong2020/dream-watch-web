@@ -9,6 +9,7 @@ import '../effects/element_effect.dart';
 import '../three_d/body_type.dart';
 import '../services/file_saver.dart';
 import '../services/speech.dart';
+import '../services/voice_recorder.dart';
 import '../themes/event_background.dart';
 import '../themes/season_theme.dart';
 import '../utils/image_utils.dart';
@@ -558,6 +559,106 @@ class _CustomImagesEditorState extends State<_CustomImagesEditor> {
 // Âm báo mỗi giờ
 // =====================================================================
 
+/// Ghi âm giọng báo giờ: 1 câu chung + câu riêng cho từng giờ (giống đồng hồ biết gọi tên bạn).
+class _HourRecorder extends StatefulWidget {
+  const _HourRecorder();
+
+  @override
+  State<_HourRecorder> createState() => _HourRecorderState();
+}
+
+class _HourRecorderState extends State<_HourRecorder> {
+  String? _rec; // ô đang ghi
+
+  @override
+  void dispose() {
+    if (_rec != null) stopVoiceRecording();
+    super.dispose();
+  }
+
+  static String _label(String slot) {
+    if (slot == 'chung') return 'Câu chung (giờ nào chưa ghi riêng)';
+    final h = int.parse(slot);
+    return '${h.toString().padLeft(2, '0')}:00 · ${hourSentence(h).replaceFirst('Bây giờ là ', '')}';
+  }
+
+  Future<void> _toggle(String slot) async {
+    if (_rec == slot) {
+      final r = await stopVoiceRecording();
+      setState(() => _rec = null);
+      if (r != null && r.$1.isNotEmpty) await app.saveHourRecording(slot, r.$1, r.$2);
+      return;
+    }
+    if (_rec != null) return; // đang ghi ô khác
+    final ok = await startVoiceRecording();
+    if (!ok) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Không mở được micro. Hãy cho phép trình duyệt dùng micro rồi thử lại.')));
+      }
+      return;
+    }
+    setState(() => _rec = slot);
+    Future.delayed(const Duration(seconds: 15), () {
+      if (mounted && _rec == slot) _toggle(slot);
+    });
+  }
+
+  Widget _row(String slot) {
+    final has = app.hourRecs.contains(slot);
+    final recording = _rec == slot;
+    return Row(
+      children: [
+        Icon(has ? Icons.check_circle : Icons.radio_button_unchecked,
+            size: 18, color: has ? Colors.greenAccent : Colors.white38),
+        const SizedBox(width: 8),
+        Expanded(child: Text(_label(slot), style: const TextStyle(fontSize: 13.5))),
+        IconButton(
+          tooltip: recording ? 'Dừng ghi' : 'Ghi âm',
+          onPressed: () => _toggle(slot),
+          icon: Icon(recording ? Icons.stop_circle : Icons.mic, color: recording ? Colors.redAccent : null),
+        ),
+        if (has && !recording) ...[
+          IconButton(tooltip: 'Nghe lại', onPressed: () => app.playHourRecording(slot), icon: const Icon(Icons.play_circle_outline)),
+          IconButton(tooltip: 'Xoá', onPressed: () => app.deleteHourRecording(slot), icon: const Icon(Icons.delete_outline)),
+        ],
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 4, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Ghi giọng người thương báo giờ 💕 Mỗi câu tối đa 15 giây. Đến giờ, app phát câu của giờ đó; '
+              'giờ nào chưa ghi thì phát câu chung.',
+              style: TextStyle(fontSize: 12.5, color: Colors.white60),
+            ),
+            if (_rec != null)
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Text('🔴 Đang ghi… bấm ⏹ để dừng', style: TextStyle(color: Colors.redAccent)),
+              ),
+            _row('chung'),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: Text('Câu riêng từng giờ (${app.hourRecs.where((s) => s != 'chung').length}/24 đã ghi)',
+                  style: const TextStyle(fontSize: 14)),
+              children: [for (var h = 0; h < 24; h++) _row('$h')],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Thử nhanh giọng nam / nữ và chọn giọng máy cho từng loại.
 class _VoicePicker extends StatefulWidget {
   const _VoicePicker();
@@ -715,6 +816,7 @@ class _ChimeSettings extends StatelessWidget {
                       ButtonSegment(value: 'tat', label: Text('Tắt')),
                       ButtonSegment(value: 'nam', label: Text('Giọng nam')),
                       ButtonSegment(value: 'nu', label: Text('Giọng nữ')),
+                      ButtonSegment(value: 'ghi', label: Text('🎙️ Tự ghi')),
                     ],
                     selected: {app.hourVoice},
                     showSelectedIcon: false,
@@ -724,7 +826,8 @@ class _ChimeSettings extends StatelessWidget {
               ],
             ),
           ),
-          if (app.isPro) const _VoicePicker(),
+          if (app.isPro && app.hourVoice != 'ghi') const _VoicePicker(),
+          if (app.isPro && app.hourVoice == 'ghi') const _HourRecorder(),
           if (app.isPro)
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 4, 16, 0),

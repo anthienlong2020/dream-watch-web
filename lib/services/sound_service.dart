@@ -65,9 +65,16 @@ class SoundService {
   }
 
   /// Đọc "Bây giờ là x giờ ..." bằng giọng nam / nữ đã chọn.
+  /// Phát giọng tự ghi cho giờ [hour] (do AppState gắn vào).
+  Future<void> Function(int hour)? recordedVoice;
+
   void speakHour(int hour, {String? voiceOverride}) {
     final v = voiceOverride ?? voice;
     if (v == 'tat') return;
+    if (v == 'ghi' && recordedVoice != null) {
+      recordedVoice!(hour);
+      return;
+    }
     speakVi(hourSentence(hour),
         male: v == 'nam', volume: volume, voiceName: v == 'nam' ? voiceNameNam : voiceNameNu);
   }

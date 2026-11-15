@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -136,6 +137,41 @@ class AppState extends ChangeNotifier {
   String hourBell = 'chuan'; // chuan | cao
   String hourVoice = 'tat'; // tat | nam | nu
   String voiceNameNam = '', voiceNameNu = ''; // giọng máy user chọn ('' = tự động)
+
+  /// Báo giờ bằng giọng tự ghi: 'chung' + các giờ '0'..'23' đã ghi.
+  Set<String> hourRecs = {};
+  static String hourRecKey(String slot) => 'hourvoice:$slot';
+
+  Future<void> saveHourRecording(String slot, Uint8List bytes, String mime) async {
+    await saveVoice(hourRecKey(slot), bytes, mime);
+    hourRecs = {...hourRecs, slot};
+    _saveSettings();
+    notifyListeners();
+  }
+
+  Future<void> deleteHourRecording(String slot) async {
+    hourRecs = {...hourRecs}..remove(slot);
+    _saveSettings();
+    notifyListeners();
+    try {
+      await blobDelete(hourRecKey(slot));
+    } catch (_) {}
+  }
+
+  Future<void> playHourRecording(String slot) async {
+    final v = await loadVoice(hourRecKey(slot));
+    if (v != null) await playVoiceBytes(v.$1, v.$2, volume: volume);
+  }
+
+  /// Giờ [hour]: phát câu riêng của giờ đó, không có thì câu chung, không có nữa thì giọng máy.
+  Future<void> _playRecordedForHour(int hour) async {
+    final slot = hourRecs.contains('$hour') ? '$hour' : (hourRecs.contains('chung') ? 'chung' : null);
+    if (slot != null) {
+      await playHourRecording(slot);
+    } else {
+      sound.speakHour(hour, voiceOverride: 'nu');
+    }
+  }
   bool quietEnabled = true;
   int quietStart = 22; // từ 22 giờ
   int quietEnd = 6; // đến 6 giờ sáng
@@ -274,6 +310,7 @@ class AppState extends ChangeNotifier {
         'chimeHalfHour': chimeHalfHour,
         'hourBell': hourBell,
         'hourVoice': hourVoice,
+        'hourRecs': hourRecs.toList(),
         'voiceNameNam': voiceNameNam,
         'voiceNameNu': voiceNameNu,
         'quietEnabled': quietEnabled,
@@ -350,6 +387,8 @@ class AppState extends ChangeNotifier {
     chimeHalfHour = (j['chimeHalfHour'] as bool?) ?? chimeHalfHour;
     hourBell = (j['hourBell'] as String?) ?? hourBell;
     hourVoice = (j['hourVoice'] as String?) ?? hourVoice;
+    final hr = j['hourRecs'];
+    if (hr is List) hourRecs = hr.whereType<String>().toSet();
     voiceNameNam = (j['voiceNameNam'] as String?) ?? voiceNameNam;
     voiceNameNu = (j['voiceNameNu'] as String?) ?? voiceNameNu;
     quietEnabled = (j['quietEnabled'] as bool?) ?? quietEnabled;
@@ -789,6 +828,7 @@ class AppState extends ChangeNotifier {
   }
 
   void _syncVoice() {
+    sound.recordedVoice = _playRecordedForHour;
     sound
       ..hourBell = hourBell
       ..voice = hourVoice
