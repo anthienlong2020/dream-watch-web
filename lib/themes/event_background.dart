@@ -11,7 +11,7 @@ import 'package:flutter/services.dart';
 enum Ground { none, hills, city, sea, pines }
 
 /// Biểu tượng / cảnh đặc trưng của lễ hội.
-enum Landmark { none, fuji, taj, pyramid, hoiAn, thaiTemple, harvest, sugarloaf, stream }
+enum Landmark { none, autumnTrees, fuji, taj, pyramid, hoiAn, thaiTemple, harvest, sugarloaf, stream }
 
 class EventScene {
   final List<Color> sky; // trên → dưới
@@ -47,9 +47,10 @@ const Map<String, EventScene> kEventScenes = {
   'ha': EventScene(
       sky: [Color(0xFF1F7FD6), Color(0xFF79C3FA), Color(0xFFFFE3A3)], sun: true, ground: Ground.sea,
       groundColor: Color(0xFF1C8FB0)),
+  // mùa thu nhẹ nhàng: trời xanh nhạt pha kem, nắng vàng mật ong, hàng cây lá vàng cam
   'thu': EventScene(
-      sky: [Color(0xFF4E2E20), Color(0xFFB45F26), Color(0xFFF0B060)], sun: true,
-      groundColor: Color(0xFF5A3418)),
+      sky: [Color(0xFFC9DDE8), Color(0xFFF4E6CC), Color(0xFFF2CE96)], sun: true,
+      groundColor: Color(0xFFB98A45), landmark: Landmark.autumnTrees),
   'dong': EventScene(
       sky: [Color(0xFF17304A), Color(0xFF4A78A0), Color(0xFFCBE3F2)], groundColor: Color(0xFFE6F2FA)),
   'giangSinh': EventScene(
@@ -308,6 +309,27 @@ class _ScenePainter extends CustomPainter {
     Paint fill(Color c) => Paint()..color = c;
     switch (s.landmark) {
       case Landmark.none:
+        break;
+      case Landmark.autumnTrees:
+        // hàng cây tán vàng, cam, đỏ nhạt trên đồi; thảm lá dưới gốc
+        final gy = h * 0.84;
+        const foliage = [Color(0xFFF2B33D), Color(0xFFE8893A), Color(0xFFF5CF6A), Color(0xFFD9653B)];
+        for (var i = 0; i < 7; i++) {
+          final cx = w * (i + 0.3 + 0.4 * _r(i, 101)) / 7;
+          final th = u * (0.12 + 0.08 * _r(i, 102));
+          final base = gy + u * 0.02 * _r(i, 103);
+          canvas.drawLine(Offset(cx, base), Offset(cx, base - th),
+              Paint()
+                ..color = const Color(0xFF7A5230)
+                ..strokeWidth = u * 0.014);
+          for (var k = 0; k < 7; k++) {
+            final c = foliage[(i + k) % foliage.length];
+            canvas.drawCircle(
+                Offset(cx + (_r(i * 9 + k, 104) - 0.5) * u * 0.13, base - th - (_r(i * 9 + k, 105) - 0.3) * u * 0.08),
+                u * (0.035 + 0.025 * _r(i * 9 + k, 106)),
+                fill(c.withAlpha(230)));
+          }
+        }
         break;
       case Landmark.fuji:
         // núi Phú Sĩ đỉnh tuyết + cây hoa anh đào hai bên
