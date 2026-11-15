@@ -34,3 +34,15 @@ jobs:
           git add -A
           git commit -qm "preview ${GITHUB_SHA::7}" || exit 0
           git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/preview-images
+      # Bản web dựng sẵn (để Claude quay video giới thiệu trên máy riêng)
+      - name: Build web cho quay video
+        run: flutter build web --release --no-web-resources-cdn --base-href / --dart-define=BUILD_VERSION=dev-$(git log -1 --format=%h)
+      - name: Lưu bản web vào nhánh "web-build"
+        run: |
+          cd build/web
+          git init -q
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "web build ${GITHUB_SHA::7}"
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/web-build
