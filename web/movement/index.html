@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Đồng hồ cơ khí trong suốt</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#2b2440 0%,#120f1c 60%,#07060b 100%);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#f3e6c4;-webkit-user-select:none;user-select:none;touch-action:none}
+  canvas{display:block}
+  #top{position:fixed;top:0;left:0;right:0;padding:12px 14px 0;text-align:center;pointer-events:none}
+  #top h1{margin:0;font:600 17px Georgia,serif;letter-spacing:.5px;color:#f6d98b;text-shadow:0 1px 6px #000}
+  #clock{font:13px ui-monospace,monospace;opacity:.75;margin-top:2px}
+  #bar{position:fixed;left:0;right:0;bottom:12px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:0 8px}
+  #bar button{background:rgba(30,24,44,.75);color:#f6d98b;border:1px solid rgba(246,217,139,.35);border-radius:18px;
+    padding:8px 12px;font-size:13px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #bar button.on{background:rgba(246,217,139,.85);color:#1b1526}
+  #info{position:fixed;left:12px;right:12px;bottom:62px;max-width:460px;margin:0 auto;background:rgba(20,16,30,.88);
+    border:1px solid rgba(246,217,139,.4);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.45;
+    box-shadow:0 6px 24px rgba(0,0,0,.5);transform:translateY(20px);opacity:0;transition:.25s;pointer-events:none}
+  #info.show{transform:none;opacity:1;pointer-events:auto}
+  #info b{color:#f6d98b;font-size:15px;display:block;margin-bottom:3px}
+  #hint{position:fixed;top:56px;left:0;right:0;text-align:center;font-size:12px;opacity:.55;pointer-events:none;transition:opacity 1s}
+</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<div id="top"><h1>Đồng hồ cơ khí trong suốt</h1><div id="clock"></div></div>
+<div id="hint">Kéo để xoay · chụm để phóng to · chạm bộ phận để xem tên</div>
+<div id="info"></div>
+<div id="bar">
+  <button id="bSound">🔊 Tiếng</button>
+  <button id="bFront">Mặt trước</button>
+  <button id="bSide">Nghiêng</button>
+  <button id="bBack">Mặt sau</button>
+  <button id="bDial" class="on">Mặt số</button>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from './vendor/OrbitControls.js';
+import { RoomEnvironment } from './vendor/RoomEnvironment.js';
+
+// ---------- renderer / scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const key = new THREE.DirectionalLight(0xfff1d6, 1.6); key.position.set(80, 140, 200); scene.add(key);
+const rim = new THREE.DirectionalLight(0x9fb4ff, 0.8); rim.position.set(-120, -40, -160); scene.add(rim);
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 1, 3000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 70; controls.maxDistance = 900;
+controls.enablePan = false;
+controls.autoRotate = true; controls.autoRotateSpeed = 0.6;
+const TARGET = new THREE.Vector3(0, -22, -20);
+function frame(dir) {
+  const fit = innerWidth < innerHeight ? 560 : 420;
+  camera.position.copy(TARGET).add(dir.clone().normalize().multiplyScalar(fit));
+  controls.target.copy(TARGET); controls.update();
+}
+frame(new THREE.Vector3(0.45, 0.12, 1));
+
+// ---------- materials ----------
+const M = {
+  brass: new THREE.MeshPhysicalMaterial({ color: 0xd9aa48, metalness: 1, roughness: 0.27, clearcoat: 0.4, clearcoatRoughness: 0.2 }),
+  brassDark: new THREE.MeshPhysicalMaterial({ color: 0xb07f2c, metalness: 1, roughness: 0.35 }),
+  steel: new THREE.MeshPhysicalMaterial({ color: 0xd5dae0, metalness: 1, roughness: 0.18 }),
+  blued: new THREE.MeshPhysicalMaterial({ color: 0x2c47b8, metalness: 1, roughness: 0.22, clearcoat: 1 }),
+  ruby: new THREE.MeshPhysicalMaterial({ color: 0xd0102a, metalness: 0, roughness: 0.05, transmission: 0.0, clearcoat: 1, emissive: 0x3a0008 }),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0xdfefff, metalness: 0, roughness: 0.04, transparent: true, opacity: 0.13,
+          side: THREE.DoubleSide, depthWrite: false, clearcoat: 1, envMapIntensity: 1.6 }),
+  wood: new THREE.MeshPhysicalMaterial({ color: 0x3a1f12, metalness: 0, roughness: 0.45, clearcoat: 0.8, clearcoatRoughness: 0.15 }),
+};
+const HL = new THREE.MeshPhysicalMaterial({ color: 0xffd36b, metalness: 0.6, roughness: 0.3, emissive: 0x7a4a00, emissiveIntensity: 0.9 });
+
+// ---------- geometry helpers ----------
+const TAU = Math.PI * 2;
+function gearShape(n, m, opts = {}) {
+  const r = m * n / 2, ra = r + m, rf = r - 1.25 * m, p = TAU / n;
+  const s = new THREE.Shape();
+  for (let i = 0; i < n; i++) {
+    const c = i * p;
+    const pts = [[c - 0.5 * p, rf], [c - 0.26 * p, rf], [c - 0.2 * p, r], [c - 0.12 * p, ra], [c + 0.12 * p, ra], [c + 0.2 * p, r], [c + 0.26 * p, rf]];
+    pts.forEach(([a, rr], k) => {
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+      (i === 0 && k === 0) ? s.moveTo(x, y) : s.lineTo(x, y);
+    });
+  }
+  s.closePath();
+  addCrossings(s, rf, opts);
+  return s;
+}
+function addCrossings(s, rf, { spokes = 0, bore = 0.8 } = {}) {
+  if (spokes && rf > 7) {
+    const rin = Math.max(2.6, rf * 0.24), rout = rf * 0.8, w = Math.max(0.9, rf * 0.06);
+    for (let k = 0; k < spokes; k++) {
+      const a0 = k * TAU / spokes, a1 = (k + 1) * TAU / spokes;
+      const d0 = w / rout, d1 = w / rin;
+      const h = new THREE.Path();
+      h.absarc(0, 0, rout, a0 + d0, a1 - d0, false);
+      h.absarc(0, 0, rin, a1 - d1, a0 + d1, true);
+      h.closePath();
+      s.holes.push(h);
+    }
+  }
+  if (bore) { const h = new THREE.Path(); h.absarc(0, 0, bore, 0, TAU, true); s.holes.push(h); }
+}
+function extrude(shape, depth, mat, z) {
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.12, bevelSegments: 1, curveSegments: 10 });
+  const mesh = new THREE.Mesh(g, mat); mesh.position.z = z; return mesh;
+}
+function rod(r, z0, z1, mat, x = 0, y = 0) {
+  const g = new THREE.CylinderGeometry(r, r, z1 - z0, 20); g.rotateX(Math.PI / 2);
+  const mesh = new THREE.Mesh(g, mat); mesh.position.set(x, y, (z0 + z1) / 2); return mesh;
+}
+function escapeShape(n, R) {
+  const rf = R * 0.74, p = TAU / n, s = new THREE.Shape();
+  for (let i = 0; i < n; i++) {
+    const a = -i * p; // teeth lean for clockwise rotation
+    const pts = [[a, rf], [a - 0.06 * p, R], [a - 0.2 * p, R * 0.97], [a - 0.62 * p, rf]];
+    pts.forEach(([aa, rr], k) => { const x = Math.cos(aa) * rr, y = Math.sin(aa) * rr; (i === 0 && k === 0) ? s.moveTo(x, y) : s.lineTo(x, y); });
+  }
+  s.closePath(); addCrossings(s, rf, { spokes: 4, bore: 0.6 }); return s;
+}
+
+// ---------- parts registry (for tap info) ----------
+const pickables = [];
+function tag(obj, name, desc) {
+  obj.userData.info = { name, desc };
+  obj.traverse(o => { if (o.isMesh) { o.userData.owner = obj; pickables.push(o); } });
+  return obj;
+}
+
+const clock = new THREE.Group(); scene.add(clock);
+
+// ---------- gear train layout (mm, module 0.6) ----------
+const m = 0.6;
+const P = {
+  center: new THREE.Vector2(0, 0),
+  barrel: new THREE.Vector2(-20, -Math.sqrt(32.4 ** 2 - 400)),
+  third: new THREE.Vector2(12, Math.sqrt(26.4 ** 2 - 144)),
+};
+P.escape = new THREE.Vector2(0, P.third.y + Math.sqrt(16.8 ** 2 - 144));
+P.anchor = new THREE.Vector2(0, P.escape.y + 22);
+P.minute = new THREE.Vector2(-12, 0);
+
+// phase so meshing teeth interleave: A drives B
+function meshBase(A, baseA, nA, B, nB) {
+  const phi = Math.atan2(B.y - A.y, B.x - A.x), p = TAU / nA;
+  let d = ((phi - baseA) % p + p) % p; if (d > p / 2) d -= p;
+  return Math.atan2(A.y - B.y, A.x - B.x) + Math.PI / nB + d * nA / nB;
+}
+
+function arbor(pos) { const g = new THREE.Group(); g.position.set(pos.x, pos.y, 0); clock.add(g); return g; }
+
+// Barrel (mainspring) – 96T
+const barrel = arbor(P.barrel);
+{
+  barrel.add(extrude(gearShape(96, m, { spokes: 0, bore: 0 }), 1.6, M.brass, -38));
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(26.5, 26.5, 8, 64, 1, true).rotateX(Math.PI / 2), M.brassDark);
+  wall.material = M.brassDark; wall.position.z = -33; barrel.add(wall);
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(26.5, 0.7, 8, 64), M.brass); lip.position.z = -29; barrel.add(lip);
+  const pts = []; const turns = 6.5, N = 400;
+  for (let i = 0; i <= N; i++) { const t = i / N, a = t * turns * TAU, r = 4 + t * 21.5; pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, -33)); }
+  const spring = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 900, 0.38, 6), M.blued);
+  barrel.add(spring);
+  barrel.add(rod(3.2, -38, -29, M.steel));
+  // ratchet & click on front
+  const ratchet = extrude(gearShape(24, 0.6, { bore: 0 }), 1.2, M.steel, -28.5); barrel.add(ratchet);
+}
+tag(barrel, 'Tang cót & dây cót', 'Dây cót thép cuộn xoắn bên trong tang trống. Khi lên dây, nó tích năng lượng rồi nhả ra từ từ — tang quay cực chậm, khoảng 1 vòng / 8 giờ, đẩy cả bộ máy.');
+
+// Center wheel (80T) + center pinion (12T) – 1 rev/hour
+const center = arbor(P.center);
+center.add(extrude(gearShape(12, m), 4.5, M.steel, -38.5));
+center.add(extrude(gearShape(80, m, { spokes: 5 }), 1.5, M.brass, -29));
+center.add(rod(0.9, -41, 1.2, M.steel));
+tag(center, 'Bánh giữa (80 răng)', 'Quay đúng 1 vòng mỗi giờ. Trục của nó xuyên qua mặt số và mang kim phút. Bánh nhỏ 12 răng phía sau ăn khớp với tang cót.');
+
+// Third wheel (48T) + pinion (8T)
+const third = arbor(P.third);
+third.add(extrude(gearShape(8, m), 4, M.steel, -30.5));
+third.add(extrude(gearShape(48, m, { spokes: 5 }), 1.4, M.brass, -23));
+third.add(rod(0.7, -41, -6, M.steel));
+tag(third, 'Bánh thứ ba (48 răng)', 'Bánh trung gian: tăng tốc 10 lần so với bánh giữa, rồi truyền lực lên bánh thoát.');
+
+// Escape wheel (30T) + pinion (8T) – 1 rev/minute, carries seconds hand
+const esc = arbor(P.escape);
+esc.add(extrude(gearShape(8, m), 4, M.steel, -24.5));
+esc.add(extrude(escapeShape(30, 15), 1, M.brass, -16));
+esc.add(rod(0.6, -41, 2.2, M.steel));
+tag(esc, 'Bánh thoát (30 răng)', 'Mỗi tiếng "tích" bánh này nhích nửa răng = 6°. Nó quay đúng 1 vòng mỗi phút và mang kim giây ở mặt số nhỏ.');
+
+// Anchor (pallet fork) + pendulum share an axis
+const anchor = new THREE.Group(); anchor.position.set(P.anchor.x, P.anchor.y, 0); clock.add(anchor);
+{
+  const dy = P.escape.y - P.anchor.y; // -22
+  const ends = [-1, 1].map(sx => { const a = Math.PI / 2 + sx * 0.78; return new THREE.Vector3(Math.cos(a) * 15.4, dy + Math.sin(a) * 15.4, -15.5); });
+  ends.forEach((e, i) => {
+    const len = Math.hypot(e.x, e.y);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(2.2, len, 1.6), M.steel);
+    arm.position.set(e.x / 2, e.y / 2, -15.5); arm.rotation.z = Math.atan2(e.y, e.x) - Math.PI / 2; anchor.add(arm);
+    const stone = new THREE.Mesh(new THREE.BoxGeometry(1.4, 3.2, 1.8), M.ruby);
+    stone.position.copy(e); stone.rotation.z = arm.rotation.z + (i ? -0.5 : 0.5); anchor.add(stone);
+  });
+  anchor.add(rod(2.4, -16.4, -14.6, M.steel));
+  anchor.add(rod(0.7, -47, -6, M.steel));
+  // crutch going down behind the back plate
+  const crutch = new THREE.Mesh(new THREE.BoxGeometry(1.2, 30, 1), M.steel); crutch.position.set(0, -15, -45); anchor.add(crutch);
+}
+tag(anchor, 'Mỏ neo (bộ thoát)', 'Lắc qua lắc lại theo quả lắc. Hai viên đá đỏ lần lượt chặn rồi nhả một răng bánh thoát — chính cú nhả này tạo ra tiếng "tích… tắc" và giữ cho đồng hồ chạy đều.');
+
+const pend = new THREE.Group(); pend.position.set(P.anchor.x, P.anchor.y, 0); clock.add(pend);
+{
+  const L = 172;
+  const r = new THREE.Mesh(new THREE.BoxGeometry(1.6, L, 0.8), M.steel); r.position.set(0, -L / 2, -48); pend.add(r);
+  const bobG = new THREE.CylinderGeometry(17, 17, 5, 64); bobG.rotateX(Math.PI / 2);
+  const bob = new THREE.Mesh(bobG, M.brass); bob.position.set(0, -L, -48); bob.scale.z = 1; pend.add(bob);
+  const face = new THREE.Mesh(new THREE.SphereGeometry(17, 48, 16, 0, TAU, 0, 0.5).rotateX(Math.PI / 2), M.brass);
+  face.position.set(0, -L, -45.5); face.scale.z = 0.25; pend.add(face);
+  const back = face.clone(); back.rotation.y = Math.PI; back.position.z = -50.5; pend.add(back);
+  const nut = rod(1.6, -48.6, -47.4, M.brass, 0, -L - 19); pend.add(nut);
+}
+tag(pend, 'Quả lắc', 'Trái tim giữ giờ: mỗi lần lắc mất đúng 1 giây. Galileo nhận ra con lắc dao động đều (năm 1583), Huygens làm đồng hồ quả lắc đầu tiên (1656).');
+
+// ---------- motion works (between front plate and dial) ----------
+const cannon = arbor(P.center);
+cannon.add(extrude(gearShape(12, 0.5), 1.6, M.steel, -4.6));
+cannon.add(rod(1.3, -4.6, 1.8, M.brass));
+const minuteW = arbor(P.minute);
+minuteW.add(extrude(gearShape(36, 0.5, { spokes: 4 }), 1.1, M.brass, -4.4));
+minuteW.add(extrude(gearShape(10, 0.48), 2.6, M.steel, -3.2));
+minuteW.add(rod(0.6, -6, -0.6, M.steel));
+const hourW = arbor(P.center);
+hourW.add(extrude(gearShape(40, 0.48, { spokes: 4, bore: 1.6 }), 1.1, M.brass, -2.6));
+hourW.add(rod(2.0, -2.6, 1.2, M.brass));
+const mw = new THREE.Group(); [cannon, minuteW, hourW].forEach(g => mw.add(g)); clock.add(mw);
+tag(mw, 'Bộ truyền kim (12 : 1)', 'Ba bánh nhỏ ngay sau mặt số giảm tốc 12 lần: kim phút quay 12 vòng thì kim giờ mới quay 1 vòng.');
+
+// ---------- plates, jewels, pillars ----------
+function roundRect(w, h, r, cx = 0, cy = 0) {
+  const s = new THREE.Shape(), x = cx - w / 2, y = cy - h / 2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r); s.lineTo(x + w, y + h - r);
+  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h); s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y); return s;
+}
+const plates = new THREE.Group(); clock.add(plates);
+const plateShape = roundRect(108, 136, 12, 0, 5);
+[-41, -7].forEach(z => {
+  const p = new THREE.Mesh(new THREE.ExtrudeGeometry(plateShape, { depth: 1.2, bevelEnabled: false, curveSegments: 12 }), M.glass);
+  p.position.z = z; p.renderOrder = 2; plates.add(p);
+  const edge = new THREE.LineSegments(new THREE.EdgesGeometry(p.geometry, 30), new THREE.LineBasicMaterial({ color: 0xf6d98b, transparent: true, opacity: 0.35 }));
+  edge.position.z = z; plates.add(edge);
+});
+tag(plates, 'Hai tấm kính đỡ', 'Thay cho hai tấm đồng thau che kín của đồng hồ thật, ở đây làm bằng kính để thấy hết bên trong. Các trục bánh răng quay giữa hai tấm này.');
+const jewels = new THREE.Group(); clock.add(jewels);
+[P.barrel, P.center, P.third, P.escape, P.anchor, P.minute].forEach(p => [-41.4, -5.6].forEach(z => {
+  const j = rod(1.5, z - 0.4, z + 0.4, M.ruby, p.x, p.y); jewels.add(j);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.35, 8, 24), M.brass); ring.position.set(p.x, p.y, z); jewels.add(ring);
+}));
+tag(jewels, 'Chân kính (hồng ngọc)', 'Những hạt đỏ ở đầu trục là đá hồng ngọc nhân tạo: cứng và trơn, giúp trục quay ít ma sát, bền hàng trăm năm.');
+const pillars = new THREE.Group(); clock.add(pillars);
+[[-46, -55], [46, -55], [-46, 65], [46, 65]].forEach(([x, y]) => {
+  pillars.add(rod(2.2, -40, -7, M.brass, x, y));
+  [-41.6, -5.6].forEach(z => pillars.add(rod(3.2, z - 0.6, z + 0.6, M.brassDark, x, y)));
+});
+
+// ---------- frame (stand) ----------
+const stand = new THREE.Group(); clock.add(stand);
+{
+  const base = new THREE.Mesh(new THREE.ExtrudeGeometry(roundRect(170, 60, 8), { depth: 14, bevelEnabled: true, bevelSize: 2, bevelThickness: 2, curveSegments: 10 }), M.wood);
+  base.rotation.x = -Math.PI / 2; base.position.set(0, -160, -20); stand.add(base);
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(60, 0.8, 10), M.brass); trim.position.set(0, -143.6, 12); stand.add(trim);
+  [-70, 70].forEach(x => {
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 236, 24), M.brass); col.position.set(x, -27, -24); stand.add(col);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(4.5, 24, 16), M.brass); ball.position.set(x, 93, -24); stand.add(ball);
+  });
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 140, 16).rotateZ(Math.PI / 2), M.brass); top.position.set(0, 82, -24); stand.add(top);
+  [[-58, 0], [58, 0]].forEach(([x]) => { const arm = new THREE.Mesh(new THREE.BoxGeometry(24, 3, 3), M.brass); arm.position.set(x, 10, -24); stand.add(arm); });
+  const hang = new THREE.Mesh(new THREE.BoxGeometry(3, 22, 3), M.brass); hang.position.set(0, 72, -24); stand.add(hang);
+}
+tag(stand, 'Khung đỡ', 'Đế gỗ và hai trụ đồng giữ bộ máy lơ lửng, để quả lắc có chỗ đung đưa tự do bên dưới.');
+
+// ---------- dial ----------
+const DIAL_R = 60;
+function dialTexture() {
+  const S = 2048, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d'), k = S / 2 / DIAL_R; g.translate(S / 2, S / 2);
+  const gold = '#f3cf7a';
+  g.strokeStyle = gold; g.fillStyle = gold;
+  g.lineWidth = 0.5 * k; g.beginPath(); g.arc(0, 0, 59.3 * k, 0, TAU); g.stroke();
+  g.lineWidth = 0.25 * k; g.beginPath(); g.arc(0, 0, 55.2 * k, 0, TAU); g.stroke();
+  for (let i = 0; i < 60; i++) {
+    const a = i / 60 * TAU, big = i % 5 === 0, r0 = (big ? 55.4 : 56.6) * k, r1 = 58.8 * k;
+    g.lineWidth = (big ? 0.9 : 0.35) * k; g.beginPath();
+    g.moveTo(Math.sin(a) * r0, -Math.cos(a) * r0); g.lineTo(Math.sin(a) * r1, -Math.cos(a) * r1); g.stroke();
+  }
+  const R = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 0.6 * k;
+  R.forEach((t, i) => {
+    const a = i / 12 * TAU; g.save(); g.rotate(a); g.translate(0, -50 * k);
+    g.font = `600 ${7.2 * k}px Georgia, "Times New Roman", serif`; g.fillText(t, 0, 0); g.restore();
+  });
+  // seconds subdial
+  const sy = -P.escape.y * k;
+  g.shadowBlur = 0; g.lineWidth = 0.3 * k; g.beginPath(); g.arc(0, sy, 10.5 * k, 0, TAU); g.stroke();
+  for (let i = 0; i < 60; i++) {
+    const a = i / 60 * TAU, big = i % 15 === 0, r0 = (big ? 8.3 : 9.4) * k, r1 = 10.3 * k;
+    g.lineWidth = (big ? 0.5 : 0.18) * k; g.beginPath();
+    g.moveTo(Math.sin(a) * r0, sy - Math.cos(a) * r0); g.lineTo(Math.sin(a) * r1, sy - Math.cos(a) * r1); g.stroke();
+  }
+  g.font = `italic ${2.6 * k}px Georgia, serif`; g.fillText('giây', 0, sy + 5.8 * k);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; return tex;
+}
+const dial = new THREE.Group(); clock.add(dial);
+{
+  const disk = new THREE.Mesh(new THREE.CircleGeometry(DIAL_R, 96), M.glass); disk.position.z = 0.4; disk.renderOrder = 3; dial.add(disk);
+  const print = new THREE.Mesh(new THREE.CircleGeometry(DIAL_R, 96), new THREE.MeshBasicMaterial({ map: dialTexture(), transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+  print.position.z = 0.6; print.renderOrder = 4; dial.add(print);
+  const bezel = new THREE.Mesh(new THREE.TorusGeometry(DIAL_R + 1.2, 1.8, 16, 128), M.brass); bezel.position.z = 0.4; dial.add(bezel);
+  // dial feet to front plate
+  [[-40, -38], [40, -38], [0, 54]].forEach(([x, y]) => dial.add(rod(0.9, -6, 0.4, M.brass, x, y)));
+}
+tag(dial, 'Mặt số trong suốt', 'Mặt kính in số La Mã (số 4 viết "IIII" theo truyền thống đồng hồ cổ). Ô nhỏ phía trên là mặt giây, gắn thẳng vào trục bánh thoát.');
+
+// ---------- hands ----------
+function handShape(len, w, tail, tip = 'spade') {
+  const s = new THREE.Shape();
+  s.moveTo(-w * 0.35, -tail); s.lineTo(w * 0.35, -tail); s.lineTo(w * 0.5, 0);
+  if (tip === 'spade') {
+    s.lineTo(w * 0.3, len * 0.7); s.quadraticCurveTo(w * 1.6, len * 0.78, 0, len);
+    s.quadraticCurveTo(-w * 1.6, len * 0.78, -w * 0.3, len * 0.7);
+  } else { s.lineTo(w * 0.18, len * 0.96); s.lineTo(0, len); s.lineTo(-w * 0.18, len * 0.96); }
+  s.lineTo(-w * 0.5, 0); s.closePath();
+  const h = new THREE.Path(); h.absarc(0, 0, w * 0.32, 0, TAU, true); s.holes.push(h);
+  return s;
+}
+function hand(len, w, tail, z, mat, tip) {
+  const g = new THREE.Group();
+  g.add(extrude(handShape(len, w, tail, tip), 0.4, mat, 0));
+  const hub = rod(w * 0.75, -0.1, 0.6, mat); g.add(hub);
+  g.position.z = z; return g;
+}
+const hHour = hand(33, 2.4, 6, 1.4, M.blued, 'spade'); clock.add(hHour);
+const hMin = hand(51, 1.7, 8, 2.2, M.blued, 'spade'); clock.add(hMin);
+const hSec = hand(9.6, 0.7, 3, 2.5, M.blued, 'needle'); hSec.position.set(P.escape.x, P.escape.y, 2.5); clock.add(hSec);
+const cap = rod(1.2, 2.5, 3.4, M.brass); clock.add(cap);
+const hands = new THREE.Group(); [hHour, hMin, hSec, cap].forEach(h => hands.add(h)); clock.add(hands);
+tag(hands, 'Kim giờ · phút · giây', 'Kim thép tôi xanh (blued steel) — thép được nung tới khoảng 290 °C cho bề mặt chuyển xanh lam, vừa đẹp vừa chống gỉ. Kim chạy theo đúng giờ của điện thoại bạn.');
+
+// initial phases
+const baseC = Math.atan2(P.barrel.y, P.barrel.x);
+const baseB = meshBase(P.center, baseC, 12, P.barrel, 96);
+const baseT = meshBase(P.center, baseC, 80, P.third, 8);
+const baseE = meshBase(P.third, baseT, 48, P.escape, 8);
+const baseMW = meshBase(P.center, baseC, 12, P.minute, 36);
+const baseH = meshBase(P.minute, baseMW, 10, P.center, 40);
+
+// ---------- sound ----------
+let actx = null, soundOn = false, lastBeat = -1;
+function click(t, hi) {
+  const len = 0.07, buf = actx.createBuffer(1, actx.sampleRate * len, actx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) { const x = i / actx.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-x * 160) + Math.sin(TAU * (hi ? 3150 : 2650) * x) * 0.5 * Math.exp(-x * 70); }
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = hi ? 3000 : 2400; bp.Q.value = 2.2;
+  const body = actx.createBiquadFilter(); body.type = 'peaking'; body.frequency.value = 900; body.gain.value = 6;
+  const gn = actx.createGain(); gn.gain.value = 0.9;
+  src.connect(bp).connect(body).connect(gn).connect(actx.destination); src.start(t);
+}
+document.getElementById('bSound').onclick = e => {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  actx.resume(); soundOn = !soundOn; e.currentTarget.classList.toggle('on', soundOn);
+};
+document.addEventListener('visibilitychange', () => { lastBeat = -1; });
+
+// ---------- UI ----------
+const info = document.getElementById('info'), hint = document.getElementById('hint');
+let selected = null, infoTimer = 0;
+function select(owner) {
+  if (selected) selected.traverse(o => { if (o.isMesh && o.userData.orig) { o.material = o.userData.orig; delete o.userData.orig; } });
+  selected = owner;
+  if (!owner) { info.classList.remove('show'); return; }
+  owner.traverse(o => { if (o.isMesh && o.material !== M.glass) { o.userData.orig = o.material; o.material = HL; } });
+  const { name, desc } = owner.userData.info;
+  info.innerHTML = ''; const b = document.createElement('b'); b.textContent = name; info.append(b, document.createTextNode(desc));
+  info.classList.add('show');
+  clearTimeout(infoTimer); infoTimer = setTimeout(() => select(null), 9000);
+}
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; controls.autoRotate = false; hint.style.opacity = 0; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
+  ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const vis = pickables.filter(o => { let v = true; o.traverseAncestors(a => { if (!a.visible) v = false; }); return v && o.visible; });
+  const hits = ray.intersectObjects(vis, false);
+  // prefer a solid part over the glass sheets in front of it
+  const hit = hits.find(h => h.object.material !== M.glass && h.object.userData.owner !== plates) || hits[0];
+  select(hit ? hit.object.userData.owner : null);
+});
+const views = { bFront: [0, 0.02, 1], bSide: [1, 0.25, 0.55], bBack: [0, 0.05, -1] };
+Object.entries(views).forEach(([id, v]) => document.getElementById(id).onclick = () => { controls.autoRotate = false; frame(new THREE.Vector3(...v)); });
+document.getElementById('bDial').onclick = e => { dial.visible = !dial.visible; e.currentTarget.classList.toggle('on', dial.visible); };
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+// ---------- animation, synced to the real local time ----------
+const clockEl = document.getElementById('clock');
+const easeTick = f => { // escape wheel: quick jump, tiny recoil
+  if (f < 0.06) { const x = f / 0.06; return 1 - (1 - x) ** 3; }
+  return 1 + 0.035 * Math.sin((f - 0.06) * 40) * Math.exp(-(f - 0.06) * 25);
+};
+function animate() {
+  const now = new Date();
+  const secs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds() + now.getMilliseconds() / 1000;
+  const n = Math.floor(secs), f = secs - n, S = n + easeTick(f);
+
+  center.rotation.z = baseC - S * TAU / 3600;
+  cannon.rotation.z = baseC - S * TAU / 3600;
+  hMin.rotation.z = -S * TAU / 3600;
+  third.rotation.z = baseT + S * TAU / 360;
+  esc.rotation.z = baseE - S * TAU / 60;
+  hSec.rotation.z = -S * TAU / 60;
+  barrel.rotation.z = baseB + S * TAU / (3600 * 8);
+  minuteW.rotation.z = baseMW + S * TAU / 10800;
+  hourW.rotation.z = baseH - S * TAU / 43200;
+  hHour.rotation.z = -S * TAU / 43200;
+
+  const swing = 0.085 * Math.sin(Math.PI * secs); // 1 beat per second, ticks at the centre of the swing
+  pend.rotation.z = swing; anchor.rotation.z = swing * 0.55;
+
+  if (n !== lastBeat) {
+    if (soundOn && actx && lastBeat >= 0) click(actx.currentTime, n % 2 === 0);
+    lastBeat = n;
+    clockEl.textContent = now.toLocaleTimeString('vi-VN', { hour12: false });
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
