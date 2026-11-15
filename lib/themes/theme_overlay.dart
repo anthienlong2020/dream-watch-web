@@ -429,13 +429,13 @@ class ThemePainter extends CustomPainter {
     canvas.drawPath(
         band,
         Paint()
-          ..color = col.withAlpha((40 * shimmer).round())
+          ..color = col.withAlpha((55 * shimmer).round())
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, unit * 0.03));
     // tia rèm dọc lung linh
     final ray = Paint()..strokeWidth = math.max(1, unit * 0.006);
     for (var i = 0; i < steps; i++) {
       final x = w * (i + 0.5) / steps;
-      final a = (0.5 + 0.5 * math.sin(x * 0.05 + t * 2 + k)) * 65 * shimmer;
+      final a = (0.5 + 0.5 * math.sin(x * 0.05 + t * 2 + k)) * 85 * shimmer;
       final y = yAt(x);
       ray.shader = LinearGradient(
         begin: Alignment.topCenter,

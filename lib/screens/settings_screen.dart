@@ -1305,6 +1305,15 @@ class _SeasonSettings extends StatelessWidget {
                 if (app.seasonMode == 'auto' && today != null)
                   Text('Hôm nay: ${today.emoji} ${today.name}',
                       style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Trời chạng vạng cho lễ hội ban đêm'),
+                  subtitle: const Text(
+                      'Lễ hội ánh sáng, Tết, Trung Thu, Giáng sinh… cần nền tối mới thấy rõ pháo hoa, cực quang, '
+                      'đèn lồng. Khi hình nền sáng, app tự phủ lớp trời tối nhẹ phía trên; nền vốn tối thì giữ nguyên.'),
+                  value: app.seasonNightDim,
+                  onChanged: (v) => app.update(() => app.seasonNightDim = v),
+                ),
               ],
             ),
           ),

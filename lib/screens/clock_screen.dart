@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import '../services/app_state.dart';
@@ -25,6 +28,7 @@ class ClockScreen extends StatelessWidget {
           children: [
             const ColoredBox(color: Colors.black),
             const _Background(),
+            if (season != null && season.night && app.seasonNightDim) const _NightSky(),
             SafeArea(
             child: LayoutBuilder(builder: (context, c) {
               final w = c.maxWidth;
@@ -42,7 +46,8 @@ class ClockScreen extends StatelessWidget {
                         style: TextStyle(
                           color: accent,
                           fontSize: timeSize,
-                          fontWeight: FontWeight.w300,
+                          fontWeight: FontWeight.w400,
+                          shadows: _readable,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
@@ -78,7 +83,7 @@ class ClockScreen extends StatelessWidget {
                       builder: (_) => Text(
                         formatDateVn(DateTime.now()),
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: accent, fontSize: dateSize),
+                        style: TextStyle(color: accent, fontSize: dateSize, shadows: _readable),
                       ),
                     ),
                   ),
@@ -90,6 +95,83 @@ class ClockScreen extends StatelessWidget {
             // Theme mùa & lễ hội: hiệu ứng phủ lên trên, không nhận chạm
             if (season != null) Positioned.fill(child: AnimatedThemeOverlay(theme: season)),
           ],
+        );
+      },
+    );
+  }
+}
+
+/// Viền bóng tối mờ quanh chữ: đọc rõ trên mọi hình nền, sáng hay tối.
+const List<Shadow> _readable = [
+  Shadow(color: Color(0xCC000000), blurRadius: 6),
+  Shadow(color: Color(0x99000000), blurRadius: 2, offset: Offset(0, 1)),
+];
+
+/// Độ sáng trung bình (0..1) của từng hình nền, tính 1 lần trên ảnh thu nhỏ.
+final Expando<double> _lumCache = Expando('lum');
+final Expando<bool> _lumPending = Expando('lumPending');
+
+Future<void> _measure(Uint8List bytes) async {
+  try {
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 24);
+    final img = (await codec.getNextFrame()).image;
+    final data = await img.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (data == null) return;
+    var sum = 0.0;
+    final n = data.lengthInBytes ~/ 4;
+    // chỉ xét nửa trên ảnh: bầu trời là nơi pháo hoa, cực quang xuất hiện
+    final half = n ~/ 2;
+    for (var i = 0; i < half; i++) {
+      final r = data.getUint8(i * 4), g = data.getUint8(i * 4 + 1), b = data.getUint8(i * 4 + 2);
+      sum += (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    }
+    _lumCache[bytes] = half == 0 ? 0.5 : sum / half;
+    app.update(() {});
+  } catch (_) {
+    _lumCache[bytes] = 0.5;
+  }
+}
+
+/// Trời chạng vạng: nền sáng + lễ hội ban đêm → phủ màu xanh đêm trong suốt (đậm ở trên,
+/// nhạt dần xuống dưới) để hiệu ứng ánh sáng nổi lên mà vẫn thấy hình nền.
+class _NightSky extends StatelessWidget {
+  const _NightSky();
+
+  @override
+  Widget build(BuildContext context) {
+    return TickBuilder(
+      interval: const Duration(seconds: 5),
+      builder: (context) {
+        double lum = 0.0; // không có hình nền → nền đen sẵn rồi
+        if (app.backgrounds.isNotEmpty) {
+          final i = app.backgroundIndexAt(DateTime.now());
+          if (i != null) {
+            final bytes = app.backgrounds[i];
+            final v = _lumCache[bytes];
+            if (v == null && _lumPending[bytes] != true) {
+              _lumPending[bytes] = true;
+              _measure(bytes);
+            }
+            lum = (v ?? 0.5) * (1 - app.bgDim);
+          }
+        }
+        final k = ((lum - 0.25) / 0.4).clamp(0.0, 1.0);
+        return IgnorePointer(
+          child: AnimatedOpacity(
+            opacity: k,
+            duration: const Duration(seconds: 2),
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xA60A1030), Color(0x660A1030), Color(0x400A1030)],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+              child: SizedBox.expand(),
+            ),
+          ),
         );
       },
     );

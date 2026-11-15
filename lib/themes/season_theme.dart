@@ -43,6 +43,14 @@ class SeasonTheme {
   final Color? glow; // quầng sáng nhẹ ở mép màn hình
   final List<Layer> layers;
   final bool autoOnly; // false = có thể tự chọn và cũng có thể bật tự động
+
+  /// Lễ hội "ban đêm": hiệu ứng ánh sáng (cực quang, pháo hoa, đèn lồng, đom đóm...)
+  /// chỉ nổi khi nền tối, nên nền sáng sẽ được phủ "trời chạng vạng" nhẹ.
+  bool get night => const {
+        'tet', 'giangSinh', 'trungThu', 'halloween', 'diwali', 'hoiAn', 'phatDan', 'vuLan',
+        'thaDen', 'quocKhanh', 'diaDeMuertos',
+      }.contains(id);
+
   const SeasonTheme({
     required this.id,
     required this.name,

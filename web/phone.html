@@ -32,6 +32,10 @@
     color: #eee; border: 1px solid #3a4152; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
   body.clean #show { display: block; }
   #show:hover { opacity: 1; }
+  #nav { height: 42px; flex: none; background: #000; display: flex; align-items: center;
+    justify-content: space-around; color: #c9ccd3; font-size: 20px; user-select: none; }
+  #nav .home { width: 120px; height: 5px; border-radius: 3px; background: #e8e8e8; }
+  #phone.bare #nav, body.nonav #nav { display: none; }
   iframe { width: 100%; flex: 1; min-height: 0; border: 0; display: block; }
 </style>
 </head>
@@ -47,13 +51,14 @@
       <option value="405x720|bare">Khung quay video 9:16 (không viền)</option>
     </select>
   </label>
+  <label><input type="checkbox" id="navOn" checked> Thanh điều hướng</label>
   <button id="reload" title="Tải lại app">⟳ Tải lại</button>
   <button id="clean" title="Ẩn thanh này để quay màn hình (bấm phím H để hiện lại)">🎬 Chế độ quay</button>
   <span class="hint">Kéo chuột để cuộn như vuốt tay. Bấm vào app 1 lần để bật tiếng. Khi đã ẩn: rê chuột lên góc trên bên trái để hiện lại.</span>
 </div>
 <button id="show" title="Hiện lại thanh điều khiển">☰</button>
 <div id="stage">
-  <div id="phone"><div id="screen"><div id="status"><div id="notch"></div></div><iframe id="app" src="./?touchdot=1" allow="autoplay; fullscreen"></iframe></div></div>
+  <div id="phone"><div id="screen"><div id="status"><div id="notch"></div></div><iframe id="app" src="./?touchdot=1" allow="autoplay; fullscreen"></iframe><div id="nav"></div></div></div>
 </div>
 <script>
   const phone = document.getElementById('phone');
@@ -64,6 +69,12 @@
     document.documentElement.style.setProperty('--w', w + 'px');
     document.documentElement.style.setProperty('--h', h + 'px');
     phone.classList.toggle('bare', !!bare);
+    // iPhone: vạch vuốt Home; Android: 3 nút Menu – Home – Back
+    const nav = document.getElementById('nav');
+    nav.innerHTML = model.selectedOptions[0].text.includes('iPhone')
+      ? '<div class="home"></div>'
+      : '<span>|||</span><span style="font-size:24px">○</span><span>‹</span>';
+    document.body.classList.toggle('nonav', !document.getElementById('navOn').checked);
     const pad = bare ? 0 : 28;
     const clean = document.body.classList.contains('clean');
     const top = clean ? 0 : document.getElementById('bar').offsetHeight;
@@ -74,6 +85,7 @@
   }
   try { const m = localStorage.getItem('phoneModel'); if (m) model.value = m; } catch (e) {}
   model.onchange = fit;
+  document.getElementById('navOn').onchange = fit;
   addEventListener('resize', fit);
   document.getElementById('reload').onclick = () => document.getElementById('app').contentWindow.location.reload();
   function toggleClean() { document.body.classList.toggle('clean'); fit(); }
