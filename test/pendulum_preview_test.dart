@@ -21,7 +21,8 @@ void main() {
         key: key,
         child: PendulumClock(
           dateText: 'Chủ Nhật, 15/11/2026',
-          face: const ClassicDial(),
+          engravedNumbers: true,
+          face: const ClassicDial(showNumbers: false),
         ),
       ),
     ));
@@ -30,7 +31,7 @@ void main() {
       for (var n = 1; n <= 12; n++) {
         await precacheImage(AssetImage('assets/themes/so/$n.png'), ctx);
       }
-      await precacheImage(const AssetImage('assets/standard/head.webp'), ctx);
+      await precacheImage(const AssetImage('assets/standard/head_numbers.webp'), ctx);
       await precacheImage(const AssetImage('assets/standard/trunk.webp'), ctx);
       await precacheImage(const AssetImage('assets/standard/pendulum.webp'), ctx);
     });

@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 /// kiểu thép xanh chạm hoa (như đồng hồ cây thật). Kích thước theo khung vuông của DreamClock
 /// (vòng số = 0.40 × cạnh) để khớp vị trí trên mặt đồng hồ.
 class ClassicDial extends StatefulWidget {
-  const ClassicDial({super.key});
+  /// false = không vẽ 12 số (mặt số trong ảnh đã có số khắc sẵn).
+  final bool showNumbers;
+  const ClassicDial({super.key, this.showNumbers = true});
 
   @override
   State<ClassicDial> createState() => _ClassicDialState();
@@ -33,6 +35,7 @@ class _ClassicDialState extends State<ClassicDial> with SingleTickerProviderStat
           width: s,
           height: s,
           child: Stack(children: [
+            if (widget.showNumbers)
             for (var n = 1; n <= 12; n++)
               Positioned(
                 left: s / 2 + ring * math.sin(n / 12 * 2 * math.pi) - slot / 2,
@@ -59,8 +62,10 @@ class _HandsPainter extends CustomPainter {
   final double ring;
   _HandsPainter(this.now, this.ring);
 
-  static const _steel = Color(0xFF1E2430);
-  static const _steelHi = Color(0xFF4A5A78);
+  // kim đồng vàng như ảnh mẫu, viền đồng sẫm để nổi trên mặt đồng thau
+  static const _gold = Color(0xFFD9B45A);
+  static const _goldHi = Color(0xFFFFF0B8);
+  static const _edge = Color(0xFF4A3210);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -72,8 +77,8 @@ class _HandsPainter extends CustomPainter {
     final bounce = ms < 150 ? math.sin(ms / 150 * math.pi) * 0.15 : 0.0;
     final secA = (s + bounce) / 60 * 2 * math.pi;
 
-    _ornateHand(canvas, c, hourA, ring * 0.6, ring * 0.1);
-    _ornateHand(canvas, c, minA, ring * 0.9, ring * 0.075);
+    _ornateHand(canvas, c, hourA, ring * 0.62, ring * 0.1);
+    _ornateHand(canvas, c, minA, ring * 0.92, ring * 0.075);
     // kim giây mảnh màu đồng
     _rotated(canvas, c, secA, () {
       final p = Paint()
@@ -88,7 +93,7 @@ class _HandsPainter extends CustomPainter {
         Paint()
           ..shader = const RadialGradient(colors: [Color(0xFFFFF1B0), Color(0xFF9C7420)])
               .createShader(Rect.fromCircle(center: c, radius: ring * 0.06)));
-    canvas.drawCircle(c, ring * 0.022, Paint()..color = _steel);
+    canvas.drawCircle(c, ring * 0.022, Paint()..color = _edge);
   }
 
   void _rotated(Canvas canvas, Offset c, double a, void Function() draw) {
@@ -106,7 +111,9 @@ class _HandsPainter extends CustomPainter {
     canvas.translate(2, 3);
     _rotated(canvas, c, a, () => _handShape(canvas, len, w, const Color(0x55000000), blur: true));
     canvas.restore();
-    _rotated(canvas, c, a, () => _handShape(canvas, len, w, _steel));
+    // viền sẫm phía dưới rồi thân vàng phía trên → kim nổi rõ
+    _rotated(canvas, c, a, () => _handShape(canvas, len, w * 1.35, _edge));
+    _rotated(canvas, c, a, () => _handShape(canvas, len, w, _gold));
   }
 
   void _handShape(Canvas canvas, double len, double w, Color col, {bool blur = false}) {
@@ -136,11 +143,13 @@ class _HandsPainter extends CustomPainter {
       ..close();
     canvas.drawPath(tip, p);
     if (!blur) {
-      // ánh xanh thép
-      canvas.drawLine(Offset(-w * 0.08, -len * 0.5), Offset(-w * 0.08, -len * 0.8),
-          Paint()
-            ..color = _steelHi
-            ..strokeWidth = math.max(0.6, w * 0.08));
+      if (col == _gold) {
+        // ánh kim dọc thân kim
+        canvas.drawLine(Offset(-w * 0.06, -len * 0.5), Offset(-w * 0.06, -len * 0.82),
+            Paint()
+              ..color = _goldHi
+              ..strokeWidth = math.max(0.6, w * 0.09));
+      }
     }
   }
 

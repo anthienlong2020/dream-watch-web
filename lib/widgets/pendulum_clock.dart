@@ -14,7 +14,14 @@ class PendulumClock extends StatefulWidget {
 
   /// Mặt đồng hồ hình ảnh (12 hình giờ/phút/giây) đặt khớp lên vành số.
   final Widget? face;
-  const PendulumClock({super.key, this.onTick, this.dateText = '', this.face});
+
+  /// true = mặt số giữ nguyên 12 số khắc của ảnh (bản Standard);
+  /// false = mặt số đã xoá số để đặt hình ảnh chuyển động lên (bản Pro).
+  final bool engravedNumbers;
+  const PendulumClock({super.key, this.onTick, this.dateText = '', this.face, this.engravedNumbers = false});
+
+  /// Đường kính vòng ngoài mặt số trong ảnh đầu (để phóng to bằng mặt đồng hồ bản Pro).
+  static const double dialDiameter = 920;
 
   // ---- toạ độ trong ảnh đầu đồng hồ ----
   static const double headW = 1200, headH = 1385;
@@ -47,9 +54,10 @@ class _PendulumClockState extends State<PendulumClock> with SingleTickerProvider
       final w = c.maxWidth, h = c.maxHeight;
       // Đầu đồng hồ (mặt số + trăng lịch) phóng to, căn giữa
       const headW = PendulumClock.headW, headH = PendulumClock.headH;
-      var hs = w / headW;
-      if (headH * hs > h * 0.7) hs = h * 0.7 / headH; // màn hình ngang / máy tính bảng
-      final headLeft = (w - headW * hs) / 2;
+      // phóng cận: mặt số rộng ~95% bề ngang (bằng mặt đồng hồ bản Pro), hai bên cột gỗ bị cắt bớt
+      var hs = w * 0.95 / PendulumClock.dialDiameter;
+      if (headH * hs > h * 0.72) hs = h * 0.72 / headH; // màn hình ngang / máy tính bảng
+      final headLeft = w / 2 - PendulumClock.dialCenter.dx * hs;
       final headPx = headH * hs;
       // Thân đồng hồ (quả lắc) thu gọn cho vừa phần còn lại, căn giữa
       const tH = PendulumClock.trunkH, tW = PendulumClock.trunkW;
@@ -129,7 +137,9 @@ class _PendulumClockState extends State<PendulumClock> with SingleTickerProvider
             height: headPx,
             child: DecoratedBox(
               decoration: const BoxDecoration(boxShadow: [BoxShadow(color: Color(0x99000000), blurRadius: 14)]),
-              child: Image.asset('assets/standard/head.webp', fit: BoxFit.fill),
+              child: Image.asset(
+                  widget.engravedNumbers ? 'assets/standard/head_numbers.webp' : 'assets/standard/head.webp',
+                  fit: BoxFit.fill),
             ),
           ),
           if (widget.face != null)

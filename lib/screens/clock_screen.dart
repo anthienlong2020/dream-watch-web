@@ -38,8 +38,9 @@ class ClockScreen extends StatelessWidget {
                     if (app.tickTock && app.started) app.sound.tick(even);
                   },
                   // Standard: 12 số đứng yên + kim như đồng hồ thật; Pro: hình ảnh chuyển động
+                  engravedNumbers: !app.isPro,
                   face: !app.isPro
-                      ? const ClassicDial()
+                      ? const ClassicDial(showNumbers: false)
                       : DreamClock(
                     theme: app.theme,
                     showRoman: false,
