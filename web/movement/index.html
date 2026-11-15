@@ -43,6 +43,7 @@
   <button id="bBack">Mặt sau</button>
 </div>
 <div id="opts">
+  <button id="bSpin" class="on">🔄 Tự xoay khi rảnh tay: bật</button>
   <button id="bEsc">⚙ Bộ thoát: Quả lắc</button>
   <button id="bSec">⏱ Kim giây: ô nhỏ</button>
   <button id="bComp" class="on">🌗 Ngày/đêm & tuần trăng: bật</button>
@@ -536,7 +537,9 @@ function select(owner) {
   clearTimeout(infoTimer); infoTimer = setTimeout(() => select(null), 9000);
 }
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
-renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; controls.autoRotate = false; hint.style.opacity = 0; });
+let lastTouch = 0;
+renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; controls.autoRotate = false; lastTouch = performance.now(); hint.style.opacity = 0; });
+renderer.domElement.addEventListener('wheel', () => { controls.autoRotate = false; lastTouch = performance.now(); }, { passive: true });
 renderer.domElement.addEventListener('pointerup', e => {
   if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
   ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -548,7 +551,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   select(hit ? hit.object.userData.owner : null);
 });
 const views = { bFront: [0, 0.02, 1], bSide: [1, 0.25, 0.55], bBack: [0, 0.05, -1] };
-Object.entries(views).forEach(([id, v]) => document.getElementById(id).onclick = () => { controls.autoRotate = false; frame(new THREE.Vector3(...v)); });
+Object.entries(views).forEach(([id, v]) => document.getElementById(id).onclick = () => { controls.autoRotate = false; lastTouch = performance.now(); frame(new THREE.Vector3(...v)); });
 const embed = new URLSearchParams(location.search).has('embed');
 if (embed) document.body.classList.add('embed');
 const opts = document.getElementById('opts');
@@ -617,6 +620,14 @@ function placeInfo() {
   info.style.bottom = (barEl.offsetHeight + 20 + (opts.classList.contains('show') ? opts.offsetHeight + 8 : 0)) + 'px';
 }
 setComp(compOn, false); setEsc(escMode, false);
+// auto-rotate again a few seconds after the last touch (can be switched off)
+let autoSpin = store('mvSpin') !== '0';
+function setSpin(on) {
+  autoSpin = on; store('mvSpin', on ? '1' : '0'); if (!on) controls.autoRotate = false; else lastTouch = 0;
+  const b = document.getElementById('bSpin'); b.classList.toggle('on', on); b.textContent = '🔄 Tự xoay khi rảnh tay: ' + (on ? 'bật' : 'tắt');
+}
+setSpin(autoSpin);
+document.getElementById('bSpin').onclick = () => setSpin(!autoSpin);
 placeInfo(); addEventListener('resize', placeInfo);
 document.getElementById('bSec').onclick = () => setSecMode(secMode === 'center' ? 'sub' : 'center', true);
 document.getElementById('bDial').onclick = e => { dial.visible = !dial.visible; e.currentTarget.classList.toggle('on', dial.visible); e.currentTarget.textContent = '🔘 Mặt số: ' + (dial.visible ? 'hiện' : 'ẩn'); };
@@ -684,6 +695,7 @@ function animate() {
     const t = ((Math.floor(sim) % 86400) + 86400) % 86400, p2 = v => String(v).padStart(2, '0');
     clockEl.textContent = (fast ? '⏩ ' : '') + `${p2(Math.floor(t / 3600))}:${p2(Math.floor(t / 60) % 60)}:${p2(t % 60)}`;
   }
+  if (autoSpin && !controls.autoRotate && performance.now() - lastTouch > 8000) controls.autoRotate = true;
   controls.update();
   renderer.render(scene, camera);
 }
