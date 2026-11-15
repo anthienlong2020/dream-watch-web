@@ -28,6 +28,11 @@ class ClockScreen extends StatelessWidget {
       builder: (context, _) {
         // Pro chọn mặt cơ khí trong suốt (3D)
         if (app.showMech) {
+          // Khung web 3D "nuốt" mọi cú chạm phía trên nó, nên khi màn hình
+          // "Chạm để bắt đầu" hoặc báo thức đang hiện thì tạm ẩn khung 3D.
+          if (!app.started || app.ringing != null) {
+            return const ColoredBox(color: Color(0xFF0D0B14));
+          }
           return ColoredBox(
             color: const Color(0xFF0D0B14),
             child: SafeArea(
