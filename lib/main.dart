@@ -6,12 +6,13 @@ import 'screens/ring_overlay.dart';
 import 'screens/settings_screen.dart';
 import 'screens/timer_screen.dart';
 import 'models/clock_theme.dart';
+import 'themes/event_background.dart';
 import 'services/app_state.dart';
 import 'widgets/touch_dot.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await loadDinoAssets();
+  await Future.wait([loadDinoAssets(), loadEventImages()]);
   await app.init();
   runApp(const DreamWatchApp());
 }

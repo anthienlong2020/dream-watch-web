@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../services/app_state.dart';
+import '../themes/event_background.dart';
 import '../themes/theme_overlay.dart';
 import '../utils/vn_format.dart';
 import '../widgets/dream_clock.dart';
@@ -23,12 +24,19 @@ class ClockScreen extends StatelessWidget {
       builder: (context, _) {
         final season = app.activeSeason();
         final accent = season?.accent ?? kCyan;
+        // Lễ hội có ảnh nền riêng → dùng ảnh nền đó (hợp màu với hiệu ứng)
+        final eventBg = season != null && app.bgSource == 'event' && hasEventBackground(season.id);
         return Stack(
           fit: StackFit.expand,
           children: [
             const ColoredBox(color: Colors.black),
-            const _Background(),
-            if (season != null && season.night && app.seasonNightDim) const _NightSky(),
+            AnimatedSwitcher(
+              duration: const Duration(seconds: 2),
+              child: eventBg
+                  ? SizedBox.expand(key: ValueKey('ev${season.id}'), child: EventBackground(id: season.id))
+                  : const _Background(key: ValueKey('user-bg')),
+            ),
+            if (!eventBg && season != null && season.night && app.seasonNightDim) const _NightSky(),
             SafeArea(
             child: LayoutBuilder(builder: (context, c) {
               final w = c.maxWidth;
@@ -180,7 +188,7 @@ class _NightSky extends StatelessWidget {
 
 /// Hình nền do người dùng chọn, tự đổi mỗi N phút (mờ dần sang ảnh mới).
 class _Background extends StatelessWidget {
-  const _Background();
+  const _Background({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -67,6 +67,7 @@ class AppState extends ChangeNotifier {
   /// Theme mùa & lễ hội: 'off' = tắt, 'auto' = tự động theo ngày, hoặc id theme.
   String seasonMode = 'auto';
   bool seasonNightDim = true; // nền sáng + lễ hội ban đêm → phủ trời chạng vạng nhẹ
+  String bgSource = 'event'; // khi có lễ hội: 'event' = ảnh nền riêng của lễ hội, 'tuy_chon' = ảnh nền của tôi
 
   /// Theme đang áp dụng (null nếu tắt).
   SeasonTheme? activeSeason([DateTime? at]) {
@@ -225,6 +226,7 @@ class AppState extends ChangeNotifier {
         'effectsOn': effectsOn,
         'seasonMode': seasonMode,
         'seasonNightDim': seasonNightDim,
+        'bgSource': bgSource,
         'defaultElemColor': defaultElemColor.name,
         'slotElemColor': slotElemColor.map((e) => e?.name).toList(),
         'spin360': spin360,
@@ -276,6 +278,7 @@ class AppState extends ChangeNotifier {
     effectsOn = (j['effectsOn'] as bool?) ?? effectsOn;
     seasonMode = (j['seasonMode'] as String?) ?? seasonMode;
     seasonNightDim = (j['seasonNightDim'] as bool?) ?? seasonNightDim;
+    bgSource = (j['bgSource'] as String?) ?? bgSource;
     if (j['defaultElemColor'] is String) {
       defaultElemColor = elemColorFromName(j['defaultElemColor'] as String);
     }

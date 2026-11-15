@@ -26,3 +26,4 @@ flutter:
   assets:
     - assets/sounds/
     - assets/themes/khung_long/
+    - assets/events/

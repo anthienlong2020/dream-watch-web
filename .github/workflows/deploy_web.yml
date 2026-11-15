@@ -29,7 +29,7 @@ jobs:
         run: flutter create . --project-name dream_watch --platforms=web
       - run: flutter pub get
       - run: flutter test
-      - run: flutter build web --release --base-href /dream-watch-web/
+      - run: flutter build web --release --base-href /dream-watch-web/ --dart-define=BUILD_VERSION=$(git log -1 --format=%h)-$(TZ=Asia/Ho_Chi_Minh date +%d/%m_%H:%M)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web

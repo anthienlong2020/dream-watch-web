@@ -86,9 +86,9 @@ Future<void> loadDinoAssets() async {
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     final files = manifest
         .listAssets()
-        .where((p) => p.startsWith('assets/themes/khung_long/') && _imageExt.hasMatch(p))
+        .where((p) => Uri.decodeFull(p).startsWith('assets/themes/khung_long/') && _imageExt.hasMatch(p))
         .toList()
-      ..sort(naturalCompare);
+      ..sort((a, b) => naturalCompare(Uri.decodeFull(a), Uri.decodeFull(b)));
     _dinoFiles = files.take(12).toList();
   } catch (_) {
     _dinoFiles = const [];

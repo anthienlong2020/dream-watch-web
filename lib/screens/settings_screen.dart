@@ -9,6 +9,7 @@ import '../effects/element_effect.dart';
 import '../three_d/body_type.dart';
 import '../services/file_saver.dart';
 import '../services/speech.dart';
+import '../themes/event_background.dart';
 import '../themes/season_theme.dart';
 import '../utils/image_utils.dart';
 import '../widgets/slot_image_view.dart';
@@ -43,11 +44,19 @@ class SettingsScreen extends StatelessWidget {
           _BackgroundSettings(),
           _Header('Hiển thị'),
           _DisplaySettings(),
+          SizedBox(height: 16),
+          Center(
+            child: Text('Phiên bản: $kBuildVersion',
+                style: TextStyle(fontSize: 12, color: Colors.white38)),
+          ),
         ],
       ),
     );
   }
 }
+
+/// Mã phiên bản (gắn lúc build trên GitHub) để biết điện thoại đã tải bản mới chưa.
+const String kBuildVersion = String.fromEnvironment('BUILD_VERSION', defaultValue: 'thử nghiệm');
 
 class _Header extends StatelessWidget {
   final String text;
@@ -839,6 +848,12 @@ class _BackgroundSettings extends StatefulWidget {
 }
 
 class _BackgroundSettingsState extends State<_BackgroundSettings> {
+  /// Đang hiện ảnh nền Event → nút đổi hình nền theo thời gian bị làm mờ.
+  bool get _eventBgNow {
+    final s = app.activeSeason();
+    return s != null && app.bgSource == 'event' && hasEventBackground(s.id);
+  }
+
   bool _busy = false;
   static const _intervals = [1, 2, 5, 10, 15, 30, 60];
 
@@ -889,6 +904,37 @@ class _BackgroundSettingsState extends State<_BackgroundSettings> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Builder(builder: (context) {
+                final season = app.activeSeason();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Khi đang có lễ hội, dùng:'),
+                    const SizedBox(height: 6),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'event', label: Text('Ảnh nền Event')),
+                        ButtonSegment(value: 'tuy_chon', label: Text('Ảnh nền của tôi')),
+                      ],
+                      selected: {app.bgSource == 'tuy_chon' ? 'tuy_chon' : 'event'},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (v) => app.update(() => app.bgSource = v.first),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      app.bgSource == 'event'
+                          ? (season != null
+                              ? 'Đang dùng ảnh nền riêng của ${season.emoji} ${season.name}. '
+                                  'Hết lễ hội thì tự quay về ảnh nền của bạn bên dưới.'
+                              : 'Mỗi lễ hội có ảnh nền riêng hợp màu với hiệu ứng. '
+                                  'Ngày thường dùng ảnh nền của bạn bên dưới.')
+                          : 'Lễ hội vẫn dùng ảnh nền của bạn (có thể bị lệch màu với hiệu ứng).',
+                      style: const TextStyle(fontSize: 12.5, color: Colors.white60),
+                    ),
+                    const Divider(height: 20),
+                  ],
+                );
+              }),
               const Text(
                 'Chọn bao nhiêu ảnh cũng được, ảnh tự đổi lần lượt theo thời gian '
                 'bên dưới. Dùng ảnh 1080p trở xuống để ít dung lượng nhất. '
@@ -931,7 +977,11 @@ class _BackgroundSettingsState extends State<_BackgroundSettings> {
                 ),
               ),
               const SizedBox(height: 8),
-              Row(
+              Opacity(
+                opacity: _eventBgNow ? 0.4 : 1,
+                child: IgnorePointer(
+                  ignoring: _eventBgNow,
+                  child: Row(
                 children: [
                   const Expanded(child: Text('Đổi hình nền mỗi')),
                   DropdownButton<int>(
@@ -948,6 +998,8 @@ class _BackgroundSettingsState extends State<_BackgroundSettings> {
                         app.update(() => app.bgIntervalMin = v ?? 5),
                   ),
                 ],
+              ),
+                ),
               ),
               Row(
                 children: [
