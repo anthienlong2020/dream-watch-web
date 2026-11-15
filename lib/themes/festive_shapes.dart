@@ -221,10 +221,15 @@ void drawRabbitLantern(Canvas canvas, double s, double t) {
 void drawZodiacLantern(Canvas canvas, double s, Color col, double t) {
   _glow(canvas, Offset.zero, s * 1.0, col, 90);
   final r = Rect.fromCenter(center: Offset.zero, width: s * 0.95, height: s * 0.85);
+  // giấy sáng màu ở giữa để hình con giáp nổi rõ, viền đậm dần ra mép
   canvas.drawOval(
       r,
       Paint()
-        ..shader = RadialGradient(colors: [const Color(0xFFFFF3C4), col]).createShader(r));
+        ..shader = RadialGradient(
+          colors: [const Color(0xFFFFFDF2), const Color(0xFFFFF0C0), col],
+          stops: const [0.0, 0.6, 1.0],
+        ).createShader(r));
+  canvas.drawOval(r, _stroke(Color.lerp(col, Colors.black, 0.3)!, math.max(0.8, s * 0.025)));
   final cap = _fill(const Color(0xFFFFC107));
   canvas.drawRect(Rect.fromCenter(center: Offset(0, -s * 0.44), width: s * 0.45, height: s * 0.1), cap);
   canvas.drawRect(Rect.fromCenter(center: Offset(0, s * 0.44), width: s * 0.45, height: s * 0.1), cap);

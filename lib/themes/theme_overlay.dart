@@ -47,6 +47,10 @@ class ThemePainter extends CustomPainter {
 
   static final Map<String, TextPainter> _emojiCache = {};
 
+  /// Trên web, font emoji tải về sau vài giây: hình emoji vẽ lúc chưa có font sẽ ra ô vuông.
+  /// Nên xoá bộ nhớ hình emoji định kỳ để vẽ lại khi font đã có.
+  static int _emojiEpoch = 0;
+
   @override
   void paint(Canvas canvas, Size size) {
     final g0 = theme.glow;
@@ -204,33 +208,8 @@ class ThemePainter extends CustomPainter {
           canvas.restore();
           break;
         case Motion.hangNga:
-          // chị Hằng kéo tay chú Cuội bay lên cung trăng; trên trăng có bóng cây đa, thỏ ngọc
-          final mr = unit * l.maxSize;
-          final moon = Offset(w * 0.82, h * 0.12);
-          drawMoonBanyan(canvas, moon, mr);
-          final ph = (t * speed) % 1.0;
-          if (ph < 0.75) {
-            final p = Curves.easeInOut.transform(ph / 0.75);
-            final start = Offset(w * 0.15, h * 0.85);
-            final mid = Offset(w * 0.12, h * 0.35);
-            final end = moon + Offset(-mr * 0.6, mr * 0.4);
-            Offset at(double q) => Offset.lerp(Offset.lerp(start, mid, q)!, Offset.lerp(mid, end, q)!, q)!;
-            final pos = at(p);
-            final fade = p > 0.85 ? (1 - p) / 0.15 : (p < 0.06 ? p / 0.06 : 1.0);
-            final scale = 1 - 0.45 * p;
-            final s2 = unit * l.minSize * scale;
-            // vệt sáng lấp lánh phía sau
-            for (var i = 1; i < 16; i++) {
-              final q = at((p - i * 0.012).clamp(0.0, 1.0));
-              canvas.drawCircle(q + Offset(math.sin(t * 4 + i) * 3, s2 * 0.3), s2 * 0.03 * (1 - i / 16) + 0.6,
-                  Paint()..color = col.withAlpha((200 * fade * (1 - i / 16)).round()));
-            }
-            canvas.saveLayer(null, Paint()..color = Color.fromRGBO(255, 255, 255, fade));
-            canvas.translate(pos.dx, pos.dy);
-            canvas.rotate(0.15 + math.sin(t * 1.5) * 0.05);
-            drawHangNgaCuoi(canvas, s2, t);
-            canvas.restore();
-          }
+          // bóng cây đa và thỏ ngọc in trên mặt trăng rằm
+          drawMoonBanyan(canvas, Offset(w * 0.82, h * 0.12), unit * l.maxSize);
           break;
         case Motion.cake:
           // bánh sinh nhật ở góc dưới bên phải, nến lung linh
@@ -625,6 +604,11 @@ class ThemePainter extends CustomPainter {
 
   void _emoji(Canvas canvas, String g, Offset p, double s, double rot) {
     final key = '$g|${s.round()}';
+    final epoch = (t / 4).floor();
+    if (epoch != _emojiEpoch) {
+      _emojiEpoch = epoch;
+      _emojiCache.clear();
+    }
     final tp = _emojiCache.putIfAbsent(key, () {
       if (_emojiCache.length > 80) _emojiCache.clear();
       return TextPainter(
@@ -857,16 +841,12 @@ class ThemePainter extends CustomPainter {
         canvas.save();
         canvas.translate(p.dx, p.dy);
         canvas.rotate(math.sin(t * 1.3 + seed) * 0.08);
-        switch (seed % 4) {
-          case 0:
-            drawStarLantern(canvas, s, const Color(0xFFE53935), t, seed);
-          case 1:
-            drawRevolvingLantern(canvas, s, const Color(0xFFFF9800), t + seed);
-          case 2:
-            drawRabbitLantern(canvas, s, t);
-          default:
-            drawZodiacLantern(canvas, s, col, t);
-            if (l.glyphs.isNotEmpty) _emoji(canvas, l.glyphs[(seed ~/ 4) % l.glyphs.length], Offset.zero, s * 0.5, 0);
+        // chủ yếu là đèn 12 con giáp (con vật to, rõ trong lồng đèn), xen vài đèn ông sao
+        if (seed % 4 == 3 || l.glyphs.isEmpty) {
+          drawStarLantern(canvas, s, const Color(0xFFE53935), t, seed);
+        } else {
+          drawZodiacLantern(canvas, s, col, t);
+          _emoji(canvas, l.glyphs[(seed * 5) % l.glyphs.length], Offset(0, s * 0.02), s * 0.6, 0);
         }
         canvas.restore();
         break;

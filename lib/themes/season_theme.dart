@@ -224,11 +224,11 @@ List<SeasonTheme> allThemes(DateTime now) => [
           // trăng rằm to, có bóng cây đa và thỏ ngọc
           Layer(motion: Motion.moon, shape: Shape.dot, count: 1, colors: [Color(0xFFFFF8E1)], maxSize: 0.11),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 14, colors: [Colors.white]),
-          // đèn ông sao, đèn kéo quân, đèn thỏ, đèn 12 con giáp
-          Layer(motion: Motion.rise, shape: Shape.festivalLantern, count: 3,
+          // đèn 12 con giáp (con vật hiện rõ trong lồng đèn) xen đèn ông sao
+          Layer(motion: Motion.rise, shape: Shape.festivalLantern, count: 5,
               colors: [Color(0xFFE53935), Color(0xFFFF9800), Color(0xFFFFEB3B)], glyphs: kZodiacFullBody,
               speed: 0.022, minSize: 0.11, maxSize: 0.15, sway: 0.02),
-          // chị Hằng kéo chú Cuội bay lên cung trăng
+          // bóng cây đa, thỏ ngọc trên mặt trăng
           Layer(motion: Motion.hangNga, shape: Shape.dot, count: 1,
               colors: [Color(0xFFFFF59D)], minSize: 0.3, maxSize: 0.11, speed: 0.04),
         ],
