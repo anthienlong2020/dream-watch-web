@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Điện thoại mô phỏng – Đồng hồ mộng mơ</title>
+<style>
+  :root { --w: 390px; --h: 844px; --scale: 1; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; color: #ddd;
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  #bar { position: fixed; top: 0; left: 0; right: 0; display: flex; gap: 10px; align-items: center;
+    flex-wrap: wrap; padding: 8px 12px; background: #15181f; border-bottom: 1px solid #2a2f3a; z-index: 5; font-size: 14px; }
+  #bar select, #bar button { background: #232836; color: #eee; border: 1px solid #3a4152;
+    border-radius: 8px; padding: 6px 10px; font-size: 14px; cursor: pointer; }
+  #bar .hint { color: #8b93a7; font-size: 12.5px; }
+  body.clean #bar { display: none; }
+  #stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  body:not(.clean) #stage { top: 50px; }
+  #phone { width: calc(var(--w) + 28px); height: calc(var(--h) + 28px); padding: 14px; border-radius: 54px;
+    background: linear-gradient(145deg, #3b3f48, #15171c); box-shadow: 0 0 0 2px #50555f, 0 30px 80px rgba(0,0,0,.6);
+    position: relative; transform: scale(var(--scale)); transform-origin: center; flex: none; }
+  #phone.bare { padding: 0; border-radius: 0; background: none; box-shadow: none;
+    width: var(--w); height: var(--h); }
+  #screen { width: 100%; height: 100%; border-radius: 40px; overflow: hidden; background: #0b1020; position: relative; }
+  #phone.bare #screen { border-radius: 0; }
+  #notch { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); width: 110px; height: 30px;
+    background: #000; border-radius: 20px; z-index: 2; pointer-events: none; }
+  #phone.bare #notch { display: none; }
+  #show { display: none; position: fixed; top: 6px; left: 6px; z-index: 6; opacity: 0; background: #232836;
+    color: #eee; border: 1px solid #3a4152; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  body.clean #show { display: block; }
+  #show:hover { opacity: 1; }
+  iframe { width: 100%; height: 100%; border: 0; display: block; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <b>📱 Điện thoại mô phỏng</b>
+  <label>Máy:
+    <select id="model">
+      <option value="390x844">iPhone 13/14/15 (390×844)</option>
+      <option value="430x932">iPhone Pro Max (430×932)</option>
+      <option value="360x780">Samsung Galaxy A/S (360×780)</option>
+      <option value="412x915">Android màn lớn (412×915)</option>
+      <option value="405x720|bare">Khung quay video 9:16 (không viền)</option>
+    </select>
+  </label>
+  <button id="reload" title="Tải lại app">⟳ Tải lại</button>
+  <button id="clean" title="Ẩn thanh này để quay màn hình (bấm phím H để hiện lại)">🎬 Chế độ quay</button>
+  <span class="hint">Bấm vào app 1 lần để bật tiếng. Khi đã ẩn: rê chuột lên góc trên bên trái để hiện lại.</span>
+</div>
+<button id="show" title="Hiện lại thanh điều khiển">☰</button>
+<div id="stage">
+  <div id="phone"><div id="notch"></div><div id="screen"><iframe id="app" src="./" allow="autoplay; fullscreen"></iframe></div></div>
+</div>
+<script>
+  const phone = document.getElementById('phone');
+  const model = document.getElementById('model');
+  function fit() {
+    const [size, bare] = model.value.split('|');
+    const [w, h] = size.split('x').map(Number);
+    document.documentElement.style.setProperty('--w', w + 'px');
+    document.documentElement.style.setProperty('--h', h + 'px');
+    phone.classList.toggle('bare', !!bare);
+    const pad = bare ? 0 : 28;
+    const top = document.body.classList.contains('clean') ? 0 : 50;
+    const s = Math.min(1.6, (innerHeight - top - 24) / (h + pad), (innerWidth - 24) / (w + pad));
+    document.documentElement.style.setProperty('--scale', s.toFixed(3));
+    try { localStorage.setItem('phoneModel', model.value); } catch (e) {}
+  }
+  try { const m = localStorage.getItem('phoneModel'); if (m) model.value = m; } catch (e) {}
+  model.onchange = fit;
+  addEventListener('resize', fit);
+  document.getElementById('reload').onclick = () => document.getElementById('app').contentWindow.location.reload();
+  function toggleClean() { document.body.classList.toggle('clean'); fit(); }
+  document.getElementById('clean').onclick = toggleClean;
+  document.getElementById('show').onclick = toggleClean;
+  addEventListener('keydown', e => { if (e.key === 'h' || e.key === 'H') toggleClean(); });
+  fit();
+</script>
+</body>
+</html>
