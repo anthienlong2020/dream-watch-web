@@ -95,6 +95,16 @@ Future<void> loadDinoAssets() async {
   }
 }
 
+/// Bộ 12 con số 1–12 (bản Standard – đồng hồ quả lắc).
+ClockTheme buildNumberTheme() => ClockTheme(
+      id: 'so',
+      name: 'Con số',
+      slots: List.generate(12, (i) {
+        final n = slotNumber(i);
+        return SlotImage(asset: 'assets/themes/so/$n.png', emoji: '$n');
+      }),
+    );
+
 /// Ảnh thứ 1 → vị trí I, ảnh thứ 2 → II, ..., ảnh thứ 12 → XII. Thiếu ảnh thì dùng emoji.
 ClockTheme buildDinoTheme() => ClockTheme(
       id: 'khung_long',

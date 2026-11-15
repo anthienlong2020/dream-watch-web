@@ -120,7 +120,7 @@ class _EditionCardState extends State<_EditionCard> {
               SegmentedButton<String>(
                 segments: const [
                   ButtonSegment(value: 'dream', label: Text('Hình ảnh mộng mơ')),
-                  ButtonSegment(value: 'pendulum', label: Text('Quả lắc số nhảy múa')),
+                  ButtonSegment(value: 'pendulum', label: Text('Quả lắc + ảnh của tôi')),
                 ],
                 selected: {app.faceStyle == 'pendulum' ? 'pendulum' : 'dream'},
                 showSelectedIcon: false,
@@ -147,7 +147,7 @@ class _EditionCardState extends State<_EditionCard> {
             const Text('Bạn đang dùng bản Standard (miễn phí)',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            const Text('Đồng hồ quả lắc với 12 con số nhảy múa và chuông Big Ben.',
+            const Text('Đồng hồ quả lắc: 12 con số xoay, nhảy bậc thang như bản mộng mơ, kèm chuông Big Ben.',
                 style: TextStyle(fontSize: 13, color: Colors.white70)),
             const SizedBox(height: 10),
             const Text('⭐ Bản Pro có thêm:', style: TextStyle(fontWeight: FontWeight.w600)),

@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:dream_watch/models/clock_theme.dart';
 import 'package:dream_watch/services/pro_code.dart';
+import 'package:dream_watch/widgets/dream_clock.dart';
 import 'package:dream_watch/widgets/pendulum_clock.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -45,6 +48,44 @@ void main() {
     final img = await rec.endRecording().toImage((w * times.length).round(), h.round());
     final png = await img.toByteData(format: ui.ImageByteFormat.png);
     File('build/preview/pendulum.png')
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(png!.buffer.asUint8List());
+  });
+
+  testWidgets('vẽ thử bản Standard: quả lắc + 12 con số', (tester) async {
+    tester.view.physicalSize = const Size(400, 760);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final key = GlobalKey();
+    await tester.pumpWidget(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: RepaintBoundary(
+        key: key,
+        child: PendulumClock(
+          dateText: 'Chủ Nhật, 15/11/2026',
+          face: DreamClock(
+            theme: buildNumberTheme(),
+            showRoman: false,
+            showStars: false,
+            ringColor: const Color(0x00000000),
+          ),
+        ),
+      ),
+    ));
+    await tester.runAsync(() async {
+      final ctx = key.currentContext!;
+      for (var n = 1; n <= 12; n++) {
+        await precacheImage(AssetImage('assets/themes/so/$n.png'), ctx);
+      }
+    });
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 200));
+    final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(key));
+    final png = await tester.runAsync(() async {
+      final img = await boundary.toImage();
+      return img.toByteData(format: ui.ImageByteFormat.png);
+    });
+    File('build/preview/standard.png')
       ..createSync(recursive: true)
       ..writeAsBytesSync(png!.buffer.asUint8List());
   });

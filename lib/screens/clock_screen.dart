@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/pendulum_clock.dart';
 
+import '../models/clock_theme.dart';
 import '../services/app_state.dart';
 import '../themes/event_background.dart';
 import '../themes/theme_overlay.dart';
@@ -36,6 +37,22 @@ class ClockScreen extends StatelessWidget {
                   onTick: (even) {
                     if (app.tickTock && app.started) app.sound.tick(even);
                   },
+                  // Standard: 12 con số; Pro chọn mặt quả lắc: dùng bộ ảnh của mình
+                  face: DreamClock(
+                    theme: app.isPro ? app.theme : buildNumberTheme(),
+                    showRoman: false,
+                    showStars: false,
+                    ringColor: const Color(0x00000000),
+                    styles: app.isPro ? app.resolvedStyles : const [],
+                    spin360: app.spin360,
+                    bodies: app.isPro ? app.resolvedBodies : const [],
+                    elements: app.isPro ? app.resolvedElements : const [],
+                    effectsOn: app.isPro && app.effectsOn,
+                    elemColors: app.isPro ? app.resolvedElemColors : const [],
+                    hourSpeed: app.hourSpeed,
+                    minuteSpeed: app.minuteSpeed,
+                    secondSpeed: app.secondSpeed,
+                  ),
                 ),
               ),
             ),

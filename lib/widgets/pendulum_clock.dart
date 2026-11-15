@@ -11,7 +11,10 @@ class PendulumClock extends StatefulWidget {
   /// Gọi mỗi khi qua 1 giây (để phát tiếng tích tắc), [even] = giây chẵn.
   final void Function(bool even)? onTick;
   final String dateText;
-  const PendulumClock({super.key, this.onTick, this.dateText = ''});
+
+  /// Mặt đồng hồ hình ảnh (12 hình giờ/phút/giây) đặt khớp lên mặt số.
+  final Widget? face;
+  const PendulumClock({super.key, this.onTick, this.dateText = '', this.face});
 
   @override
   State<PendulumClock> createState() => _PendulumClockState();
@@ -38,10 +41,25 @@ class _PendulumClockState extends State<PendulumClock> with SingleTickerProvider
           if (_lastSec != -1) widget.onTick?.call(now.second.isEven);
           _lastSec = now.second;
         }
-        return CustomPaint(
-          painter: PendulumPainter(now, dateText: widget.dateText),
-          size: Size.infinite,
-        );
+        return LayoutBuilder(builder: (context, c) {
+          final size = Size(c.maxWidth, c.maxHeight);
+          final dial = PendulumPainter.dialOf(size);
+          // vòng hình của DreamClock có bán kính 0.40 × cạnh → khớp vòng số 0.72 × bán kính mặt số
+          final side = dial.r * 0.72 / 0.40;
+          return Stack(children: [
+            Positioned.fill(
+              child: CustomPaint(painter: PendulumPainter(now, dateText: widget.dateText, dancers: widget.face == null)),
+            ),
+            if (widget.face != null)
+              Positioned(
+                left: dial.c.dx - side / 2,
+                top: dial.c.dy - side / 2,
+                width: side,
+                height: side,
+                child: widget.face!,
+              ),
+          ]);
+        });
       },
     );
   }
@@ -57,7 +75,18 @@ const List<Color> kDanceColors = [
 class PendulumPainter extends CustomPainter {
   final DateTime now;
   final String dateText;
-  PendulumPainter(this.now, {this.dateText = ''});
+
+  /// true = vẽ 12 con số hoạt hình + kim; false = chỉ vẽ mặt số (hình ảnh đặt lên trên).
+  final bool dancers;
+  PendulumPainter(this.now, {this.dateText = '', this.dancers = true});
+
+  /// Tâm và bán kính mặt số theo kích thước vùng vẽ.
+  static ({Offset c, double r}) dialOf(Size size) {
+    final cw = math.min(size.width * 0.92, size.height * 0.56);
+    final top = size.height * 0.03;
+    final r = cw * 0.42;
+    return (c: Offset(size.width / 2, top + cw * 0.12 + r + cw * 0.06), r: r);
+  }
 
   static final Map<String, TextPainter> _digits = {};
 
@@ -213,6 +242,16 @@ class PendulumPainter extends CustomPainter {
             ..strokeWidth = big ? r * 0.018 : r * 0.007);
     }
 
+    if (!dancers) {
+      // chỉ mặt số + kính phản chiếu; giờ phút giây do hình ảnh thể hiện
+      canvas.drawArc(Rect.fromCircle(center: c, radius: r * 0.92), math.pi * 1.1, math.pi * 0.45, false,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = r * 0.05
+            ..strokeCap = StrokeCap.round
+            ..color = const Color(0x22FFFFFF));
+      return;
+    }
     final h = now.hour % 12, m = now.minute, s = now.second, ms = now.millisecond;
     // tròn giờ: cả dàn nhảy múa trong lúc chuông đổ
     final party = m == 0 && s < 40;
@@ -480,6 +519,6 @@ class PendulumPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(PendulumPainter o) => o.now != now || o.dateText != dateText;
+  bool shouldRepaint(PendulumPainter o) => o.now != now || o.dateText != dateText || o.dancers != dancers;
 }
 
