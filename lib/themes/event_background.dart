@@ -361,7 +361,7 @@ class _ScenePainter extends CustomPainter {
         snow.close();
         canvas.drawPath(snow, fill(Colors.white));
         canvas.drawRect(Rect.fromLTWH(0, base - h * 0.01, w, h - base + h * 0.01), fill(const Color(0xFFB98AA0)));
-        for (final cx in [w * 0.08, w * 0.25, w * 0.82, w * 0.97]) {
+        for (final cx in [w * 0.03, w * 0.15, w * 0.87, w * 0.99]) {
           final ty = base + h * 0.02;
           canvas.drawLine(Offset(cx, ty), Offset(cx, ty - h * 0.1),
               Paint()
@@ -369,7 +369,7 @@ class _ScenePainter extends CustomPainter {
                 ..strokeWidth = u * 0.02);
           for (var i = 0; i < 9; i++) {
             canvas.drawCircle(Offset(cx + (_r(i, cx.round()) - 0.5) * u * 0.22, ty - h * 0.11 - _r(i, 77) * u * 0.1),
-                u * (0.04 + 0.03 * _r(i, 78)), fill(Color.lerp(const Color(0xFFF8BBD0), const Color(0xFFF48FB1), _r(i, 79))!));
+                u * (0.03 + 0.025 * _r(i, 78)), fill(Color.lerp(const Color(0xFFF8BBD0), const Color(0xFFF48FB1), _r(i, 79))!));
           }
         }
         break;
