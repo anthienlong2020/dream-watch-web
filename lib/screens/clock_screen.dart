@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../widgets/classic_dial.dart';
+import '../widgets/mechanical_clock.dart';
 import '../widgets/pendulum_clock.dart';
 
 import '../services/app_state.dart';
@@ -25,6 +26,19 @@ class ClockScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
+        // Pro chọn mặt cơ khí trong suốt (3D)
+        if (app.showMech) {
+          return ColoredBox(
+            color: const Color(0xFF0D0B14),
+            child: SafeArea(
+              child: MechanicalClock(
+                onTick: (even) {
+                  if (app.tickTock && app.started) app.sound.tick(even);
+                },
+              ),
+            ),
+          );
+        }
         // Bản Standard (hoặc Pro chọn mặt quả lắc): đồng hồ quả lắc số nhảy múa
         if (app.showPendulum) {
           return ColoredBox(

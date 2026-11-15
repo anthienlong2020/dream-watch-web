@@ -89,7 +89,7 @@ class _EditionCardState extends State<_EditionCard> {
       builder: (ctx) => AlertDialog(
         title: const Text('Bật bản Pro (miễn phí)'),
         content: const Text(
-            'Bản Pro mở toàn bộ tính năng: ảnh riêng, 3D, hiệu ứng, lễ hội, hình nền, giọng đọc…\n\n'
+            'Bản Pro mở toàn bộ tính năng: ảnh riêng, 3D, mặt đồng hồ cơ khí trong suốt, hiệu ứng, lễ hội, hình nền, giọng đọc…\n\n'
             '⚠️ Lưu ý: bản Pro dùng nhiều hiệu ứng và lưu ảnh riêng trong máy nên chiếm nhiều dung lượng hơn, '
             'tốn pin hơn và cần điện thoại khoẻ hơn. Máy yếu có thể bị giật; khi đó có thể quay về bản Standard '
             'bất cứ lúc nào, ảnh và cài đặt vẫn được giữ.'),
@@ -126,12 +126,22 @@ class _EditionCardState extends State<_EditionCard> {
               const SizedBox(height: 6),
               SegmentedButton<String>(
                 segments: const [
-                  ButtonSegment(value: 'dream', label: Text('Hình ảnh mộng mơ')),
-                  ButtonSegment(value: 'pendulum', label: Text('Quả lắc + ảnh của tôi')),
+                  ButtonSegment(value: 'dream', label: Text('Mộng mơ')),
+                  ButtonSegment(value: 'pendulum', label: Text('Quả lắc')),
+                  ButtonSegment(value: 'mech', label: Text('Cơ khí')),
                 ],
-                selected: {app.faceStyle == 'pendulum' ? 'pendulum' : 'dream'},
+                selected: {const ['pendulum', 'mech'].contains(app.faceStyle) ? app.faceStyle : 'dream'},
                 showSelectedIcon: false,
                 onSelectionChanged: (v) => app.update(() => app.faceStyle = v.first),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                switch (app.faceStyle) {
+                  'pendulum' => 'Đồng hồ quả lắc, mặt số là hình ảnh của tôi.',
+                  'mech' => 'Bộ máy 3D trong suốt: bánh răng, dây cót, quả lắc chạy thật. Xoay, phóng to, chạm vào bộ phận để xem tên. Nặng máy nhất.',
+                  _ => 'Đồng hồ hình ảnh mộng mơ, đủ hiệu ứng và lễ hội.',
+                },
+                style: const TextStyle(fontSize: 12, color: Colors.white60),
               ),
               Align(
                 alignment: Alignment.centerRight,

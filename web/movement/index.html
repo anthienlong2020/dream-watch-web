@@ -20,6 +20,9 @@
     box-shadow:0 6px 24px rgba(0,0,0,.5);transform:translateY(20px);opacity:0;transition:.25s;pointer-events:none}
   #info.show{transform:none;opacity:1;pointer-events:auto}
   #info b{color:#f6d98b;font-size:15px;display:block;margin-bottom:3px}
+  body.embed #top{display:none} body.embed #hint{top:10px}
+  body.embed #bar button{padding:6px 10px;font-size:12px} body.embed #bar{bottom:8px}
+  body.embed #info{bottom:84px}
   #hint{position:fixed;top:56px;left:0;right:0;text-align:center;font-size:12px;opacity:.55;pointer-events:none;transition:opacity 1s}
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
@@ -29,6 +32,8 @@
 <div id="hint">Kéo để xoay · chụm để phóng to · chạm bộ phận để xem tên</div>
 <div id="info"></div>
 <div id="bar">
+  <button id="bFast">⏩ Tua nhanh</button>
+  <button id="bHand">🎨 Kim: đen</button>
   <button id="bSound">🔊 Tiếng</button>
   <button id="bFront">Mặt trước</button>
   <button id="bSide">Nghiêng</button>
@@ -79,6 +84,13 @@ const M = {
           side: THREE.DoubleSide, depthWrite: false, clearcoat: 1, envMapIntensity: 1.6 }),
   wood: new THREE.MeshPhysicalMaterial({ color: 0x3a1f12, metalness: 0, roughness: 0.45, clearcoat: 0.8, clearcoatRoughness: 0.15 }),
 };
+const HAND = {
+  'đen': new THREE.MeshPhysicalMaterial({ color: 0x0c0c0e, metalness: 0.6, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.05 }),
+  'bạc': new THREE.MeshPhysicalMaterial({ color: 0xf2f4f7, metalness: 1, roughness: 0.12, clearcoat: 0.6 }),
+  'xanh': M.blued,
+};
+let handColor = 'đen'; try { handColor = localStorage.getItem('mvHand') || 'đen'; } catch (e) {}
+if (!HAND[handColor]) handColor = 'đen';
 const HL = new THREE.MeshPhysicalMaterial({ color: 0xffd36b, metalness: 0.6, roughness: 0.3, emissive: 0x7a4a00, emissiveIntensity: 0.9 });
 
 // ---------- geometry helpers ----------
@@ -176,14 +188,14 @@ const barrel = arbor(P.barrel);
   // ratchet & click on front
   const ratchet = extrude(gearShape(24, 0.6, { bore: 0 }), 1.2, M.steel, -28.5); barrel.add(ratchet);
 }
-tag(barrel, 'Tang cót & dây cót', 'Dây cót thép cuộn xoắn bên trong tang trống. Khi lên dây, nó tích năng lượng rồi nhả ra từ từ — tang quay cực chậm, khoảng 1 vòng / 8 giờ, đẩy cả bộ máy.');
+tag(barrel, 'Tang cót & dây cót', 'Dây cót thép cuộn xoắn bên trong tang trống. Khi lên dây, nó tích năng lượng rồi nhả ra từ từ — tang quay cực chậm, khoảng 1 vòng / 8 giờ, đẩy cả bộ máy. Chậm tới mức mắt không thấy — bấm ⏩ Tua nhanh để xem nó quay.');
 
 // Center wheel (80T) + center pinion (12T) – 1 rev/hour
 const center = arbor(P.center);
 center.add(extrude(gearShape(12, m), 4.5, M.steel, -38.5));
 center.add(extrude(gearShape(80, m, { spokes: 5 }), 1.5, M.brass, -29));
 center.add(rod(0.9, -41, 1.2, M.steel));
-tag(center, 'Bánh giữa (80 răng)', 'Quay đúng 1 vòng mỗi giờ. Trục của nó xuyên qua mặt số và mang kim phút. Bánh nhỏ 12 răng phía sau ăn khớp với tang cót.');
+tag(center, 'Bánh giữa (80 răng)', 'Quay đúng 1 vòng mỗi giờ. Trục của nó xuyên qua mặt số và mang kim phút. Bánh nhỏ 12 răng phía sau ăn khớp với tang cót. Quay rất chậm (0,1° mỗi giây) — bấm ⏩ Tua nhanh để thấy rõ.');
 
 // Third wheel (48T) + pinion (8T)
 const third = arbor(P.third);
@@ -303,12 +315,12 @@ function dialTexture() {
     g.lineWidth = (big ? 0.9 : 0.35) * k; g.beginPath();
     g.moveTo(Math.sin(a) * r0, -Math.cos(a) * r0); g.lineTo(Math.sin(a) * r1, -Math.cos(a) * r1); g.stroke();
   }
-  const R = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+  const R = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 0.6 * k;
   R.forEach((t, i) => {
-    const a = i / 12 * TAU; g.save(); g.rotate(a); g.translate(0, -50 * k);
-    g.font = `600 ${7.2 * k}px Georgia, "Times New Roman", serif`; g.fillText(t, 0, 0); g.restore();
+    const a = i / 12 * TAU, rr = (t.length > 2 ? 48.6 : 50) * k; // upright numerals, wide ones a bit further in
+    g.font = `600 ${7.2 * k}px Georgia, "Times New Roman", serif`; g.fillText(t, Math.sin(a) * rr, -Math.cos(a) * rr);
   });
   // seconds subdial
   const sy = -P.escape.y * k;
@@ -330,7 +342,7 @@ const dial = new THREE.Group(); clock.add(dial);
   // dial feet to front plate
   [[-40, -38], [40, -38], [0, 54]].forEach(([x, y]) => dial.add(rod(0.9, -6, 0.4, M.brass, x, y)));
 }
-tag(dial, 'Mặt số trong suốt', 'Mặt kính in số La Mã (số 4 viết "IIII" theo truyền thống đồng hồ cổ). Ô nhỏ phía trên là mặt giây, gắn thẳng vào trục bánh thoát.');
+tag(dial, 'Mặt số trong suốt', 'Mặt kính in số La Mã từ I đến XII. Ô nhỏ phía trên là mặt giây, gắn thẳng vào trục bánh thoát.');
 
 // ---------- hands ----------
 function handShape(len, w, tail, tip = 'spade') {
@@ -350,12 +362,17 @@ function hand(len, w, tail, z, mat, tip) {
   const hub = rod(w * 0.75, -0.1, 0.6, mat); g.add(hub);
   g.position.z = z; return g;
 }
-const hHour = hand(33, 2.4, 6, 1.4, M.blued, 'spade'); clock.add(hHour);
-const hMin = hand(51, 1.7, 8, 2.2, M.blued, 'spade'); clock.add(hMin);
-const hSec = hand(9.6, 0.7, 3, 2.5, M.blued, 'needle'); hSec.position.set(P.escape.x, P.escape.y, 2.5); clock.add(hSec);
+const hHour = hand(33, 2.4, 6, 1.4, HAND[handColor], 'spade'); clock.add(hHour);
+const hMin = hand(51, 1.7, 8, 2.2, HAND[handColor], 'spade'); clock.add(hMin);
+const hSec = hand(9.6, 0.7, 3, 2.5, HAND[handColor], 'needle'); hSec.position.set(P.escape.x, P.escape.y, 2.5); clock.add(hSec);
 const cap = rod(1.2, 2.5, 3.4, M.brass); clock.add(cap);
 const hands = new THREE.Group(); [hHour, hMin, hSec, cap].forEach(h => hands.add(h)); clock.add(hands);
-tag(hands, 'Kim giờ · phút · giây', 'Kim thép tôi xanh (blued steel) — thép được nung tới khoảng 290 °C cho bề mặt chuyển xanh lam, vừa đẹp vừa chống gỉ. Kim chạy theo đúng giờ của điện thoại bạn.');
+tag(hands, 'Kim giờ · phút · giây', 'Kim chạy theo đúng giờ của điện thoại bạn. Bấm "🎨 Kim" để đổi màu: đen bóng, bạc, hoặc xanh "thép tôi" (thép nung ~290 °C cho mặt chuyển xanh lam, kiểu đồng hồ cổ).');
+function setHandColor(c) {
+  handColor = c; try { localStorage.setItem('mvHand', c); } catch (e) {}
+  [hHour, hMin, hSec].forEach(h => h.traverse(o => { if (o.isMesh) { if (o.userData.orig) o.userData.orig = HAND[c]; else o.material = HAND[c]; } }));
+  document.getElementById('bHand').textContent = '🎨 Kim: ' + c;
+}
 
 // initial phases
 const baseC = Math.atan2(P.barrel.y, P.barrel.x);
@@ -409,6 +426,20 @@ renderer.domElement.addEventListener('pointerup', e => {
 });
 const views = { bFront: [0, 0.02, 1], bSide: [1, 0.25, 0.55], bBack: [0, 0.05, -1] };
 Object.entries(views).forEach(([id, v]) => document.getElementById(id).onclick = () => { controls.autoRotate = false; frame(new THREE.Vector3(...v)); });
+const embed = new URLSearchParams(location.search).has('embed');
+if (embed) { document.body.classList.add('embed'); document.getElementById('bSound').remove(); }
+setHandColor(handColor);
+document.getElementById('bHand').onclick = () => { const k = Object.keys(HAND); setHandColor(k[(k.indexOf(handColor) + 1) % k.length]); };
+// fast-forward: ×1 → ×60 (1 phút = 1 giờ) → ×720 (1 phút = 12 giờ)
+const SPEEDS = [1, 60, 720]; let speedIdx = 0, simBase = 0, realBase = 0;
+const realSecs = () => { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000; };
+document.getElementById('bFast').onclick = e => {
+  const r = realSecs(), cur = speedIdx ? simBase + (r - realBase) * SPEEDS[speedIdx] : r;
+  speedIdx = (speedIdx + 1) % SPEEDS.length; simBase = cur; realBase = r;
+  e.currentTarget.textContent = speedIdx ? `⏩ ×${SPEEDS[speedIdx]}` : '⏩ Tua nhanh';
+  e.currentTarget.classList.toggle('on', speedIdx > 0);
+  lastBeat = -1;
+};
 document.getElementById('bDial').onclick = e => { dial.visible = !dial.visible; e.currentTarget.classList.toggle('on', dial.visible); };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
@@ -419,9 +450,14 @@ const easeTick = f => { // escape wheel: quick jump, tiny recoil
   return 1 + 0.035 * Math.sin((f - 0.06) * 40) * Math.exp(-(f - 0.06) * 25);
 };
 function animate() {
-  const now = new Date();
-  const secs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds() + now.getMilliseconds() / 1000;
-  const n = Math.floor(secs), f = secs - n, S = n + easeTick(f);
+  requestAnimationFrame(animate);
+  // inside the app: skip drawing while this face is not on screen
+  if (embed && window.frameElement && !window.frameElement.getClientRects().length) return;
+  const secs = realSecs();
+  const fast = speedIdx > 0;
+  const sim = fast ? simBase + (secs - realBase) * SPEEDS[speedIdx] : secs;
+  const n = Math.floor(secs), f = secs - n;
+  const S = fast ? sim : n + easeTick(f);
 
   center.rotation.z = baseC - S * TAU / 3600;
   cannon.rotation.z = baseC - S * TAU / 3600;
@@ -438,13 +474,13 @@ function animate() {
   pend.rotation.z = swing; anchor.rotation.z = swing * 0.55;
 
   if (n !== lastBeat) {
-    if (soundOn && actx && lastBeat >= 0) click(actx.currentTime, n % 2 === 0);
+    if (soundOn && actx && lastBeat >= 0 && !fast) click(actx.currentTime, n % 2 === 0);
     lastBeat = n;
-    clockEl.textContent = now.toLocaleTimeString('vi-VN', { hour12: false });
+    const t = ((Math.floor(sim) % 86400) + 86400) % 86400, p2 = v => String(v).padStart(2, '0');
+    clockEl.textContent = (fast ? '⏩ ' : '') + `${p2(Math.floor(t / 3600))}:${p2(Math.floor(t / 60) % 60)}:${p2(t % 60)}`;
   }
   controls.update();
   renderer.render(scene, camera);
-  requestAnimationFrame(animate);
 }
 animate();
 </script>
