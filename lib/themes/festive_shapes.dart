@@ -571,11 +571,11 @@ void drawHangNgaCuoi(Canvas canvas, double s, double t) {
   }
   // váy áo dài thướt tha, vạt bay về phía sau
   final dress = Path()
-    ..moveTo(s * 0.12, -s * 0.42)
-    ..quadraticBezierTo(s * 0.2, -s * 0.05, s * 0.05, s * 0.25)
-    ..quadraticBezierTo(-s * 0.1, s * 0.62 + math.sin(t * 2.5) * s * 0.04, -s * 0.55, s * 0.72)
-    ..quadraticBezierTo(-s * 0.3, s * 0.4, -s * 0.12, s * 0.15)
-    ..quadraticBezierTo(-s * 0.1, -s * 0.2, -s * 0.04, -s * 0.42)
+    ..moveTo(s * 0.16, -s * 0.42)
+    ..quadraticBezierTo(s * 0.26, -s * 0.05, s * 0.12, s * 0.28)
+    ..quadraticBezierTo(-s * 0.05, s * 0.66 + math.sin(t * 2.5) * s * 0.05, -s * 0.62, s * 0.76)
+    ..quadraticBezierTo(-s * 0.36, s * 0.42, -s * 0.2, s * 0.12)
+    ..quadraticBezierTo(-s * 0.14, -s * 0.2, -s * 0.06, -s * 0.42)
     ..close();
   canvas.drawPath(
       dress,

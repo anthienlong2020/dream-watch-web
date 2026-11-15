@@ -217,7 +217,7 @@ class ThemePainter extends CustomPainter {
             Offset at(double q) => Offset.lerp(Offset.lerp(start, mid, q)!, Offset.lerp(mid, end, q)!, q)!;
             final pos = at(p);
             final fade = p > 0.85 ? (1 - p) / 0.15 : (p < 0.06 ? p / 0.06 : 1.0);
-            final scale = 1 - 0.6 * p;
+            final scale = 1 - 0.45 * p;
             final s2 = unit * l.minSize * scale;
             // vệt sáng lấp lánh phía sau
             for (var i = 1; i < 16; i++) {

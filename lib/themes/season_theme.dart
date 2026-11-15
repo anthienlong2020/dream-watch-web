@@ -230,7 +230,7 @@ List<SeasonTheme> allThemes(DateTime now) => [
               speed: 0.022, minSize: 0.11, maxSize: 0.15, sway: 0.02),
           // chị Hằng kéo chú Cuội bay lên cung trăng
           Layer(motion: Motion.hangNga, shape: Shape.dot, count: 1,
-              colors: [Color(0xFFFFF59D)], minSize: 0.2, maxSize: 0.11, speed: 0.04),
+              colors: [Color(0xFFFFF59D)], minSize: 0.3, maxSize: 0.11, speed: 0.04),
         ],
       ),
       const SeasonTheme(
