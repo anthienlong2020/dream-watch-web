@@ -1,5 +1,5 @@
 """Tạo 12 con số 1–12 (nền trong suốt) kiểu đồng hồ cổ cho bản Standard.
-Số chữ có chân (Lora Bold, giấy phép SIL OFL), thân đồng sẫm, viền vàng kim, bóng đổ –
+Số chữ có chân (Lora Bold, giấy phép SIL OFL), vàng nguyên khối, viền đồng sẫm mảnh, bóng đổ –
 hợp với mặt đồng thau và vỏ gỗ của đồng hồ quả lắc.
 Chạy: python3 tool/gen_digits.py → assets/themes/so/1.png … 12.png
 """
@@ -34,14 +34,14 @@ def make(n):
     sh = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
     ImageDraw.Draw(sh).text((x + 5, y + 7), text, font=f, fill=(20, 10, 0, 170), stroke_width=8, stroke_fill=(20, 10, 0, 170))
     img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(5)))
-    # viền vàng kim
-    d.text((x, y), text, font=f, fill=(0, 0, 0, 0), stroke_width=8, stroke_fill=(232, 196, 110, 255))
+    # viền đồng sẫm mảnh để số nổi rõ trên mặt đồng thau
+    d.text((x, y), text, font=f, fill=(0, 0, 0, 0), stroke_width=7, stroke_fill=(92, 62, 18, 255))
     # thân số: đồng sẫm chuyển sắc (sáng trên, tối dưới)
     mask = Image.new('L', (SIZE, SIZE), 0)
     ImageDraw.Draw(mask).text((x, y), text, font=f, fill=255)
     grad = Image.new('RGBA', (SIZE, SIZE))
     gd = ImageDraw.Draw(grad)
-    top, bot = (116, 74, 38), (46, 26, 12)
+    top, bot = (255, 236, 160), (196, 140, 40)  # vàng nguyên khối: sáng trên, đậm dưới
     for yy in range(SIZE):
         t = min(1, max(0, (yy - y) / (fs * 0.9)))
         c = tuple(int(top[i] * (1 - t) + bot[i] * t) for i in range(3))
@@ -52,7 +52,7 @@ def make(n):
     shift = Image.new('L', (SIZE, SIZE), 0)
     shift.paste(mask, (2, 2))
     edge = Image.eval(Image.composite(Image.new('L', (SIZE, SIZE), 0), hl, shift), lambda v: int(v * 0.8))
-    img.paste(Image.new('RGBA', (SIZE, SIZE), (255, 228, 160, 255)), (0, 0), edge)
+    img.paste(Image.new('RGBA', (SIZE, SIZE), (255, 252, 225, 255)), (0, 0), edge)
     img.save(os.path.join(OUT, f'{n}.png'))
 
 

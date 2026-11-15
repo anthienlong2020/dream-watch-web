@@ -72,7 +72,7 @@ class AppState extends ChangeNotifier {
   /// Standard: đồng hồ quả lắc + 12 con số + chuông Big Ben (nhẹ máy). Pro: miễn phí, đủ tính năng, nặng máy hơn.
   bool isPro = false;
   String faceStyle = 'dream'; // Pro chọn mặt: 'dream' (hình ảnh mộng mơ) | 'pendulum' (quả lắc)
-  bool tickTock = false; // tiếng tích tắc của quả lắc
+  bool tickTock = true; // tiếng tích tắc của quả lắc (mặc định bật)
   bool get showPendulum => !isPro || faceStyle == 'pendulum';
 
   /// Bật bản Pro (miễn phí; chỉ nặng máy hơn).
@@ -293,7 +293,7 @@ class AppState extends ChangeNotifier {
         'effectsOn': effectsOn,
         'seasonMode': seasonMode,
         'faceStyle': faceStyle,
-        'tickTock': tickTock,
+        'tickOn': tickTock,
         'seasonNightDim': seasonNightDim,
         'bgSource': bgSource,
         'defaultElemColor': defaultElemColor.name,
@@ -348,7 +348,7 @@ class AppState extends ChangeNotifier {
     effectsOn = (j['effectsOn'] as bool?) ?? effectsOn;
     seasonMode = (j['seasonMode'] as String?) ?? seasonMode;
     faceStyle = (j['faceStyle'] as String?) ?? faceStyle;
-    tickTock = (j['tickTock'] as bool?) ?? tickTock;
+    tickTock = (j['tickOn'] as bool?) ?? tickTock;
     seasonNightDim = (j['seasonNightDim'] as bool?) ?? seasonNightDim;
     bgSource = (j['bgSource'] as String?) ?? bgSource;
     if (j['defaultElemColor'] is String) {

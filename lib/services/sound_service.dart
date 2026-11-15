@@ -111,13 +111,27 @@ class SoundService {
   // Tiếng tích – tắc của quả lắc (2 trình phát dùng lại, không tạo mới mỗi giây)
   // ------------------------------------------------------------------
   final AudioPlayer _tickA = AudioPlayer(), _tockB = AudioPlayer();
+  bool _tickReady = false;
+
+  /// Nạp sẵn tiếng tích – tắc 1 lần, sau đó mỗi giây chỉ tua về đầu rồi phát (nhẹ, không trễ).
+  Future<void> _prepareTick() async {
+    _tickReady = true;
+    for (final (p, f) in [(_tickA, 'tick'), (_tockB, 'tock')]) {
+      await p.setReleaseMode(ReleaseMode.stop);
+      await p.setSource(AssetSource('sounds/$f.mp3'));
+    }
+  }
 
   Future<void> tick(bool even) async {
-    final p = even ? _tickA : _tockB;
     try {
-      await p.stop();
-      await p.play(AssetSource('sounds/${even ? 'tick' : 'tock'}.mp3'), volume: volume * 0.35);
-    } catch (_) {}
+      if (!_tickReady) await _prepareTick();
+      final p = even ? _tickA : _tockB;
+      await p.setVolume((volume * 0.8).clamp(0.0, 1.0));
+      await p.seek(Duration.zero);
+      await p.resume();
+    } catch (_) {
+      _tickReady = false;
+    }
   }
 
   /// Nghe thử một âm báo thức (không lặp).

@@ -13,12 +13,12 @@ OUT = os.path.join(os.path.dirname(__file__), '..', 'assets', 'sounds')
 
 def click(f1, f2, seed):
     rng = np.random.default_rng(seed)
-    t = np.arange(int(SR * 0.12)) / SR
-    env = np.exp(-t / 0.012)
+    t = np.arange(int(SR * 0.18)) / SR
+    env = np.exp(-t / 0.03)
     body = 0.6 * np.sin(2 * np.pi * f1 * t) * np.exp(-t / 0.02) + 0.35 * np.sin(2 * np.pi * f2 * t) * np.exp(-t / 0.01)
     noise = rng.normal(0, 1, len(t)) * np.exp(-t / 0.002) * 0.5
     x = body * env + noise
-    return x / np.max(np.abs(x)) * 0.7
+    return x / np.max(np.abs(x)) * 0.98
 
 
 def save(name, x):
