@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:dream_watch/models/clock_theme.dart';
-import 'package:dream_watch/services/pro_code.dart';
 import 'package:dream_watch/widgets/dream_clock.dart';
 import 'package:dream_watch/widgets/pendulum_clock.dart';
 import 'package:flutter/material.dart';
@@ -12,13 +11,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  test('Mã Pro: mã tạo bằng tool hợp lệ, mã bừa thì không', () {
-    expect(isValidProCode('DW-ABXC-49LY'), isTrue);
-    expect(isValidProCode('dw abxc 49ly'), isTrue);
-    expect(isValidProCode('DW-ABXC-49LZ'), isFalse);
-    expect(isValidProCode('hello'), isFalse);
-  });
 
   test('vẽ thử đồng hồ quả lắc', () async {
     // máy test không có font chữ thật → nạp font hệ thống (nếu có) để nhìn rõ con số

@@ -82,22 +82,28 @@ class _EditionCard extends StatefulWidget {
 }
 
 class _EditionCardState extends State<_EditionCard> {
-  final _code = TextEditingController();
-  String? _err;
-
-  @override
-  void dispose() {
-    _code.dispose();
-    super.dispose();
-  }
-
-  void _unlock() {
-    if (app.unlockPro(_code.text)) {
-      setState(() => _err = null);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('🎉 Đã mở khoá bản Pro! Cảm ơn bạn đã ủng hộ.')));
-    } else {
-      setState(() => _err = 'Mã chưa đúng. Mã có dạng DW-XXXX-XXXX.');
+  Future<void> _enablePro() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bật bản Pro (miễn phí)'),
+        content: const Text(
+            'Bản Pro mở toàn bộ tính năng: ảnh riêng, 3D, hiệu ứng, lễ hội, hình nền, giọng đọc…\n\n'
+            '⚠️ Lưu ý: bản Pro dùng nhiều hiệu ứng và lưu ảnh riêng trong máy nên chiếm nhiều dung lượng hơn, '
+            'tốn pin hơn và cần điện thoại khoẻ hơn. Máy yếu có thể bị giật; khi đó có thể quay về bản Standard '
+            'bất cứ lúc nào, ảnh và cài đặt vẫn được giữ.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Để sau')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Bật Pro')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      app.enablePro();
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('⭐ Đã bật bản Pro. Chúc bạn tạo chiếc đồng hồ mộng mơ của riêng mình!')));
+      }
     }
   }
 
@@ -113,7 +119,7 @@ class _EditionCardState extends State<_EditionCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('⭐ Bản Pro đã mở khoá', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const Text('⭐ Đang dùng bản Pro (miễn phí)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               const Text('Mặt đồng hồ:'),
               const SizedBox(height: 6),
@@ -130,7 +136,7 @@ class _EditionCardState extends State<_EditionCard> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: app.backToStandard,
-                  child: const Text('Dùng thử lại bản Standard', style: TextStyle(fontSize: 12)),
+                  child: const Text('Quay về bản Standard (nhẹ máy hơn)', style: TextStyle(fontSize: 12)),
                 ),
               ),
             ],
@@ -150,7 +156,7 @@ class _EditionCardState extends State<_EditionCard> {
             const Text('Đồng hồ quả lắc: 12 con số xoay, nhảy bậc thang như bản mộng mơ, kèm chuông Big Ben.',
                 style: TextStyle(fontSize: 13, color: Colors.white70)),
             const SizedBox(height: 10),
-            const Text('⭐ Bản Pro có thêm:', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('⭐ Bản Pro (miễn phí) có thêm:', style: TextStyle(fontWeight: FontWeight.w600)),
             const Text(
               '• 12 hình ảnh của chính bạn thay cho con số\n'
               '• Biến ảnh thành 3D, pha lê, siêu anh hùng, bọc lửa, nước, sấm sét…\n'
@@ -160,20 +166,11 @@ class _EditionCardState extends State<_EditionCard> {
               '• Hình nền của bạn, lưu & chia sẻ bộ cấu hình',
               style: TextStyle(fontSize: 13, height: 1.5),
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _code,
-              textCapitalization: TextCapitalization.characters,
-              decoration: InputDecoration(
-                labelText: 'Mã mở khoá Pro',
-                hintText: 'DW-XXXX-XXXX',
-                errorText: _err,
-                border: const OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _unlock(),
-            ),
             const SizedBox(height: 8),
-            FilledButton.icon(onPressed: _unlock, icon: const Icon(Icons.lock_open), label: const Text('Mở khoá Pro')),
+            const Text('Bản Pro cũng miễn phí, chỉ nặng máy hơn vì nhiều hiệu ứng và ảnh riêng.',
+                style: TextStyle(fontSize: 12.5, color: Colors.white60)),
+            const SizedBox(height: 8),
+            FilledButton.icon(onPressed: _enablePro, icon: const Icon(Icons.star), label: const Text('Bật bản Pro (miễn phí)')),
           ],
         ),
       ),

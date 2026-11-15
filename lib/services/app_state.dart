@@ -13,7 +13,6 @@ import '../themes/season_theme.dart';
 import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
 import 'blob_store.dart';
-import 'pro_code.dart';
 import 'speech.dart';
 import 'voice_recorder.dart';
 import 'sound_service.dart';
@@ -69,19 +68,17 @@ class AppState extends ChangeNotifier {
 
   /// Theme mùa & lễ hội: 'off' = tắt, 'auto' = tự động theo ngày, hoặc id theme.
   // ---- Bản Standard / Pro ----
-  /// Standard: đồng hồ quả lắc số nhảy múa + chuông Big Ben. Pro: mở khoá bằng mã.
+  /// Standard: đồng hồ quả lắc + 12 con số + chuông Big Ben (nhẹ máy). Pro: miễn phí, đủ tính năng, nặng máy hơn.
   bool isPro = false;
   String faceStyle = 'dream'; // Pro chọn mặt: 'dream' (hình ảnh mộng mơ) | 'pendulum' (quả lắc)
   bool tickTock = false; // tiếng tích tắc của quả lắc
   bool get showPendulum => !isPro || faceStyle == 'pendulum';
 
-  /// Mở khoá Pro. Trả về false nếu mã sai.
-  bool unlockPro(String code) {
-    if (!isValidProCode(code)) return false;
+  /// Bật bản Pro (miễn phí; chỉ nặng máy hơn).
+  void enablePro() {
     isPro = true;
     _prefs.setString('edition', 'pro');
     notifyListeners();
-    return true;
   }
 
   /// Quay về bản Standard (dữ liệu Pro vẫn giữ, mở khoá lại là có).
