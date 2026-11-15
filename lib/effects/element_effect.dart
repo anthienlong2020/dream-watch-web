@@ -26,8 +26,12 @@ const Map<ElementType, String> kElementNames = {
   ElementType.kim: '🛡️ Kim (vàng kim)',
   ElementType.phaLe: '💎 Tượng pha lê',
   ElementType.haoQuangNgan: '✨ Hào quang – tóc dựng',
-  ElementType.haoQuangDai: '✨ Hào quang – tóc dài',
+  ElementType.haoQuangDai: '✨ Hào quang – tóc dựng', // đã bỏ tóc dài, dùng như tóc dựng
 };
+
+/// Các hệ hiện trong danh sách chọn (đã bỏ "tóc dài").
+final List<ElementType> kElementChoices =
+    ElementType.values.where((e) => e != ElementType.haoQuangDai).toList();
 
 /// Hệ nào dùng thêm lựa chọn màu.
 bool elementHasColor(ElementType e) =>
@@ -100,7 +104,9 @@ Color elemColorValue(ElementType e, ElemColor c, double t) {
 
 ElementType elementFromName(String? s) => s == 'khoi'
     ? ElementType.may // hệ Gió/Khói cũ đã gộp vào Mây
-    : ElementType.values.firstWhere((e) => e.name == s, orElse: () => ElementType.none);
+    : s == 'haoQuangDai'
+        ? ElementType.haoQuangNgan // tóc dài đã bỏ → chuyển sang tóc dựng
+        : ElementType.values.firstWhere((e) => e.name == s, orElse: () => ElementType.none);
 
 // ---------------------------------------------------------------------
 // Đường viền của hình (để lửa bốc ra đúng mép, sét loé quanh người)

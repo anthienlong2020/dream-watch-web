@@ -1249,7 +1249,7 @@ class _StyleSettings extends StatelessWidget {
         const order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0];
         final stylesN = <ImageStyle?>[null, ...ImageStyle.values];
         final bodiesN = <BodyType?>[null, ...BodyType.values];
-        final elemsN = <ElementType?>[null, ...ElementType.values];
+        final elemsN = <ElementType?>[null, ...kElementChoices];
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -1282,7 +1282,7 @@ class _StyleSettings extends StatelessWidget {
                       (v) => kImageStyleNames[v]!, (v) => app.update(() => app.defaultStyle = v)),
                   body: _drop<BodyType>(app.defaultBody, BodyType.values,
                       (v) => 'Dáng: ${kBodyTypeNames[v]!}', (v) => app.update(() => app.defaultBody = v)),
-                  element: _drop<ElementType>(app.defaultElement, ElementType.values,
+                  element: _drop<ElementType>(app.defaultElement, kElementChoices,
                       (v) => 'Hệ: ${kElementNames[v]!}',
                       (v) => app.update(() => app.defaultElement = v)),
                   color: elementHasColor(app.defaultElement)

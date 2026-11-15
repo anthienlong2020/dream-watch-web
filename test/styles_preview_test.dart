@@ -51,7 +51,7 @@ void main() {
       (ImageStyle.phuDieu, ElementType.kim),
       (ImageStyle.thoiPhong, ElementType.phaLe),
       (ImageStyle.thoiPhong, ElementType.haoQuangNgan),
-      (ImageStyle.standard, ElementType.haoQuangDai),
+      (ImageStyle.standard, ElementType.phaLe),
       (ImageStyle.heroNam, ElementType.none),
       (ImageStyle.heroNu, ElementType.none),
       (ImageStyle.heroNam, ElementType.kim),
