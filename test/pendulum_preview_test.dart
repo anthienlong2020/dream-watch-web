@@ -33,6 +33,9 @@ void main() {
       }
       await precacheImage(const AssetImage('assets/standard/head_numbers.webp'), ctx);
       await precacheImage(const AssetImage('assets/standard/trunk.webp'), ctx);
+      for (final n in ['hour', 'minute', 'second']) {
+        await precacheImage(AssetImage('assets/standard/hand_$n.webp'), ctx);
+      }
       await precacheImage(const AssetImage('assets/standard/pendulum.webp'), ctx);
     });
     await tester.pump(const Duration(milliseconds: 200));

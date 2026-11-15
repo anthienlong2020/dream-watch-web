@@ -47,7 +47,21 @@ class _ClassicDialState extends State<ClassicDial> with SingleTickerProviderStat
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _c,
-                builder: (context, _) => CustomPaint(painter: _HandsPainter(DateTime.now(), ring)),
+                builder: (context, _) {
+                  final now = DateTime.now();
+                  final h = now.hour % 12, m = now.minute, sec = now.second, ms = now.millisecond;
+                  final hourA = (h + m / 60 + sec / 3600) / 12 * 2 * math.pi;
+                  final minA = (m + sec / 60) / 60 * 2 * math.pi;
+                  // kim giây nhảy từng tích, nảy nhẹ như máy cơ
+                  final bounce = ms < 150 ? math.sin(ms / 150 * math.pi) * 0.15 : 0.0;
+                  final secA = (sec + bounce) / 60 * 2 * math.pi;
+                  final c = Offset(s / 2, s / 2);
+                  return Stack(children: [
+                    ..._hand(_kHour, c, hourA, ring * 0.62),
+                    ..._hand(_kMinute, c, minA, ring * 0.93),
+                    ..._hand(_kSecond, c, secA, ring * 0.98),
+                  ]);
+                },
               ),
             ),
           ]),
@@ -57,102 +71,37 @@ class _ClassicDialState extends State<ClassicDial> with SingleTickerProviderStat
   }
 }
 
-class _HandsPainter extends CustomPainter {
-  final DateTime now;
-  final double ring;
-  _HandsPainter(this.now, this.ring);
+/// Ảnh kim (Gemini tạo, đã tách nền): kích thước ảnh, tâm lỗ trục, đỉnh mũi kim.
+class _HandSprite {
+  final String asset;
+  final double w, h, px, py, tipY;
+  const _HandSprite(this.asset, this.w, this.h, this.px, this.py, this.tipY);
+}
 
-  // kim đồng vàng như ảnh mẫu, viền đồng sẫm để nổi trên mặt đồng thau
-  static const _gold = Color(0xFFD9B45A);
-  static const _goldHi = Color(0xFFFFF0B8);
-  static const _edge = Color(0xFF4A3210);
+const _kHour = _HandSprite('assets/standard/hand_hour.webp', 94, 402, 51.5, 363.2, 6);
+const _kMinute = _HandSprite('assets/standard/hand_minute.webp', 82, 434, 43.2, 348.9, 6);
+const _kSecond = _HandSprite('assets/standard/hand_second.webp', 45, 451, 22.5, 340, 6);
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final h = now.hour % 12, m = now.minute, s = now.second, ms = now.millisecond;
-    final hourA = (h + m / 60 + s / 3600) / 12 * 2 * math.pi;
-    final minA = (m + s / 60) / 60 * 2 * math.pi;
-    // kim giây nhảy từng tic, nảy nhẹ như máy cơ
-    final bounce = ms < 150 ? math.sin(ms / 150 * math.pi) * 0.15 : 0.0;
-    final secA = (s + bounce) / 60 * 2 * math.pi;
-
-    _ornateHand(canvas, c, hourA, ring * 0.62, ring * 0.1);
-    _ornateHand(canvas, c, minA, ring * 0.92, ring * 0.075);
-    // kim giây mảnh màu đồng
-    _rotated(canvas, c, secA, () {
-      final p = Paint()
-        ..color = const Color(0xFF8B5A1A)
-        ..strokeWidth = math.max(1.2, ring * 0.012)
-        ..strokeCap = StrokeCap.round;
-      canvas.drawLine(Offset(0, ring * 0.2), Offset(0, -ring * 0.95), p);
-      canvas.drawCircle(Offset(0, ring * 0.16), ring * 0.035, Paint()..color = const Color(0xFF8B5A1A));
-    });
-    // trục giữa
-    canvas.drawCircle(c, ring * 0.06,
-        Paint()
-          ..shader = const RadialGradient(colors: [Color(0xFFFFF1B0), Color(0xFF9C7420)])
-              .createShader(Rect.fromCircle(center: c, radius: ring * 0.06)));
-    canvas.drawCircle(c, ring * 0.022, Paint()..color = _edge);
-  }
-
-  void _rotated(Canvas canvas, Offset c, double a, void Function() draw) {
-    canvas.save();
-    canvas.translate(c.dx, c.dy);
-    canvas.rotate(a);
-    draw();
-    canvas.restore();
-  }
-
-  /// Kim chạm hoa: thân thon, vòng hoa văn ở giữa, đầu mũi giáo; vẽ hướng lên (12 giờ) rồi xoay.
-  void _ornateHand(Canvas canvas, Offset c, double a, double len, double w) {
-    // bóng đổ
-    canvas.save();
-    canvas.translate(2, 3);
-    _rotated(canvas, c, a, () => _handShape(canvas, len, w, const Color(0x55000000), blur: true));
-    canvas.restore();
-    // viền sẫm phía dưới rồi thân vàng phía trên → kim nổi rõ
-    _rotated(canvas, c, a, () => _handShape(canvas, len, w * 1.35, _edge));
-    _rotated(canvas, c, a, () => _handShape(canvas, len, w, _gold));
-  }
-
-  void _handShape(Canvas canvas, double len, double w, Color col, {bool blur = false}) {
-    final p = Paint()..color = col;
-    if (blur) p.maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.4);
-    final stroke = Paint()
-      ..color = col
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.32
-      ..strokeCap = StrokeCap.round;
-    if (blur) stroke.maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.4);
-    // đuôi kim
-    canvas.drawLine(Offset(0, len * 0.18), Offset(0, -len * 0.3), stroke..strokeWidth = w * 0.45);
-    canvas.drawCircle(Offset(0, len * 0.18), w * 0.45, p);
-    // vòng hoa văn (2 vòng lồng nhau)
-    final ringC = Offset(0, -len * 0.42);
-    canvas.drawCircle(ringC, w * 1.15, stroke..strokeWidth = w * 0.3);
-    canvas.drawCircle(ringC + Offset(-w * 0.7, -w * 0.9), w * 0.55, stroke..strokeWidth = w * 0.22);
-    canvas.drawCircle(ringC + Offset(w * 0.7, -w * 0.9), w * 0.55, stroke);
-    // thân mảnh lên đầu mũi
-    canvas.drawLine(ringC + Offset(0, -w * 1.1), Offset(0, -len * 0.82), stroke..strokeWidth = w * 0.32);
-    // mũi giáo
-    final tip = Path()
-      ..moveTo(0, -len)
-      ..quadraticBezierTo(w * 1.1, -len * 0.86, 0, -len * 0.78)
-      ..quadraticBezierTo(-w * 1.1, -len * 0.86, 0, -len)
-      ..close();
-    canvas.drawPath(tip, p);
-    if (!blur) {
-      if (col == _gold) {
-        // ánh kim dọc thân kim
-        canvas.drawLine(Offset(-w * 0.06, -len * 0.5), Offset(-w * 0.06, -len * 0.82),
-            Paint()
-              ..color = _goldHi
-              ..strokeWidth = math.max(0.6, w * 0.09));
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_HandsPainter o) => o.now != now || o.ring != ring;
+/// Một kim ảnh: phóng sao cho từ trục tới mũi dài [len], xoay quanh lỗ trục; có bóng đổ nhẹ.
+List<Widget> _hand(_HandSprite sp, Offset c, double angle, double len) {
+  final k = len / (sp.py - sp.tipY);
+  final w = sp.w * k, h = sp.h * k;
+  final align = Alignment(sp.px / sp.w * 2 - 1, sp.py / sp.h * 2 - 1);
+  Widget img(Offset shift, {bool shadow = false}) => Positioned(
+        left: c.dx - sp.px * k + shift.dx,
+        top: c.dy - sp.py * k + shift.dy,
+        width: w,
+        height: h,
+        child: Transform.rotate(
+          angle: angle,
+          alignment: align,
+          child: shadow
+              ? ColorFiltered(
+                  colorFilter: const ColorFilter.mode(Color(0x66000000), BlendMode.srcIn),
+                  child: Image.asset(sp.asset, fit: BoxFit.fill),
+                )
+              : Image.asset(sp.asset, fit: BoxFit.fill),
+        ),
+      );
+  return [img(Offset(len * 0.025, len * 0.04), shadow: true), img(Offset.zero)];
 }
