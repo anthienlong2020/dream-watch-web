@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../widgets/pendulum_clock.dart';
+
 import '../services/app_state.dart';
 import '../themes/event_background.dart';
 import '../themes/theme_overlay.dart';
@@ -22,6 +24,23 @@ class ClockScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
+        // Bản Standard (hoặc Pro chọn mặt quả lắc): đồng hồ quả lắc số nhảy múa
+        if (app.showPendulum) {
+          return ColoredBox(
+            color: Colors.black,
+            child: SafeArea(
+              child: TickBuilder(
+                interval: const Duration(seconds: 30),
+                builder: (_) => PendulumClock(
+                  dateText: formatDateVn(DateTime.now()),
+                  onTick: (even) {
+                    if (app.tickTock && app.started) app.sound.tick(even);
+                  },
+                ),
+              ),
+            ),
+          );
+        }
         final season = app.activeSeason();
         final accent = season?.accent ?? kCyan;
         // Lễ hội có ảnh nền riêng → dùng ảnh nền đó (hợp màu với hiệu ứng)

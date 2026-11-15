@@ -23,9 +23,22 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Cài đặt')),
       // Mỗi phần tự lắng nghe [app] để cập nhật khi cài đặt thay đổi.
-      body: ListView(
+      body: ListenableBuilder(
+        listenable: app,
+        builder: (context, _) => ListView(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
-        children: const [
+        children: [
+          const _Header('Phiên bản'),
+          const _EditionCard(),
+          if (!app.isPro) ...const [
+            _Header('Âm báo mỗi giờ'),
+            _ChimeSettings(),
+            SizedBox(height: 16),
+            Center(
+              child: Text('Phiên bản: $kBuildVersion',
+                  style: TextStyle(fontSize: 12, color: Colors.white38)),
+            ),
+          ] else ...const [
           _Header('Bộ cấu hình của tôi'),
           _PresetSettings(),
           _Header('Theme mùa & lễ hội'),
@@ -49,7 +62,9 @@ class SettingsScreen extends StatelessWidget {
             child: Text('Phiên bản: $kBuildVersion',
                 style: TextStyle(fontSize: 12, color: Colors.white38)),
           ),
+          ],
         ],
+        ),
       ),
     );
   }
@@ -57,6 +72,114 @@ class SettingsScreen extends StatelessWidget {
 
 /// Mã phiên bản (gắn lúc build trên GitHub) để biết điện thoại đã tải bản mới chưa.
 const String kBuildVersion = String.fromEnvironment('BUILD_VERSION', defaultValue: 'thử nghiệm');
+
+/// Thẻ phiên bản: Standard / Pro, nhập mã mở khoá, chọn mặt đồng hồ (Pro).
+class _EditionCard extends StatefulWidget {
+  const _EditionCard();
+
+  @override
+  State<_EditionCard> createState() => _EditionCardState();
+}
+
+class _EditionCardState extends State<_EditionCard> {
+  final _code = TextEditingController();
+  String? _err;
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
+
+  void _unlock() {
+    if (app.unlockPro(_code.text)) {
+      setState(() => _err = null);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('🎉 Đã mở khoá bản Pro! Cảm ơn bạn đã ủng hộ.')));
+    } else {
+      setState(() => _err = 'Mã chưa đúng. Mã có dạng DW-XXXX-XXXX.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      ListenableBuilder(listenable: app, builder: (context, _) => _build(context));
+
+  Widget _build(BuildContext context) {
+    if (app.isPro) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('⭐ Bản Pro đã mở khoá', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              const Text('Mặt đồng hồ:'),
+              const SizedBox(height: 6),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'dream', label: Text('Hình ảnh mộng mơ')),
+                  ButtonSegment(value: 'pendulum', label: Text('Quả lắc số nhảy múa')),
+                ],
+                selected: {app.faceStyle == 'pendulum' ? 'pendulum' : 'dream'},
+                showSelectedIcon: false,
+                onSelectionChanged: (v) => app.update(() => app.faceStyle = v.first),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: app.backToStandard,
+                  child: const Text('Dùng thử lại bản Standard', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Bạn đang dùng bản Standard (miễn phí)',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            const Text('Đồng hồ quả lắc với 12 con số nhảy múa và chuông Big Ben.',
+                style: TextStyle(fontSize: 13, color: Colors.white70)),
+            const SizedBox(height: 10),
+            const Text('⭐ Bản Pro có thêm:', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text(
+              '• 12 hình ảnh của chính bạn thay cho con số\n'
+              '• Biến ảnh thành 3D, pha lê, siêu anh hùng, bọc lửa, nước, sấm sét…\n'
+              '• Gần 30 lễ hội tự đổi theo ngày, ảnh nền riêng từng lễ\n'
+              '• Giọng đọc "Bây giờ là 5 giờ chiều", nhiều kiểu chuông\n'
+              '• Lời nhắc bằng chữ hoặc giọng tự ghi âm\n'
+              '• Hình nền của bạn, lưu & chia sẻ bộ cấu hình',
+              style: TextStyle(fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _code,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'Mã mở khoá Pro',
+                hintText: 'DW-XXXX-XXXX',
+                errorText: _err,
+                border: const OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => _unlock(),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.icon(onPressed: _unlock, icon: const Icon(Icons.lock_open), label: const Text('Mở khoá Pro')),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _Header extends StatelessWidget {
   final String text;
@@ -525,6 +648,8 @@ class _ChimeSettings extends StatelessWidget {
 
   Widget _build(BuildContext context) {
     final on = app.chimeEnabled;
+    // Bản Standard: luôn là chuông Big Ben, không giọng đọc
+    final mode = app.isPro ? app.chimeMode : 'westminster';
     final hours = List<int>.generate(24, (i) => i);
     return Card(
       child: Column(
@@ -535,6 +660,13 @@ class _ChimeSettings extends StatelessWidget {
             value: on,
             onChanged: (v) => app.update(() => app.chimeEnabled = v),
           ),
+          if (!app.isPro)
+            const ListTile(
+              leading: Text('🔔', style: TextStyle(fontSize: 22)),
+              title: Text('Chuông Big Ben (Westminster)'),
+              subtitle: Text('Bản Pro có thêm giai điệu khác và giọng đọc "Bây giờ là… giờ"'),
+            ),
+          if (app.isPro)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: DropdownButton<String>(
@@ -552,7 +684,7 @@ class _ChimeSettings extends StatelessWidget {
               onChanged: on ? (v) => app.update(() => app.chimeMode = v ?? app.chimeMode) : null,
             ),
           ),
-          if (app.chimeMode != 'chuong' && app.chimeMode != 'giong')
+          if (mode != 'chuong' && mode != 'giong')
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
               child: Row(
@@ -573,6 +705,7 @@ class _ChimeSettings extends StatelessWidget {
                 ],
               ),
             ),
+          if (app.isPro)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Row(
@@ -594,7 +727,8 @@ class _ChimeSettings extends StatelessWidget {
               ],
             ),
           ),
-          const _VoicePicker(),
+          if (app.isPro) const _VoicePicker(),
+          if (app.isPro)
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
@@ -606,14 +740,14 @@ class _ChimeSettings extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
-              app.chimeMode == 'westminster'
+              mode == 'westminster'
                   ? 'Như đồng hồ quả lắc xưa: tròn giờ ngân đủ 4 câu "téng tèng teng tèng…", '
                       'rồi chuông lớn đánh số tiếng theo giờ (3 giờ đánh 3 tiếng, 12 giờ đánh 12 tiếng).'
                   : '"Đánh số tiếng": 3 giờ đánh 3 tiếng, 12 giờ đánh 12 tiếng, như đồng hồ quả lắc.',
               style: const TextStyle(fontSize: 12.5, color: Colors.white60),
             ),
           ),
-          if (app.chimeMode == 'westminster')
+          if (mode == 'westminster')
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Wrap(
@@ -631,8 +765,8 @@ class _ChimeSettings extends StatelessWidget {
               ),
             ),
           SwitchListTile(
-            title: Text(app.chimeMode == 'westminster' ? 'Báo cả 15, 30, 45 phút' : 'Báo cả nửa giờ'),
-            subtitle: Text(app.chimeMode == 'westminster'
+            title: Text(mode == 'westminster' ? 'Báo cả 15, 30, 45 phút' : 'Báo cả nửa giờ'),
+            subtitle: Text(mode == 'westminster'
                 ? 'Mỗi 15 phút ngân thêm 1 câu: :15 một câu, :30 hai câu, :45 ba câu'
                 : 'Đánh 1 tiếng lúc :30'),
             value: app.chimeHalfHour,
@@ -677,6 +811,12 @@ class _ChimeSettings extends StatelessWidget {
                 ],
               ),
             ),
+          SwitchListTile(
+            title: const Text('Tiếng tích tắc của quả lắc'),
+            subtitle: const Text('Mỗi giây kêu "tích – tắc" nhẹ như đồng hồ thật (mặt đồng hồ quả lắc)'),
+            value: app.tickTock,
+            onChanged: (v) => app.update(() => app.tickTock = v),
+          ),
           ListTile(
             leading: const Icon(Icons.volume_up_outlined),
             title: Slider(

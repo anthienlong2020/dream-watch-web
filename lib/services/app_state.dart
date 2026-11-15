@@ -13,6 +13,7 @@ import '../themes/season_theme.dart';
 import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
 import 'blob_store.dart';
+import 'pro_code.dart';
 import 'sound_service.dart';
 
 /// Thông tin khi đang reo (báo thức hoặc hết giờ hẹn).
@@ -65,6 +66,29 @@ class AppState extends ChangeNotifier {
   bool effectsOn = true;
 
   /// Theme mùa & lễ hội: 'off' = tắt, 'auto' = tự động theo ngày, hoặc id theme.
+  // ---- Bản Standard / Pro ----
+  /// Standard: đồng hồ quả lắc số nhảy múa + chuông Big Ben. Pro: mở khoá bằng mã.
+  bool isPro = false;
+  String faceStyle = 'dream'; // Pro chọn mặt: 'dream' (hình ảnh mộng mơ) | 'pendulum' (quả lắc)
+  bool tickTock = false; // tiếng tích tắc của quả lắc
+  bool get showPendulum => !isPro || faceStyle == 'pendulum';
+
+  /// Mở khoá Pro. Trả về false nếu mã sai.
+  bool unlockPro(String code) {
+    if (!isValidProCode(code)) return false;
+    isPro = true;
+    _prefs.setString('edition', 'pro');
+    notifyListeners();
+    return true;
+  }
+
+  /// Quay về bản Standard (dữ liệu Pro vẫn giữ, mở khoá lại là có).
+  void backToStandard() {
+    isPro = false;
+    _prefs.setString('edition', 'standard');
+    notifyListeners();
+  }
+
   String seasonMode = 'auto';
   bool seasonNightDim = true; // nền sáng + lễ hội ban đêm → phủ trời chạng vạng nhẹ
   String bgSource = 'event'; // khi có lễ hội: 'event' = ảnh nền riêng của lễ hội, 'tuy_chon' = ảnh nền của tôi
@@ -160,6 +184,14 @@ class AppState extends ChangeNotifier {
 
   void _load() {
     final raw = _prefs.getString('settings');
+    // Bản quyền: người đã dùng app từ trước (thử nghiệm) được giữ bản Pro; cài mới là Standard.
+    final ed = _prefs.getString('edition');
+    if (ed == null) {
+      isPro = raw != null;
+      _prefs.setString('edition', isPro ? 'pro' : 'standard');
+    } else {
+      isPro = ed == 'pro';
+    }
     if (raw != null) {
       try {
         _applySettings(jsonDecode(raw) as Map<String, dynamic>);
@@ -225,6 +257,8 @@ class AppState extends ChangeNotifier {
         'slotElement': slotElement.map((e) => e?.name).toList(),
         'effectsOn': effectsOn,
         'seasonMode': seasonMode,
+        'faceStyle': faceStyle,
+        'tickTock': tickTock,
         'seasonNightDim': seasonNightDim,
         'bgSource': bgSource,
         'defaultElemColor': defaultElemColor.name,
@@ -277,6 +311,8 @@ class AppState extends ChangeNotifier {
     }
     effectsOn = (j['effectsOn'] as bool?) ?? effectsOn;
     seasonMode = (j['seasonMode'] as String?) ?? seasonMode;
+    faceStyle = (j['faceStyle'] as String?) ?? faceStyle;
+    tickTock = (j['tickTock'] as bool?) ?? tickTock;
     seasonNightDim = (j['seasonNightDim'] as bool?) ?? seasonNightDim;
     bgSource = (j['bgSource'] as String?) ?? bgSource;
     if (j['defaultElemColor'] is String) {
@@ -744,7 +780,7 @@ class AppState extends ChangeNotifier {
     if (t.minute == 0) {
       playHourChime(t.hour);
     } else if (chimeHalfHour) {
-      if (chimeMode == 'westminster') {
+      if (chimeMode == 'westminster' || !isPro) {
         // nhạc chuông nhà thờ lúc 15, 30, 45 phút
         if (t.minute % 15 == 0) sound.playWestminster(t.minute ~/ 15);
       } else if (t.minute == 30) {
@@ -771,6 +807,12 @@ class AppState extends ChangeNotifier {
   void playHourChime(int hour) {
     final count = hour % 12 == 0 ? 12 : hour % 12;
     _syncVoice();
+    if (!isPro) {
+      // Standard: chuông Big Ben (Westminster) + đánh số tiếng, không giọng đọc
+      sound.voice = 'tat';
+      sound.playWestminsterHour(count, hour: hour);
+      return;
+    }
     switch (chimeMode) {
       case 'chuong':
         sound.playChime();

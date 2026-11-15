@@ -100,6 +100,19 @@ class SoundService {
     await playStrikes(count, hour: hour, run: run);
   }
 
+  // ------------------------------------------------------------------
+  // Tiếng tích – tắc của quả lắc (2 trình phát dùng lại, không tạo mới mỗi giây)
+  // ------------------------------------------------------------------
+  final AudioPlayer _tickA = AudioPlayer(), _tockB = AudioPlayer();
+
+  Future<void> tick(bool even) async {
+    final p = even ? _tickA : _tockB;
+    try {
+      await p.stop();
+      await p.play(AssetSource('sounds/${even ? 'tick' : 'tock'}.mp3'), volume: volume * 0.35);
+    } catch (_) {}
+  }
+
   /// Nghe thử một âm báo thức (không lặp).
   Future<void> preview(String sound) => _playOnce(sound);
 
