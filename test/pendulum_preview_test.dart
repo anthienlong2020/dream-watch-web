@@ -23,9 +23,11 @@ void main() {
       '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
       '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
     ]) {
+      print('font $f: ${File(f).existsSync()}');
       if (File(f).existsSync()) {
         final bytes = File(f).readAsBytesSync();
-        await (FontLoader('Roboto')..addFont(Future.value(ByteData.view(bytes.buffer)))).load();
+        await (FontLoader('PreviewSans')..addFont(Future.value(ByteData.view(bytes.buffer)))).load();
+        PendulumPainter.fontFamily = 'PreviewSans';
         break;
       }
     }

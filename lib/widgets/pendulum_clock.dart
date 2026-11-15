@@ -61,6 +61,9 @@ class PendulumPainter extends CustomPainter {
 
   static final Map<String, TextPainter> _digits = {};
 
+  /// Chỉ dùng cho ảnh xem thử khi test (máy test không có font mặc định).
+  static String? fontFamily;
+
   double get t => now.millisecondsSinceEpoch % 10000000 / 1000.0;
 
   @override
@@ -105,7 +108,8 @@ class PendulumPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
             text: dateText,
-            style: TextStyle(color: const Color(0xFF3E2723), fontSize: cw * 0.032, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                fontFamily: fontFamily, color: const Color(0xFF3E2723), fontSize: cw * 0.032, fontWeight: FontWeight.w600)),
         textDirection: TextDirection.ltr,
         maxLines: 1,
         ellipsis: '…',
@@ -377,7 +381,8 @@ class PendulumPainter extends CustomPainter {
 
   /// Chữ số 2 lớp: viền trắng dày phía dưới + màu chuyển sắc phía trên.
   (TextPainter, TextPainter) _digit(int n, double s, Color col) {
-    final style = TextStyle(fontSize: s * 1.15, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -s * 0.08);
+    final style = TextStyle(
+        fontFamily: fontFamily, fontSize: s * 1.15, fontWeight: FontWeight.w900, height: 1.0, letterSpacing: -s * 0.08);
     TextPainter make(String key, Paint fg) => _digits.putIfAbsent(key, () {
           if (_digits.length > 80) _digits.clear();
           return TextPainter(
@@ -407,7 +412,7 @@ class PendulumPainter extends CustomPainter {
     final key = '$g|${s.round()}|${col.toARGB32()}';
     return _digits.putIfAbsent(key, () {
       return TextPainter(
-        text: TextSpan(text: g, style: TextStyle(fontSize: s, color: col, fontWeight: FontWeight.w700)),
+        text: TextSpan(text: g, style: TextStyle(fontFamily: fontFamily, fontSize: s, color: col, fontWeight: FontWeight.w700)),
         textDirection: TextDirection.ltr,
       )..layout();
     });
