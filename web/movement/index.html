@@ -315,7 +315,7 @@ function dialTexture() {
     g.lineWidth = (big ? 0.9 : 0.35) * k; g.beginPath();
     g.moveTo(Math.sin(a) * r0, -Math.cos(a) * r0); g.lineTo(Math.sin(a) * r1, -Math.cos(a) * r1); g.stroke();
   }
-  const R = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+  const R = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 0.6 * k;
   R.forEach((t, i) => {
@@ -342,7 +342,7 @@ const dial = new THREE.Group(); clock.add(dial);
   // dial feet to front plate
   [[-40, -38], [40, -38], [0, 54]].forEach(([x, y]) => dial.add(rod(0.9, -6, 0.4, M.brass, x, y)));
 }
-tag(dial, 'Mặt số trong suốt', 'Mặt kính in số La Mã từ I đến XII. Ô nhỏ phía trên là mặt giây, gắn thẳng vào trục bánh thoát.');
+tag(dial, 'Mặt số trong suốt', 'Mặt kính in số La Mã; số 4 viết "IIII" theo lối đồng hồ cổ (cân đối với VIII ở bên kia). Ô nhỏ phía trên là mặt giây, gắn thẳng vào trục bánh thoát.');
 
 // ---------- hands ----------
 function handShape(len, w, tail, tip = 'spade') {
