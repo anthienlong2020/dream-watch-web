@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 enum Motion { fall, rise, fly, wander, burst, twinkle, garland, moon, collide, aurora, waterfall, sleigh, bounce, bloom, pair, firecracker, drift, hangNga, cake }
 
 /// Hình dạng hạt (vẽ bằng code) hoặc emoji.
-enum Shape { dot, petal, leaf, snowflake, confetti, heart, sparkle, balloon, lantern, bat, feather, firefly, emoji, sun, waterBall, envelope, tomato, festivalLantern, skyLantern, lotusLantern }
+enum Shape { dot, petal, leaf, snowflake, confetti, heart, sparkle, balloon, lantern, bat, feather, firefly, emoji, sun, waterBall, vnFlag, envelope, tomato, festivalLantern, skyLantern, lotusLantern }
 
 class Layer {
   final Motion motion;
@@ -48,7 +48,7 @@ class SeasonTheme {
   /// chỉ nổi khi nền tối, nên nền sáng sẽ được phủ "trời chạng vạng" nhẹ.
   bool get night => const {
         'tet', 'giangSinh', 'trungThu', 'halloween', 'diwali', 'hoiAn', 'phatGiao',
-        'thaDen', 'quocKhanh', 'diaDeMuertos',
+        'thaDen', 'diaDeMuertos',
       }.contains(id);
 
   const SeasonTheme({
@@ -221,15 +221,16 @@ List<SeasonTheme> allThemes(DateTime now) => [
       const SeasonTheme(
         id: 'trungThu', name: 'Tết Trung Thu', emoji: '🏮', accent: Color(0xFFFFB300), glow: Color(0x33FFA000),
         layers: [
-          Layer(motion: Motion.moon, shape: Shape.dot, count: 1, colors: [Color(0xFFFFF8E1)]),
+          // trăng rằm to, có bóng cây đa và thỏ ngọc
+          Layer(motion: Motion.moon, shape: Shape.dot, count: 1, colors: [Color(0xFFFFF8E1)], maxSize: 0.11),
           Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 14, colors: [Colors.white]),
           // đèn ông sao, đèn kéo quân, đèn thỏ, đèn 12 con giáp
           Layer(motion: Motion.rise, shape: Shape.festivalLantern, count: 3,
               colors: [Color(0xFFE53935), Color(0xFFFF9800), Color(0xFFFFEB3B)], glyphs: kZodiacFullBody,
               speed: 0.022, minSize: 0.11, maxSize: 0.15, sway: 0.02),
           // chị Hằng kéo chú Cuội bay lên cung trăng
-          Layer(motion: Motion.hangNga, shape: Shape.emoji, count: 1, glyphs: ['🧚‍♀️', '🧒', '🐇'],
-              colors: [Color(0xFFFFF59D)], minSize: 0.07, maxSize: 0.07, speed: 0.04),
+          Layer(motion: Motion.hangNga, shape: Shape.dot, count: 1,
+              colors: [Color(0xFFFFF59D)], minSize: 0.2, maxSize: 0.11, speed: 0.04),
         ],
       ),
       const SeasonTheme(
@@ -347,14 +348,14 @@ List<SeasonTheme> allThemes(DateTime now) => [
         ],
       ),
       const SeasonTheme(
-        id: 'quocKhanh', name: 'Quốc khánh 2/9', emoji: '🇻🇳', accent: Color(0xFFFFD600),
-        glow: Color(0x33E53935),
+        id: 'quocKhanh', name: 'Quốc khánh 2/9', emoji: '🇻🇳', accent: Color(0xFFD32F2F),
         layers: [
-          Layer(motion: Motion.rise, shape: Shape.balloon, count: 5,
+          // cờ đỏ sao vàng nho nhỏ bay phấp phới
+          Layer(motion: Motion.fly, shape: Shape.vnFlag, count: 5, colors: [Color(0xFFDA251D)], speed: 0.05,
+              minSize: 0.05, maxSize: 0.075),
+          Layer(motion: Motion.rise, shape: Shape.balloon, count: 4,
               colors: [Color(0xFFE53935), Color(0xFFFFD600)], speed: 0.045, minSize: 0.035, maxSize: 0.05),
-          Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 10, colors: [Color(0xFFFFD600)]),
-          Layer(motion: Motion.burst, shape: Shape.dot, count: 2,
-              colors: [Color(0xFFE53935), Color(0xFFFFD600)], speed: 0.35),
+          Layer(motion: Motion.twinkle, shape: Shape.sparkle, count: 8, colors: [Color(0xFFFFEB3B)]),
         ],
       ),
       const SeasonTheme(

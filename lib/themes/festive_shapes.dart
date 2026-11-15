@@ -515,3 +515,130 @@ void drawCake(Canvas canvas, double s, double t, List<Color> colors) {
     drawFlame(canvas, Offset(x, top - s * 0.02), s * 0.03, t, i);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Quốc khánh: lá cờ đỏ sao vàng nhỏ phấp phới
+// ---------------------------------------------------------------------------
+void drawVnFlag(Canvas canvas, double s, double t, int seed) {
+  final w = s, h = s * 0.66;
+  // cán cờ
+  canvas.drawLine(Offset(-w * 0.52, -h * 0.5), Offset(-w * 0.52, h * 0.9),
+      _stroke(const Color(0xFFE0C080), math.max(1, s * 0.05)));
+  // mặt cờ gợn sóng
+  final flag = Path();
+  const n = 12;
+  for (var i = 0; i <= n; i++) {
+    final x = -w / 2 + w * i / n;
+    final y = -h / 2 + math.sin(t * 6 + seed + i * 0.6) * h * 0.08 * i / n;
+    i == 0 ? flag.moveTo(x, y) : flag.lineTo(x, y);
+  }
+  for (var i = n; i >= 0; i--) {
+    final x = -w / 2 + w * i / n;
+    final y = h / 2 + math.sin(t * 6 + seed + i * 0.6) * h * 0.08 * i / n;
+    flag.lineTo(x, y);
+  }
+  flag.close();
+  canvas.drawPath(flag, _fill(const Color(0xFFDA251D)));
+  final dy = math.sin(t * 6 + seed + n / 2 * 0.6) * h * 0.04;
+  final star = Path();
+  for (var i = 0; i < 10; i++) {
+    final a = -math.pi / 2 + i * math.pi / 5;
+    final r = i.isEven ? h * 0.3 : h * 0.12;
+    final p = Offset(math.cos(a) * r, math.sin(a) * r + dy);
+    i == 0 ? star.moveTo(p.dx, p.dy) : star.lineTo(p.dx, p.dy);
+  }
+  canvas.drawPath(star..close(), _fill(const Color(0xFFFFFF00)));
+}
+
+// ---------------------------------------------------------------------------
+// Trung Thu: chị Hằng áo dài lụa bay, tay kéo chú Cuội, dải lụa uốn lượn
+// Gốc toạ độ ở eo chị Hằng, hướng bay: lên trên – sang phải.
+// ---------------------------------------------------------------------------
+void drawHangNgaCuoi(Canvas canvas, double s, double t) {
+  final skin = _fill(const Color(0xFFFFE0C8));
+  final hair = _fill(const Color(0xFF2B1B17));
+  // dải lụa phía sau
+  for (final (col, ph, off) in [
+    (const Color(0xCCFF8FB1), 0.0, 0.0),
+    (const Color(0xCC80D8FF), 1.7, 0.08),
+  ]) {
+    final rib = Path()..moveTo(s * 0.05, -s * 0.38);
+    for (var i = 1; i <= 16; i++) {
+      final f = i / 16;
+      rib.lineTo(-s * (0.15 + 1.1 * f) - s * off, -s * 0.38 + s * 1.15 * f + math.sin(t * 3 + ph + f * 6) * s * 0.12 * f);
+    }
+    canvas.drawPath(rib, _stroke(col, s * 0.04));
+  }
+  // váy áo dài thướt tha, vạt bay về phía sau
+  final dress = Path()
+    ..moveTo(s * 0.12, -s * 0.42)
+    ..quadraticBezierTo(s * 0.2, -s * 0.05, s * 0.05, s * 0.25)
+    ..quadraticBezierTo(-s * 0.1, s * 0.62 + math.sin(t * 2.5) * s * 0.04, -s * 0.55, s * 0.72)
+    ..quadraticBezierTo(-s * 0.3, s * 0.4, -s * 0.12, s * 0.15)
+    ..quadraticBezierTo(-s * 0.1, -s * 0.2, -s * 0.04, -s * 0.42)
+    ..close();
+  canvas.drawPath(
+      dress,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFF0F5), Color(0xFFF8BBD0), Color(0xFFE1BEE7)],
+        ).createShader(Rect.fromLTWH(-s * 0.6, -s * 0.45, s * 0.85, s * 1.2)));
+  // thắt lưng vàng
+  canvas.drawLine(Offset(-s * 0.08, -s * 0.12), Offset(s * 0.16, -s * 0.14), _stroke(const Color(0xFFFFC107), s * 0.035));
+  // tay trước vươn lên về phía trăng
+  canvas.drawLine(Offset(s * 0.1, -s * 0.36), Offset(s * 0.42, -s * 0.72), _stroke(const Color(0xFFFFF0F5), s * 0.07));
+  canvas.drawCircle(Offset(s * 0.44, -s * 0.75), s * 0.035, skin);
+  // đầu nghiêng về phía trước, tóc búi cài trâm
+  final head = Offset(s * 0.1, -s * 0.55);
+  canvas.drawCircle(head + Offset(-s * 0.05, -s * 0.07), s * 0.075, hair);
+  canvas.drawCircle(head, s * 0.085, skin);
+  canvas.drawArc(Rect.fromCircle(center: head, radius: s * 0.09), math.pi * 1.05, math.pi * 0.95, true, hair);
+  canvas.drawLine(head + Offset(-s * 0.12, -s * 0.1), head + Offset(-s * 0.01, -s * 0.13),
+      _stroke(const Color(0xFFFFD54F), s * 0.015));
+  canvas.drawCircle(head + Offset(s * 0.04, s * 0.0), s * 0.01, hair);
+  canvas.drawCircle(head + Offset(s * 0.035, s * 0.04), s * 0.012, _fill(const Color(0xFFE57373)));
+  // tay sau nắm tay chú Cuội
+  final hand = Offset(-s * 0.2, s * 0.12);
+  canvas.drawLine(Offset(-s * 0.02, -s * 0.34), hand, _stroke(const Color(0xFFFFF0F5), s * 0.06));
+  // chú Cuội đung đưa phía dưới
+  final sw = math.sin(t * 2.2) * 0.18;
+  canvas.save();
+  canvas.translate(hand.dx, hand.dy);
+  canvas.rotate(sw);
+  final c = s * 0.62; // Cuội nhỏ hơn
+  canvas.drawLine(Offset.zero, Offset(-c * 0.05, c * 0.28), _stroke(const Color(0xFF8D6E63), c * 0.06)); // tay giơ lên
+  final ch = Offset(-c * 0.12, c * 0.4);
+  canvas.drawCircle(ch, c * 0.11, skin);
+  canvas.drawArc(Rect.fromCircle(center: ch, radius: c * 0.115), math.pi, math.pi, true, hair); // tóc chỏm
+  canvas.drawCircle(ch + Offset(-c * 0.03, -c * 0.12), c * 0.04, hair);
+  canvas.drawCircle(ch + Offset(c * 0.04, c * 0.0), c * 0.012, hair);
+  final body = Path()
+    ..moveTo(-c * 0.22, c * 0.5)
+    ..lineTo(c * 0.0, c * 0.5)
+    ..lineTo(c * 0.04, c * 0.85)
+    ..lineTo(-c * 0.26, c * 0.85)
+    ..close();
+  canvas.drawPath(body, _fill(const Color(0xFF8D6E63))); // áo nâu
+  canvas.drawLine(Offset(-c * 0.18, c * 0.65), Offset(-c * 0.06, c * 0.68), _stroke(const Color(0xFFFFC107), c * 0.03));
+  final kick = math.sin(t * 5) * c * 0.08;
+  canvas.drawLine(Offset(-c * 0.18, c * 0.85), Offset(-c * 0.24 - kick, c * 1.12), _stroke(const Color(0xFF3E2723), c * 0.07));
+  canvas.drawLine(Offset(-c * 0.03, c * 0.85), Offset(c * 0.0 + kick, c * 1.1), _stroke(const Color(0xFF3E2723), c * 0.07));
+  canvas.restore();
+}
+
+/// Cây đa và thỏ ngọc in bóng trên mặt trăng.
+void drawMoonBanyan(Canvas canvas, Offset c, double r) {
+  final shade = _fill(const Color(0x40705A3A));
+  final base = c + Offset(-r * 0.25, r * 0.45);
+  canvas.drawLine(base, base + Offset(0, -r * 0.45), _stroke(const Color(0x55705A3A), r * 0.08));
+  canvas.drawCircle(base + Offset(0, -r * 0.6), r * 0.28, shade);
+  canvas.drawCircle(base + Offset(-r * 0.22, -r * 0.48), r * 0.18, shade);
+  canvas.drawCircle(base + Offset(r * 0.2, -r * 0.5), r * 0.2, shade);
+  // thỏ ngọc
+  final rb = c + Offset(r * 0.35, r * 0.35);
+  canvas.drawOval(Rect.fromCenter(center: rb, width: r * 0.26, height: r * 0.18), shade);
+  canvas.drawCircle(rb + Offset(r * 0.1, -r * 0.1), r * 0.07, shade);
+  canvas.drawOval(Rect.fromCenter(center: rb + Offset(r * 0.12, -r * 0.24), width: r * 0.05, height: r * 0.16), shade);
+}

@@ -107,8 +107,9 @@ const Map<String, EventScene> kEventScenes = {
       sky: [Color(0xFF030518), Color(0xFF12183C), Color(0xFF36284C)], stars: true,
       ground: Ground.sea, groundColor: Color(0xFF070A1E)),
   'quocKhanh': EventScene(
-      sky: [Color(0xFF360000), Color(0xFF860000), Color(0xFFD02B2B)], stars: true, bokeh: true,
-      bokehColors: [Color(0xFFFFD600)], ground: Ground.city, groundColor: Color(0xFF200000)),
+      // trời xanh trong veo, nắng vàng, đồi xanh
+      sky: [Color(0xFF1E88E5), Color(0xFF64B5F6), Color(0xFFE3F2FD)], sun: true,
+      groundColor: Color(0xFF66BB6A)),
   'traiDat': EventScene(
       sky: [Color(0xFFA4E4CC), Color(0xFFD8EBBE), Color(0xFFFFD0B2)], sun: true, groundColor: Color(0xFF4E9A52)),
   'ngayCuaMe': EventScene(

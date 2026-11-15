@@ -204,30 +204,32 @@ class ThemePainter extends CustomPainter {
           canvas.restore();
           break;
         case Motion.hangNga:
-          // chị Hằng (tiên) kéo tay chú Cuội bay lên cung trăng, thỏ ngọc ngồi đón trên trăng
+          // chị Hằng kéo tay chú Cuội bay lên cung trăng; trên trăng có bóng cây đa, thỏ ngọc
+          final mr = unit * l.maxSize;
           final moon = Offset(w * 0.82, h * 0.12);
-          _emoji(canvas, l.glyphs.length > 2 ? l.glyphs[2] : '🐇', moon + Offset(-unit * 0.05, unit * 0.045),
-              sz * 0.5, 0);
+          drawMoonBanyan(canvas, moon, mr);
           final ph = (t * speed) % 1.0;
-          if (ph < 0.7) {
-            final p = Curves.easeInOut.transform(ph / 0.7);
-            final start = Offset(w * 0.12, h * 0.78);
-            final mid = Offset(w * 0.2, h * 0.3);
-            final pos = Offset.lerp(Offset.lerp(start, mid, p)!, Offset.lerp(mid, moon, p)!, p)!;
-            final fade = p > 0.85 ? (1 - p) / 0.15 : 1.0;
-            final scale = 1 - 0.55 * p;
-            // dải lụa óng ánh phía sau
-            for (var i = 1; i < 14; i++) {
-              final pp = (p - i * 0.012).clamp(0.0, 1.0);
-              final q = Offset.lerp(Offset.lerp(start, mid, pp)!, Offset.lerp(mid, moon, pp)!, pp)!;
-              canvas.drawCircle(q + Offset(math.sin(t * 4 + i) * 3, 0), sz * 0.07 * (1 - i / 14) * scale,
-                  Paint()..color = col.withAlpha((180 * fade * (1 - i / 14)).round()));
+          if (ph < 0.75) {
+            final p = Curves.easeInOut.transform(ph / 0.75);
+            final start = Offset(w * 0.15, h * 0.85);
+            final mid = Offset(w * 0.12, h * 0.35);
+            final end = moon + Offset(-mr * 0.6, mr * 0.4);
+            Offset at(double q) => Offset.lerp(Offset.lerp(start, mid, q)!, Offset.lerp(mid, end, q)!, q)!;
+            final pos = at(p);
+            final fade = p > 0.85 ? (1 - p) / 0.15 : (p < 0.06 ? p / 0.06 : 1.0);
+            final scale = 1 - 0.6 * p;
+            final s2 = unit * l.minSize * scale;
+            // vệt sáng lấp lánh phía sau
+            for (var i = 1; i < 16; i++) {
+              final q = at((p - i * 0.012).clamp(0.0, 1.0));
+              canvas.drawCircle(q + Offset(math.sin(t * 4 + i) * 3, s2 * 0.3), s2 * 0.03 * (1 - i / 16) + 0.6,
+                  Paint()..color = col.withAlpha((200 * fade * (1 - i / 16)).round()));
             }
-            if (fade > 0.05) {
-              _emoji(canvas, l.glyphs[0], pos, sz * scale, -0.2 + math.sin(t * 3) * 0.08);
-              _emoji(canvas, l.glyphs.length > 1 ? l.glyphs[1] : '🧒',
-                  pos + Offset(sz * 0.45 * scale, sz * 0.55 * scale), sz * 0.8 * scale, 0.3 + math.sin(t * 3 + 1) * 0.1);
-            }
+            canvas.saveLayer(null, Paint()..color = Color.fromRGBO(255, 255, 255, fade));
+            canvas.translate(pos.dx, pos.dy);
+            canvas.rotate(0.15 + math.sin(t * 1.5) * 0.05);
+            drawHangNgaCuoi(canvas, s2, t);
+            canvas.restore();
           }
           break;
         case Motion.cake:
@@ -239,7 +241,7 @@ class ThemePainter extends CustomPainter {
           break;
         case Motion.moon:
           final c = Offset(w * 0.82, h * 0.12);
-          final r = unit * 0.07;
+          final r = unit * (l.maxSize > 0.05 ? l.maxSize : 0.07);
           canvas.drawCircle(c, r * 1.8,
               Paint()
                 ..color = col.withAlpha(60)
@@ -829,6 +831,12 @@ class ThemePainter extends CustomPainter {
         if (l.glyphs.isEmpty) break;
         _emoji(canvas, l.glyphs[seed % l.glyphs.length], p,
             s, l.motion == Motion.fly ? 0 : math.sin(spin * 0.7) * 0.25);
+        break;
+      case Shape.vnFlag:
+        canvas.save();
+        canvas.translate(p.dx, p.dy);
+        drawVnFlag(canvas, s, t, seed);
+        canvas.restore();
         break;
       case Shape.envelope:
         canvas.save();
