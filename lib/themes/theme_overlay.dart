@@ -23,13 +23,17 @@ double _rnd(int a, int b, [int c = 0]) {
 class ThemeOverlay extends StatelessWidget {
   final SeasonTheme theme;
   final double time;
-  const ThemeOverlay({super.key, required this.theme, required this.time});
+
+  /// null = vẽ tất cả; true = chỉ lớp nền (dây cờ, dây đèn, quầng sáng) nằm dưới chữ giờ;
+  /// false = các hiệu ứng còn lại, nằm trên cùng.
+  final bool? back;
+  const ThemeOverlay({super.key, required this.theme, required this.time, this.back});
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
       child: RepaintBoundary(
-        child: CustomPaint(painter: ThemePainter(theme, time), size: Size.infinite),
+        child: CustomPaint(painter: ThemePainter(theme, time, back: back), size: Size.infinite),
       ),
     );
   }
@@ -38,14 +42,15 @@ class ThemeOverlay extends StatelessWidget {
 class ThemePainter extends CustomPainter {
   final SeasonTheme theme;
   final double t;
-  ThemePainter(this.theme, this.t);
+  final bool? back;
+  ThemePainter(this.theme, this.t, {this.back});
 
   static final Map<String, TextPainter> _emojiCache = {};
 
   @override
   void paint(Canvas canvas, Size size) {
     final g0 = theme.glow;
-    if (g0 != null) {
+    if (g0 != null && back != false) {
       // chỉ phủ màu thật nhẹ, trong suốt để không che hình nền của user
       final glow = g0.withAlpha((g0.alpha * 0.4).round());
       // quầng sáng nhẹ trên và dưới màn hình
@@ -62,7 +67,9 @@ class ThemePainter extends CustomPainter {
     }
     var li = 0;
     for (final l in theme.layers) {
-      _layer(canvas, size, l, li++);
+      final isBack = l.motion == Motion.garland;
+      if (back == null || back == isBack) _layer(canvas, size, l, li);
+      li++;
     }
   }
 
@@ -365,12 +372,7 @@ class ThemePainter extends CustomPainter {
     // vỡ: giọt nước văng ra rồi rơi xuống theo trọng lực
     final p = (ph - hit) / (1 - hit);
     final alpha = ((1 - p * p) * 230).round();
-    // giọt xanh đậm + viền + ánh trắng: nổi rõ cả trên nền xanh sáng
-    final drop = Paint()..color = const Color(0xFF1E88E5).withAlpha(alpha);
-    final edge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(0.8, unit * 0.0015)
-      ..color = const Color(0xFF0D47A1).withAlpha(alpha);
+    final drop = Paint()..color = const Color(0xFFB3E5FC).withAlpha(alpha);
     final glint = Paint()..color = Colors.white.withAlpha(alpha);
     for (var i = 0; i < 22; i++) {
       final a = _rnd(seed, cyc * 60 + i, 8) * 2 * math.pi;
@@ -380,7 +382,6 @@ class ThemePainter extends CustomPainter {
       // giọt hình nước: tròn đáy, nhọn đầu theo hướng rơi
       final dr = Rect.fromCenter(center: q, width: rr * 1.6, height: rr * 2.4);
       canvas.drawOval(dr, drop);
-      canvas.drawOval(dr, edge);
       canvas.drawCircle(q + Offset(-rr * 0.3, -rr * 0.4), rr * 0.35, glint);
     }
     // vòng nước loé ra lúc vỡ
@@ -948,7 +949,8 @@ class ThemePainter extends CustomPainter {
 /// Lớp theme tự chạy theo thời gian (có bộ đếm khung hình riêng).
 class AnimatedThemeOverlay extends StatefulWidget {
   final SeasonTheme theme;
-  const AnimatedThemeOverlay({super.key, required this.theme});
+  final bool? back;
+  const AnimatedThemeOverlay({super.key, required this.theme, this.back});
 
   @override
   State<AnimatedThemeOverlay> createState() => _AnimatedThemeOverlayState();
@@ -971,6 +973,7 @@ class _AnimatedThemeOverlayState extends State<AnimatedThemeOverlay>
       animation: _c,
       builder: (_, __) => ThemeOverlay(
         theme: widget.theme,
+        back: widget.back,
         time: (DateTime.now().millisecondsSinceEpoch % 100000000) / 1000.0,
       ),
     );

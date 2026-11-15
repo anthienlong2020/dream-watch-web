@@ -37,6 +37,8 @@ class ClockScreen extends StatelessWidget {
                   : const _Background(key: ValueKey('user-bg')),
             ),
             if (!eventBg && season != null && season.night && app.seasonNightDim) const _NightSky(),
+            // dây cờ, dây đèn treo phía trên: nằm dưới chữ giờ để không che số
+            if (season != null) Positioned.fill(child: AnimatedThemeOverlay(theme: season, back: true)),
             SafeArea(
             child: LayoutBuilder(builder: (context, c) {
               final w = c.maxWidth;
@@ -101,7 +103,7 @@ class ClockScreen extends StatelessWidget {
             }),
             ),
             // Theme mùa & lễ hội: hiệu ứng phủ lên trên, không nhận chạm
-            if (season != null) Positioned.fill(child: AnimatedThemeOverlay(theme: season)),
+            if (season != null) Positioned.fill(child: AnimatedThemeOverlay(theme: season, back: false)),
           ],
         );
       },

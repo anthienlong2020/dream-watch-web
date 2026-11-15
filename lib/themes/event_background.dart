@@ -89,8 +89,9 @@ const Map<String, EventScene> kEventScenes = {
       sky: [Color(0xFF040318), Color(0xFF120A36), Color(0xFF3A1860)], stars: true, ground: Ground.none,
       groundColor: Color(0xFF05030F), landmark: Landmark.taj),
   'songkran': EventScene(
-      sky: [Color(0xFF2A8FC8), Color(0xFF58B8E2), Color(0xFF9FDCF0)], sun: true, ground: Ground.sea,
-      groundColor: Color(0xFF1B7FB0), landmark: Landmark.thaiTemple),
+      // xanh biển đậm để bóng nước trong suốt & giọt nước nhạt nổi rõ
+      sky: [Color(0xFF0A3D66), Color(0xFF125E8C), Color(0xFF1F7FAE)], sun: true, ground: Ground.sea,
+      groundColor: Color(0xFF0A4C78), landmark: Landmark.thaiTemple),
   'hoiAn': EventScene(
       sky: [Color(0xFF0C091D), Color(0xFF2A1838), Color(0xFF5A2C18)], moon: true, stars: true,
       ground: Ground.none, groundColor: Color(0xFF0A0610), landmark: Landmark.hoiAn),
@@ -333,12 +334,12 @@ class _ScenePainter extends CustomPainter {
         break;
       case Landmark.fuji:
         // núi Phú Sĩ đỉnh tuyết + cây hoa anh đào hai bên
-        final base = h * 0.9, peak = h * 0.5;
+        final base = h * 0.93, peak = h * 0.69;
         final m = Path()
           ..moveTo(-w * 0.1, base)
-          ..quadraticBezierTo(w * 0.3, base - h * 0.08, w * 0.44, peak + h * 0.02)
-          ..lineTo(w * 0.56, peak + h * 0.02)
-          ..quadraticBezierTo(w * 0.7, base - h * 0.08, w * 1.1, base)
+          ..quadraticBezierTo(w * 0.28, base - h * 0.04, w * 0.43, peak + h * 0.01)
+          ..lineTo(w * 0.57, peak + h * 0.01)
+          ..quadraticBezierTo(w * 0.72, base - h * 0.04, w * 1.1, base)
           ..close();
         canvas.drawPath(
             m,
@@ -349,13 +350,13 @@ class _ScenePainter extends CustomPainter {
                 colors: [Color(0xFF5C6BC0), Color(0xFF7E8CC8), Color(0xFFB0A8D0)],
               ).createShader(Rect.fromLTWH(0, peak, w, base - peak)));
         final snow = Path()
-          ..moveTo(w * 0.36, peak + h * 0.075)
-          ..lineTo(w * 0.44, peak + h * 0.02)
-          ..lineTo(w * 0.56, peak + h * 0.02)
-          ..lineTo(w * 0.64, peak + h * 0.075);
+          ..moveTo(w * 0.35, peak + h * 0.06)
+          ..lineTo(w * 0.43, peak + h * 0.01)
+          ..lineTo(w * 0.57, peak + h * 0.01)
+          ..lineTo(w * 0.65, peak + h * 0.06);
         for (var i = 0; i <= 8; i++) {
-          final x = w * (0.64 - 0.28 * i / 8);
-          snow.lineTo(x, peak + h * (i.isEven ? 0.075 : 0.105));
+          final x = w * (0.65 - 0.3 * i / 8);
+          snow.lineTo(x, peak + h * (i.isEven ? 0.06 : 0.085));
         }
         snow.close();
         canvas.drawPath(snow, fill(Colors.white));
