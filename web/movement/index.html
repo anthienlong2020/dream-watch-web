@@ -22,7 +22,6 @@
   #info b{color:#f6d98b;font-size:15px;display:block;margin-bottom:3px}
   body.embed #top{display:none} body.embed #hint{top:10px}
   body.embed #bar button{padding:6px 10px;font-size:12px} body.embed #bar{bottom:8px}
-  body.embed #info{bottom:84px}
   #hint{position:fixed;top:56px;left:0;right:0;text-align:center;font-size:12px;opacity:.55;pointer-events:none;transition:opacity 1s}
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
@@ -39,6 +38,7 @@
   <button id="bSide">Nghiêng</button>
   <button id="bBack">Mặt sau</button>
   <button id="bDial" class="on">Mặt số</button>
+  <button id="bSec">⏱ Giây: ô nhỏ</button>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -303,7 +303,7 @@ tag(stand, 'Khung đỡ', 'Đế gỗ và hai trụ đồng giữ bộ máy lơ 
 
 // ---------- dial ----------
 const DIAL_R = 60;
-function dialTexture() {
+function dialTexture(sub = true) {
   const S = 2048, c = document.createElement('canvas'); c.width = c.height = S;
   const g = c.getContext('2d'), k = S / 2 / DIAL_R; g.translate(S / 2, S / 2);
   const gold = '#f3cf7a';
@@ -323,6 +323,7 @@ function dialTexture() {
     g.font = `600 ${7.2 * k}px Georgia, "Times New Roman", serif`; g.fillText(t, Math.sin(a) * rr, -Math.cos(a) * rr);
   });
   // seconds subdial
+  if (sub) {
   const sy = -P.escape.y * k;
   g.shadowBlur = 0; g.lineWidth = 0.3 * k; g.beginPath(); g.arc(0, sy, 10.5 * k, 0, TAU); g.stroke();
   for (let i = 0; i < 60; i++) {
@@ -331,12 +332,15 @@ function dialTexture() {
     g.moveTo(Math.sin(a) * r0, sy - Math.cos(a) * r0); g.lineTo(Math.sin(a) * r1, sy - Math.cos(a) * r1); g.stroke();
   }
   g.font = `italic ${2.6 * k}px Georgia, serif`; g.fillText('giây', 0, sy + 5.8 * k);
+  }
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; return tex;
 }
+const DIAL_TEX = { sub: dialTexture(true), center: dialTexture(false) };
 const dial = new THREE.Group(); clock.add(dial);
 {
   const disk = new THREE.Mesh(new THREE.CircleGeometry(DIAL_R, 96), M.glass); disk.position.z = 0.4; disk.renderOrder = 3; dial.add(disk);
-  const print = new THREE.Mesh(new THREE.CircleGeometry(DIAL_R, 96), new THREE.MeshBasicMaterial({ map: dialTexture(), transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+  const print = new THREE.Mesh(new THREE.CircleGeometry(DIAL_R, 96), new THREE.MeshBasicMaterial({ map: DIAL_TEX.sub, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+  dial.userData.print = print;
   print.position.z = 0.6; print.renderOrder = 4; dial.add(print);
   const bezel = new THREE.Mesh(new THREE.TorusGeometry(DIAL_R + 1.2, 1.8, 16, 128), M.brass); bezel.position.z = 0.4; dial.add(bezel);
   // dial feet to front plate
@@ -365,14 +369,26 @@ function hand(len, w, tail, z, mat, tip) {
 const hHour = hand(33, 2.4, 6, 1.4, HAND[handColor], 'spade'); clock.add(hHour);
 const hMin = hand(51, 1.7, 8, 2.2, HAND[handColor], 'spade'); clock.add(hMin);
 const hSec = hand(9.6, 0.7, 3, 2.5, HAND[handColor], 'needle'); hSec.position.set(P.escape.x, P.escape.y, 2.5); clock.add(hSec);
-const cap = rod(1.2, 2.5, 3.4, M.brass); clock.add(cap);
-const hands = new THREE.Group(); [hHour, hMin, hSec, cap].forEach(h => hands.add(h)); clock.add(hands);
+const hSecC = hand(54, 0.75, 13, 3.0, HAND[handColor], 'needle'); clock.add(hSecC);
+{ const cw = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.4, 24).rotateX(Math.PI / 2), HAND[handColor]); cw.position.set(0, -10, 0.2); hSecC.add(cw); hSecC.userData.cw = cw; }
+const cap = rod(1.2, 2.5, 3.9, M.brass); clock.add(cap);
+const hands = new THREE.Group(); [hHour, hMin, hSec, hSecC, cap].forEach(h => hands.add(h)); clock.add(hands);
 tag(hands, 'Kim giờ · phút · giây', 'Kim chạy theo đúng giờ của điện thoại bạn. Bấm "🎨 Kim" để đổi màu: đen bóng, bạc, hoặc xanh "thép tôi" (thép nung ~290 °C cho mặt chuyển xanh lam, kiểu đồng hồ cổ).');
 function setHandColor(c) {
   handColor = c; try { localStorage.setItem('mvHand', c); } catch (e) {}
-  [hHour, hMin, hSec].forEach(h => h.traverse(o => { if (o.isMesh) { if (o.userData.orig) o.userData.orig = HAND[c]; else o.material = HAND[c]; } }));
+  [hHour, hMin, hSec, hSecC].forEach(h => h.traverse(o => { if (o.isMesh) { if (o.userData.orig) o.userData.orig = HAND[c]; else o.material = HAND[c]; } }));
   document.getElementById('bHand').textContent = '🎨 Kim: ' + c;
 }
+
+// ---------- center-seconds train (optional) ----------
+// escape arbor (1 vòng/phút) → bánh đảo chiều → trục giây xuyên giữa lòng trục kim phút
+P.idler = new THREE.Vector2(Math.sqrt(18 ** 2 - (P.escape.y / 2) ** 2), P.escape.y / 2);
+const csec = new THREE.Group(); clock.add(csec);
+const csA = arbor(P.escape); csA.add(extrude(gearShape(40, 0.5, { spokes: 4 }), 1, M.brass, -44)); csec.add(csA);
+const csI = arbor(P.idler); csI.add(extrude(gearShape(32, 0.5, { spokes: 4 }), 1, M.brassDark, -44)); csI.add(rod(0.6, -45, -40, M.steel)); csec.add(csI);
+const csC = arbor(P.center); csC.add(extrude(gearShape(40, 0.5, { spokes: 4 }), 1, M.brass, -44)); csC.add(rod(0.45, -45, 3.3, M.steel)); csec.add(csC);
+csec.add(rod(0.6, -45, -40, M.steel, P.escape.x, P.escape.y));
+tag(csec, 'Bộ kim giây ở giữa', 'Thêm 3 bánh răng sau tấm kính: bánh trên trục bánh thoát → bánh đảo chiều (để kim không quay ngược) → bánh trên trục giây. Trục giây rất mảnh, luồn xuyên lòng trục kim phút, nên kim giờ, phút, giây chung một tâm — 3 trục lồng nhau.');
 
 // initial phases
 const baseC = Math.atan2(P.barrel.y, P.barrel.x);
@@ -381,6 +397,7 @@ const baseT = meshBase(P.center, baseC, 80, P.third, 8);
 const baseE = meshBase(P.third, baseT, 48, P.escape, 8);
 const baseMW = meshBase(P.center, baseC, 12, P.minute, 36);
 const baseH = meshBase(P.minute, baseMW, 10, P.center, 40);
+const baseCA = 0, baseCI = meshBase(P.escape, baseCA, 40, P.idler, 32), baseCC = meshBase(P.idler, baseCI, 32, P.center, 40);
 
 // ---------- sound ----------
 let actx = null, soundOn = false, lastBeat = -1;
@@ -440,6 +457,29 @@ document.getElementById('bFast').onclick = e => {
   e.currentTarget.classList.toggle('on', speedIdx > 0);
   lastBeat = -1;
 };
+const SEC_INFO = {
+  sub: ['Kim giây ô nhỏ (kiểu cổ điển)', 'Kim giây gắn thẳng lên trục bánh thoát — bánh quay đúng 1 vòng/phút nhưng nằm lệch tâm, nên kim giây chạy trong ô nhỏ riêng. Kim giây ra đời ở thế kỷ 18 khi bộ thoát đủ chính xác, và gần như mọi đồng hồ trước thập niên 1940 đều để giây trong ô nhỏ như vậy.'],
+  center: ['Kim giây ở giữa', 'Phải thêm bánh răng đảo chiều và một trục thứ ba lồng giữa trục kim phút — thời xưa được coi là khá xa xỉ. Có từ cuối thế kỷ 18 trên đồng hồ hàng hải (đi biển cần đo giây để định vị), phổ biến thập niên 1930–1940 nhờ đồng hồ quân đội cần đọc giây thật nhanh, rồi sản xuất hàng loạt từ giữa thế kỷ 20 — như Seiko Super (1950), chiếc đeo tay đầu tiên của Seiko có kim giây chung tâm.'],
+};
+let secMode = 'sub'; try { secMode = localStorage.getItem('mvSec') || 'sub'; } catch (e) {}
+function setSecMode(mode, explain) {
+  secMode = mode === 'center' ? 'center' : 'sub'; try { localStorage.setItem('mvSec', secMode); } catch (e) {}
+  const c = secMode === 'center';
+  hSec.visible = !c; hSecC.visible = c; csec.visible = c;
+  dial.userData.print.material.map = DIAL_TEX[secMode]; dial.userData.print.material.needsUpdate = true;
+  document.getElementById('bSec').textContent = c ? '⏱ Giây: ở giữa' : '⏱ Giây: ô nhỏ';
+  if (explain) showNote(...SEC_INFO[secMode]);
+}
+function showNote(name, desc) {
+  select(null);
+  info.innerHTML = ''; const b = document.createElement('b'); b.textContent = name; info.append(b, document.createTextNode(desc));
+  info.classList.add('show'); clearTimeout(infoTimer); infoTimer = setTimeout(() => info.classList.remove('show'), 14000);
+}
+setSecMode(secMode, false);
+const barEl = document.getElementById('bar');
+const placeInfo = () => { info.style.bottom = (barEl.offsetHeight + 20) + 'px'; };
+placeInfo(); addEventListener('resize', placeInfo);
+document.getElementById('bSec').onclick = () => setSecMode(secMode === 'center' ? 'sub' : 'center', true);
 document.getElementById('bDial').onclick = e => { dial.visible = !dial.visible; e.currentTarget.classList.toggle('on', dial.visible); };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
@@ -465,6 +505,12 @@ function animate() {
   third.rotation.z = baseT + S * TAU / 360;
   esc.rotation.z = baseE - S * TAU / 60;
   hSec.rotation.z = -S * TAU / 60;
+  hSecC.rotation.z = -S * TAU / 60;
+  if (csec.visible) {
+    csA.rotation.z = baseCA - S * TAU / 60;
+    csI.rotation.z = baseCI + S * TAU / 60 * 40 / 32;
+    csC.rotation.z = baseCC - S * TAU / 60;
+  }
   barrel.rotation.z = baseB + S * TAU / (3600 * 8);
   minuteW.rotation.z = baseMW + S * TAU / 10800;
   hourW.rotation.z = baseH - S * TAU / 43200;
