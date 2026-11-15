@@ -14,6 +14,11 @@
   #bar{position:fixed;left:0;right:0;bottom:12px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:0 8px}
   #bar button{background:rgba(30,24,44,.75);color:#f6d98b;border:1px solid rgba(246,217,139,.35);border-radius:18px;
     padding:8px 12px;font-size:13px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  #opts{position:fixed;left:10px;right:10px;max-width:420px;margin:0 auto;background:rgba(20,16,30,.94);border:1px solid rgba(246,217,139,.4);
+    border-radius:14px;padding:10px;display:none;flex-direction:column;gap:6px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+  #opts.show{display:flex}
+  #opts button{background:rgba(40,32,58,.9);color:#f6d98b;border:1px solid rgba(246,217,139,.3);border-radius:10px;padding:9px 12px;font-size:14px;text-align:left}
+  #opts button.on{border-color:#f6d98b}
   #bar button.on{background:rgba(246,217,139,.85);color:#1b1526}
   #info{position:fixed;left:12px;right:12px;bottom:62px;max-width:460px;margin:0 auto;background:rgba(20,16,30,.88);
     border:1px solid rgba(246,217,139,.4);border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.45;
@@ -32,13 +37,18 @@
 <div id="info"></div>
 <div id="bar">
   <button id="bFast">⏩ Tua nhanh</button>
-  <button id="bHand">🎨 Kim: đen</button>
-  <button id="bSound">🔊 Tiếng</button>
+  <button id="bOpts">⚙ Tùy chọn</button>
   <button id="bFront">Mặt trước</button>
   <button id="bSide">Nghiêng</button>
   <button id="bBack">Mặt sau</button>
-  <button id="bDial" class="on">Mặt số</button>
-  <button id="bSec">⏱ Giây: ô nhỏ</button>
+</div>
+<div id="opts">
+  <button id="bEsc">⚙ Bộ thoát: Quả lắc</button>
+  <button id="bSec">⏱ Kim giây: ô nhỏ</button>
+  <button id="bComp" class="on">🌗 Ngày/đêm & tuần trăng: bật</button>
+  <button id="bHand">🎨 Kim: đen</button>
+  <button id="bDial" class="on">🔘 Mặt số: hiện</button>
+  <button id="bSound">🔊 Tiếng tích tắc: tắt</button>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -163,6 +173,8 @@ const P = {
 P.escape = new THREE.Vector2(0, P.third.y + Math.sqrt(16.8 ** 2 - 144));
 P.anchor = new THREE.Vector2(0, P.escape.y + 22);
 P.minute = new THREE.Vector2(-12, 0);
+P.day = new THREE.Vector2(0, -28.8);
+P.moon = new THREE.Vector2(26, -9.3);
 
 // phase so meshing teeth interleave: A drives B
 function meshBase(A, baseA, nA, B, nB) {
@@ -303,7 +315,7 @@ tag(stand, 'Khung đỡ', 'Đế gỗ và hai trụ đồng giữ bộ máy lơ 
 
 // ---------- dial ----------
 const DIAL_R = 60;
-function dialTexture(sub = true) {
+function dialTexture(sub = true, comp = true) {
   const S = 2048, c = document.createElement('canvas'); c.width = c.height = S;
   const g = c.getContext('2d'), k = S / 2 / DIAL_R; g.translate(S / 2, S / 2);
   const gold = '#f3cf7a';
@@ -333,13 +345,30 @@ function dialTexture(sub = true) {
   }
   g.font = `italic ${2.6 * k}px Georgia, serif`; g.fillText('giây', 0, sy + 5.8 * k);
   }
+  if (comp) {
+    const navy = '#1a2044';
+    g.shadowBlur = 0;
+    // day/night aperture: lower half covered, upper half is the window
+    const dx = P.day.x * k, dy = -P.day.y * k, dr = 15.8 * k;
+    g.fillStyle = navy; g.beginPath(); g.arc(dx, dy, dr, 0, Math.PI); g.closePath(); g.fill();
+    g.strokeStyle = gold; g.lineWidth = 0.35 * k; g.beginPath(); g.arc(dx, dy, dr, 0, TAU); g.stroke();
+    g.beginPath(); g.moveTo(dx - dr, dy); g.lineTo(dx + dr, dy); g.stroke();
+    g.fillStyle = gold; g.font = `${2.2 * k}px Georgia, serif`; g.fillText('NGÀY · ĐÊM', dx, dy + 5 * k);
+    // moon-phase window with the two classic "humps"
+    const mx = P.moon.x * k, my = -P.moon.y * k, mr = 10.6 * k;
+    g.fillStyle = navy; g.beginPath(); g.arc(mx, my, mr, 0, Math.PI); g.closePath(); g.fill();
+    [-6, 6].forEach(o => { g.beginPath(); g.arc(mx + o * k, my, 3.9 * k, 0, TAU); g.fill(); });
+    g.strokeStyle = gold; g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.stroke();
+    g.fillStyle = gold; g.font = `${1.9 * k}px Georgia, serif`; g.fillText('TUẦN TRĂNG', mx, my + 6.5 * k);
+    g.strokeStyle = gold; g.fillStyle = gold;
+  }
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; return tex;
 }
-const DIAL_TEX = { sub: dialTexture(true), center: dialTexture(false) };
+const DIAL_TEX = {}; const dialTex = (sub, comp) => DIAL_TEX[sub + '' + comp] ||= dialTexture(sub, comp);
 const dial = new THREE.Group(); clock.add(dial);
 {
   const disk = new THREE.Mesh(new THREE.CircleGeometry(DIAL_R, 96), M.glass); disk.position.z = 0.4; disk.renderOrder = 3; dial.add(disk);
-  const print = new THREE.Mesh(new THREE.CircleGeometry(DIAL_R, 96), new THREE.MeshBasicMaterial({ map: DIAL_TEX.sub, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+  const print = new THREE.Mesh(new THREE.CircleGeometry(DIAL_R, 96), new THREE.MeshBasicMaterial({ map: dialTex(true, true), transparent: true, depthWrite: false, side: THREE.DoubleSide }));
   dial.userData.print = print;
   print.position.z = 0.6; print.renderOrder = 4; dial.add(print);
   const bezel = new THREE.Mesh(new THREE.TorusGeometry(DIAL_R + 1.2, 1.8, 16, 128), M.brass); bezel.position.z = 0.4; dial.add(bezel);
@@ -377,7 +406,7 @@ tag(hands, 'Kim giờ · phút · giây', 'Kim chạy theo đúng giờ của đ
 function setHandColor(c) {
   handColor = c; try { localStorage.setItem('mvHand', c); } catch (e) {}
   [hHour, hMin, hSec, hSecC].forEach(h => h.traverse(o => { if (o.isMesh) { if (o.userData.orig) o.userData.orig = HAND[c]; else o.material = HAND[c]; } }));
-  document.getElementById('bHand').textContent = '🎨 Kim: ' + c;
+  document.getElementById('bHand').textContent = '🎨 Màu kim: ' + c;
 }
 
 // ---------- center-seconds train (optional) ----------
@@ -390,6 +419,75 @@ const csC = arbor(P.center); csC.add(extrude(gearShape(40, 0.5, { spokes: 4 }), 
 csec.add(rod(0.6, -45, -40, M.steel, P.escape.x, P.escape.y));
 tag(csec, 'Bộ kim giây ở giữa', 'Thêm 3 bánh răng sau tấm kính: bánh trên trục bánh thoát → bánh đảo chiều (để kim không quay ngược) → bánh trên trục giây. Trục giây rất mảnh, luồn xuyên lòng trục kim phút, nên kim giờ, phút, giây chung một tâm — 3 trục lồng nhau.');
 
+// ---------- day/night (24h) + moon phase ----------
+function discTexture(draw) { const c = document.createElement('canvas'); c.width = c.height = 512; draw(c.getContext('2d'));
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+function stars(g, n, R0 = 256) { g.fillStyle = '#fff'; for (let i = 0; i < n; i++) { const a = Math.random() * TAU, r = Math.random() * R0; g.globalAlpha = 0.4 + Math.random() * 0.6; g.beginPath(); g.arc(256 + Math.cos(a) * r, 256 + Math.sin(a) * r, 1 + Math.random() * 2.2, 0, TAU); g.fill(); } g.globalAlpha = 1; }
+function moonFace(g, x, y, r) {
+  const gr = g.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r); gr.addColorStop(0, '#fff6d8'); gr.addColorStop(1, '#e2b85c');
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+  g.fillStyle = 'rgba(160,110,40,.35)'; [[-.3, -.1, .18], [.25, .2, .14], [.05, -.35, .1], [-.1, .35, .12]].forEach(([a, b, c]) => { g.beginPath(); g.arc(x + a * r, y + b * r, c * r, 0, TAU); g.fill(); });
+}
+const comp = new THREE.Group(); clock.add(comp);
+const dayW = arbor(P.day); comp.add(dayW);
+dayW.add(extrude(gearShape(80, 0.48, { spokes: 5 }), 1.1, M.brass, -2.6));
+dayW.add(rod(0.7, -6, 0, M.steel));
+const finger = new THREE.Mesh(new THREE.BoxGeometry(1.1, 5, 0.9), M.steel); finger.position.set(0, 21, -1.6); dayW.add(finger);
+const dayDisc = new THREE.Mesh(new THREE.CircleGeometry(15.4, 64), new THREE.MeshBasicMaterial({ map: discTexture(g => {
+  const sky = g.createLinearGradient(0, 0, 0, 512); sky.addColorStop(0, '#0b1240'); sky.addColorStop(0.42, '#1d2a78'); sky.addColorStop(0.58, '#6fb6ff'); sky.addColorStop(1, '#bfe4ff');
+  g.fillStyle = sky; g.beginPath(); g.arc(256, 256, 256, 0, TAU); g.fill();
+  g.save(); g.beginPath(); g.rect(0, 0, 512, 230); g.clip(); stars(g, 70); g.restore();
+  moonFace(g, 256, 100, 46);
+  const sun = g.createRadialGradient(256, 412, 8, 256, 412, 70); sun.addColorStop(0, '#fff7c2'); sun.addColorStop(0.45, '#ffcf3a'); sun.addColorStop(1, 'rgba(255,190,40,0)');
+  g.fillStyle = sun; g.beginPath(); g.arc(256, 412, 70, 0, TAU); g.fill();
+  g.strokeStyle = '#ffd24a'; g.lineWidth = 6; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; g.beginPath(); g.moveTo(256 + Math.cos(a) * 52, 412 + Math.sin(a) * 52); g.lineTo(256 + Math.cos(a) * 66, 412 + Math.sin(a) * 66); g.stroke(); }
+}) }));
+dayDisc.position.set(P.day.x, P.day.y, -0.2); comp.add(dayDisc);
+const moonW = arbor(P.moon); comp.add(moonW);
+moonW.add(extrude(gearShape(59, 0.34, { spokes: 0, bore: 0.5 }), 0.9, M.steel, -2.0));
+moonW.add(rod(0.5, -6, 0, M.steel));
+const moonDisc = new THREE.Mesh(new THREE.CircleGeometry(10.2, 64), new THREE.MeshBasicMaterial({ map: discTexture(g => {
+  g.fillStyle = '#0d1442'; g.beginPath(); g.arc(256, 256, 256, 0, TAU); g.fill(); stars(g, 90);
+  moonFace(g, 256 + 150, 256, 88); moonFace(g, 256 - 150, 256, 88);
+}) }));
+moonDisc.position.set(P.moon.x, P.moon.y, -0.2); comp.add(moonDisc);
+tag(comp, 'Ngày/đêm & tuần trăng', 'Bánh 80 răng ăn khớp bánh kim giờ nên quay chậm gấp đôi: 1 vòng / 24 giờ, mang đĩa mặt trời – mặt trăng hiện qua ô "Ngày · Đêm". Mỗi nửa đêm, một ngón thép trên bánh này đẩy bánh tuần trăng 59 răng nhích 1 răng. Đĩa có 2 mặt trăng, 59 ngày quay 1 vòng = 2 lần trăng tròn (mỗi tuần trăng ~29,5 ngày). Hai "gò" che hai bên ô tạo ra trăng khuyết, trăng non. Đồng hồ cổ ở châu Âu đã có ô tuần trăng từ thế kỷ 18.');
+
+// ---------- tourbillon (alternative escapement) ----------
+const tbFixed = new THREE.Group(); tbFixed.position.set(P.escape.x, P.escape.y, 0); clock.add(tbFixed);
+tbFixed.add(extrude(gearShape(40, 0.3, { spokes: 0, bore: 4.5 }), 0.8, M.brassDark, -16.6));
+const tb = arbor(P.escape);
+{
+  [-17.6, -9.4].forEach(z => { const ring = new THREE.Mesh(new THREE.TorusGeometry(10.6, 0.45, 10, 64), M.steel); ring.position.z = z; tb.add(ring); });
+  [90, 210, 330].forEach(d => { const a = d * Math.PI / 180; tb.add(rod(0.45, -17.6, -9.4, M.steel, Math.cos(a) * 10.6, Math.sin(a) * 10.6)); });
+  [90, 210, 330].forEach(d => { const a = d * Math.PI / 180; const bar = new THREE.Mesh(new THREE.BoxGeometry(10.6, 1, 0.6), M.steel); bar.position.set(Math.cos(a) * 5.3, Math.sin(a) * 5.3, -9.4); bar.rotation.z = a; tb.add(bar); });
+  tb.add(rod(0.35, -18, -8.8, M.steel));
+}
+const tbEsc = new THREE.Group(); tbEsc.position.set(7.2, 0, 0); tb.add(tbEsc);
+tbEsc.add(extrude(gearShape(8, 0.3), 1.6, M.steel, -16.9));
+tbEsc.add(extrude(escapeShape(15, 3.4), 0.5, M.brass, -13.6));
+tbEsc.add(rod(0.25, -17.4, -9.8, M.steel));
+const tbLever = new THREE.Group(); tbLever.position.set(3.7, 0, -13.4); tb.add(tbLever);
+{
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.7, 0.5), M.steel); tbLever.add(bar);
+  [-1, 1].forEach(sy => { const st = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.1, 0.6), M.ruby); st.position.set(2.4, sy * 1.2, 0); tbLever.add(st);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.4, 0.45), M.steel); arm.position.set(2.2, sy * 0.6, 0); tbLever.add(arm); });
+  tbLever.add(rod(0.3, -0.4, 0.4, M.ruby));
+}
+const tbBal = new THREE.Group(); tbBal.position.z = -11.8; tb.add(tbBal);
+{
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(5.2, 0.42, 10, 64), M.brass); tbBal.add(rim);
+  for (let i = 0; i < 3; i++) { const a = i / 3 * TAU; const sp = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.5, 0.35), M.brass); sp.position.set(Math.cos(a) * 2.6, Math.sin(a) * 2.6, 0); sp.rotation.z = a; tbBal.add(sp); }
+  for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; const sc = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), M.steel); sc.position.set(Math.cos(a) * 5.65, Math.sin(a) * 5.65, 0); tbBal.add(sc); }
+}
+const tbSpring = new THREE.Group(); tbSpring.position.z = -10.6; tb.add(tbSpring);
+{
+  const pts = []; for (let i = 0; i <= 300; i++) { const t = i / 300, a = t * 9 * TAU, r = 0.7 + t * 3.4; pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0)); }
+  tbSpring.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 600, 0.09, 5), M.blued));
+}
+const tourb = new THREE.Group(); tourb.add(tbFixed); tourb.add(tb); clock.add(tourb);
+tag(tourb, 'Tourbillon (lồng xoay)', 'Cả bộ thoát — bánh lắc có dây tóc, càng gạt và bánh thoát nhỏ — nằm trong một chiếc lồng quay 1 vòng mỗi phút. Bánh thoát nhỏ lăn quanh bánh răng đứng yên nên vẫn nhả từng răng. Abraham-Louis Breguet được cấp bằng sáng chế năm 1801, để triệt sai số do trọng lực khi đồng hồ bỏ túi cứ đứng một tư thế. Bánh lắc đập 6 nhịp/giây nên kim giây nhích 6 bước nhỏ mỗi giây — trông như lướt.');
+
 // initial phases
 const baseC = Math.atan2(P.barrel.y, P.barrel.x);
 const baseB = meshBase(P.center, baseC, 12, P.barrel, 96);
@@ -397,10 +495,17 @@ const baseT = meshBase(P.center, baseC, 80, P.third, 8);
 const baseE = meshBase(P.third, baseT, 48, P.escape, 8);
 const baseMW = meshBase(P.center, baseC, 12, P.minute, 36);
 const baseH = meshBase(P.minute, baseMW, 10, P.center, 40);
+const baseDW = meshBase(P.center, baseH, 40, P.day, 80);
 const baseCA = 0, baseCI = meshBase(P.escape, baseCA, 40, P.idler, 32), baseCC = meshBase(P.idler, baseCI, 32, P.center, 40);
 
 // ---------- sound ----------
 let actx = null, soundOn = false, lastBeat = -1;
+function softTick(t, hi) {
+  const len = 0.03, buf = actx.createBuffer(1, actx.sampleRate * len, actx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) { const x = i / actx.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-x * 400) * 0.6 + Math.sin(TAU * (hi ? 5200 : 4600) * x) * 0.3 * Math.exp(-x * 250); }
+  const src = actx.createBufferSource(); src.buffer = buf; const gn = actx.createGain(); gn.gain.value = 0.45;
+  src.connect(gn).connect(actx.destination); src.start(t);
+}
 function click(t, hi) {
   const len = 0.07, buf = actx.createBuffer(1, actx.sampleRate * len, actx.sampleRate), d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) { const x = i / actx.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-x * 160) + Math.sin(TAU * (hi ? 3150 : 2650) * x) * 0.5 * Math.exp(-x * 70); }
@@ -410,9 +515,10 @@ function click(t, hi) {
   const gn = actx.createGain(); gn.gain.value = 0.9;
   src.connect(bp).connect(body).connect(gn).connect(actx.destination); src.start(t);
 }
+function ensureAudio() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); }
 document.getElementById('bSound').onclick = e => {
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  actx.resume(); soundOn = !soundOn; e.currentTarget.classList.toggle('on', soundOn);
+  ensureAudio(); soundOn = !soundOn; e.currentTarget.classList.toggle('on', soundOn);
+  e.currentTarget.textContent = '🔊 Tiếng tích tắc: ' + (soundOn ? 'bật' : 'tắt');
 };
 document.addEventListener('visibilitychange', () => { lastBeat = -1; });
 
@@ -444,7 +550,10 @@ renderer.domElement.addEventListener('pointerup', e => {
 const views = { bFront: [0, 0.02, 1], bSide: [1, 0.25, 0.55], bBack: [0, 0.05, -1] };
 Object.entries(views).forEach(([id, v]) => document.getElementById(id).onclick = () => { controls.autoRotate = false; frame(new THREE.Vector3(...v)); });
 const embed = new URLSearchParams(location.search).has('embed');
-if (embed) { document.body.classList.add('embed'); document.getElementById('bSound').remove(); }
+if (embed) document.body.classList.add('embed');
+const opts = document.getElementById('opts');
+document.getElementById('bOpts').onclick = e => { opts.classList.toggle('show'); e.currentTarget.classList.toggle('on', opts.classList.contains('show')); placeInfo(); };
+const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} };
 setHandColor(handColor);
 document.getElementById('bHand').onclick = () => { const k = Object.keys(HAND); setHandColor(k[(k.indexOf(handColor) + 1) % k.length]); };
 // fast-forward: ×1 → ×60 (1 phút = 1 giờ) → ×720 (1 phút = 12 giờ)
@@ -466,8 +575,8 @@ function setSecMode(mode, explain) {
   secMode = mode === 'center' ? 'center' : 'sub'; try { localStorage.setItem('mvSec', secMode); } catch (e) {}
   const c = secMode === 'center';
   hSec.visible = !c; hSecC.visible = c; csec.visible = c;
-  dial.userData.print.material.map = DIAL_TEX[secMode]; dial.userData.print.material.needsUpdate = true;
-  document.getElementById('bSec').textContent = c ? '⏱ Giây: ở giữa' : '⏱ Giây: ô nhỏ';
+  refreshDial();
+  document.getElementById('bSec').textContent = c ? '⏱ Kim giây: ở giữa' : '⏱ Kim giây: ô nhỏ';
   if (explain) showNote(...SEC_INFO[secMode]);
 }
 function showNote(name, desc) {
@@ -475,12 +584,42 @@ function showNote(name, desc) {
   info.innerHTML = ''; const b = document.createElement('b'); b.textContent = name; info.append(b, document.createTextNode(desc));
   info.classList.add('show'); clearTimeout(infoTimer); infoTimer = setTimeout(() => info.classList.remove('show'), 14000);
 }
+function refreshDial() { dial.userData.print.material.map = dialTex(secMode !== 'center', compOn); dial.userData.print.material.needsUpdate = true; }
+let compOn = store('mvComp') !== '0';
+function setComp(on, explain) {
+  compOn = on; store('mvComp', on ? '1' : '0'); comp.visible = on; refreshDial();
+  const b = document.getElementById('bComp'); b.classList.toggle('on', on); b.textContent = '🌗 Ngày/đêm & tuần trăng: ' + (on ? 'bật' : 'tắt');
+  if (explain && on) showNote(comp.userData.info.name, comp.userData.info.desc);
+}
+document.getElementById('bComp').onclick = () => setComp(!compOn, true);
+const ESC_INFO = {
+  pendulum: ['Bộ thoát quả lắc', 'Quả lắc 1 giây/nhịp, mỏ neo nhả bánh thoát từng nấc — kim giây nhảy rõ từng giây. Huygens làm đồng hồ quả lắc đầu tiên năm 1656.'],
+};
+let escMode = store('mvEsc') === 'tourbillon' ? 'tourbillon' : 'pendulum';
+function setEsc(mode, explain) {
+  escMode = mode; store('mvEsc', mode);
+  const t = mode === 'tourbillon';
+  pend.visible = !t; anchor.visible = !t; esc.children[1].visible = !t; tourb.visible = t;
+  document.getElementById('bEsc').textContent = '⚙ Bộ thoát: ' + (t ? 'Tourbillon' : 'Quả lắc');
+  document.getElementById('bEsc').classList.toggle('on', t);
+  document.getElementById('bSound').style.display = (!embed || t) ? '' : 'none';
+  if (embed && !t && soundOn) document.getElementById('bSound').click();
+  try { if (embed) parent.postMessage({ mechEscapement: mode }, '*'); } catch (e) {}
+  if (explain) { const [n, d] = t ? [tourb.userData.info.name, tourb.userData.info.desc] : ESC_INFO.pendulum; showNote(n, d);
+    if (t) frame(new THREE.Vector3(0.35, 0.25, 1)); }
+  lastBeat = -1;
+}
+document.getElementById('bEsc').onclick = () => setEsc(escMode === 'tourbillon' ? 'pendulum' : 'tourbillon', true);
 setSecMode(secMode, false);
 const barEl = document.getElementById('bar');
-const placeInfo = () => { info.style.bottom = (barEl.offsetHeight + 20) + 'px'; };
+function placeInfo() {
+  opts.style.bottom = (barEl.offsetHeight + 18) + 'px';
+  info.style.bottom = (barEl.offsetHeight + 20 + (opts.classList.contains('show') ? opts.offsetHeight + 8 : 0)) + 'px';
+}
+setComp(compOn, false); setEsc(escMode, false);
 placeInfo(); addEventListener('resize', placeInfo);
 document.getElementById('bSec').onclick = () => setSecMode(secMode === 'center' ? 'sub' : 'center', true);
-document.getElementById('bDial').onclick = e => { dial.visible = !dial.visible; e.currentTarget.classList.toggle('on', dial.visible); };
+document.getElementById('bDial').onclick = e => { dial.visible = !dial.visible; e.currentTarget.classList.toggle('on', dial.visible); e.currentTarget.textContent = '🔘 Mặt số: ' + (dial.visible ? 'hiện' : 'ẩn'); };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
 // ---------- animation, synced to the real local time ----------
@@ -496,8 +635,9 @@ function animate() {
   const secs = realSecs();
   const fast = speedIdx > 0;
   const sim = fast ? simBase + (secs - realBase) * SPEEDS[speedIdx] : secs;
-  const n = Math.floor(secs), f = secs - n;
-  const S = fast ? sim : n + easeTick(f);
+  const tbOn = escMode === 'tourbillon', BPS = tbOn ? 6 : 1; // beats per second
+  const n = Math.floor(secs * BPS), f = secs * BPS - n;
+  const S = fast ? sim : (n + easeTick(f)) / BPS;
 
   center.rotation.z = baseC - S * TAU / 3600;
   cannon.rotation.z = baseC - S * TAU / 3600;
@@ -516,11 +656,30 @@ function animate() {
   hourW.rotation.z = baseH - S * TAU / 43200;
   hHour.rotation.z = -S * TAU / 43200;
 
-  const swing = 0.085 * Math.sin(Math.PI * secs); // 1 beat per second, ticks at the centre of the swing
-  pend.rotation.z = swing; anchor.rotation.z = swing * 0.55;
+  if (!tbOn) {
+    const swing = 0.085 * Math.sin(Math.PI * secs); // 1 beat per second, ticks at the centre of the swing
+    pend.rotation.z = swing; anchor.rotation.z = swing * 0.55;
+  } else {
+    const cage = -S * TAU / 60;
+    tb.rotation.z = baseE + cage;
+    tbEsc.rotation.z = cage * 40 / 8;
+    const ph = Math.PI * 6 * secs; // 3 Hz balance → 6 beats/s
+    tbBal.rotation.z = 4.2 * Math.sin(ph); tbSpring.rotation.z = 2.1 * Math.sin(ph);
+    tbSpring.scale.setScalar(1 + 0.06 * Math.sin(ph));
+    tbLever.rotation.z = 0.2 * Math.tanh(5 * Math.cos(ph));
+  }
+  if (comp.visible) {
+    const simMs = Date.now() + (sim - secs) * 1000;
+    dayW.rotation.z = baseDW + S * TAU / 86400;
+    dayDisc.rotation.z = S * TAU / 86400;
+    const localDay = Math.floor((simMs - new Date(simMs).getTimezoneOffset() * 60000) / 86400000);
+    const ref = Date.UTC(2000, 0, 6, 18, 14) / 86400000; // a known new moon
+    const phi = Math.PI - (localDay + 0.5 - ref) * TAU / 59.0612;
+    moonW.rotation.z = phi; moonDisc.rotation.z = phi;
+  }
 
   if (n !== lastBeat) {
-    if (soundOn && actx && lastBeat >= 0 && !fast) click(actx.currentTime, n % 2 === 0);
+    if (soundOn && actx && lastBeat >= 0 && !fast) tbOn ? softTick(actx.currentTime, n % 2 === 0) : click(actx.currentTime, n % 2 === 0);
     lastBeat = n;
     const t = ((Math.floor(sim) % 86400) + 86400) % 86400, p2 = v => String(v).padStart(2, '0');
     clockEl.textContent = (fast ? '⏩ ' : '') + `${p2(Math.floor(t / 3600))}:${p2(Math.floor(t / 60) % 60)}:${p2(t % 60)}`;

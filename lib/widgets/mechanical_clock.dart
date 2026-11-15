@@ -28,7 +28,7 @@ class _MechanicalClockState extends State<MechanicalClock> {
     final now = DateTime.now();
     _t = Timer(Duration(milliseconds: 1000 - now.millisecond), () {
       if (!mounted) return;
-      if (TickerMode.of(context)) widget.onTick(DateTime.now().second.isEven);
+      if (TickerMode.of(context) && !mechQuiet.value) widget.onTick(DateTime.now().second.isEven);
       _schedule();
     });
   }
