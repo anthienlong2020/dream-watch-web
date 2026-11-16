@@ -2,18 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-import '../services/app_state.dart';
+/// Đang chạy bằng pin (máy không cắm sạc). AppState đặt giá trị này;
+/// tách riêng để các mặt đồng hồ không phải khởi tạo cả AppState.
+final ValueNotifier<bool> powerSavingNotifier = ValueNotifier(false);
 
 /// "Nhịp khung hình" cho các mặt đồng hồ.
 ///
 /// Bình thường vẽ lại theo màn hình (60 hình/giây). Khi máy không cắm sạc
-/// (`app.powerSaving`), chỉ vẽ ~12 hình/giây để đỡ hao pin: mọi chuyển động
+/// (`powerSavingNotifier`), chỉ vẽ ~12 hình/giây để đỡ hao pin: mọi chuyển động
 /// vẫn tính theo giờ thực nên chỉ hơi kém mượt, không chậm đi.
 class ClockFrame extends ChangeNotifier {
   ClockFrame(TickerProvider vsync)
       : _ctrl = AnimationController(vsync: vsync, duration: const Duration(seconds: 1)) {
     _ctrl.addListener(notifyListeners);
-    app.addListener(_apply);
+    powerSavingNotifier.addListener(_apply);
     _apply();
   }
 
@@ -22,7 +24,7 @@ class ClockFrame extends ChangeNotifier {
   bool? _slow;
 
   void _apply() {
-    final slow = app.powerSaving;
+    final slow = powerSavingNotifier.value;
     if (slow == _slow) return;
     _slow = slow;
     if (slow) {
@@ -37,7 +39,7 @@ class ClockFrame extends ChangeNotifier {
 
   @override
   void dispose() {
-    app.removeListener(_apply);
+    powerSavingNotifier.removeListener(_apply);
     _timer?.cancel();
     _ctrl.dispose();
     super.dispose();

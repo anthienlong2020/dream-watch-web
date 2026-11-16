@@ -17,6 +17,7 @@ import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
 import 'blob_store.dart';
 import 'wake.dart' as wake;
+import '../widgets/clock_frame.dart' show powerSavingNotifier;
 import 'speech.dart';
 import 'voice_recorder.dart';
 import 'sound_service.dart';
@@ -537,6 +538,7 @@ class AppState extends ChangeNotifier {
     final c = wake.isCharging();
     if (c == charging) return;
     charging = c;
+    powerSavingNotifier.value = powerSaving;
     notifyListeners();
     if (started) _applyWakelock();
   }
