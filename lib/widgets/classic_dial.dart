@@ -3,6 +3,8 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import 'clock_frame.dart';
+
 /// Mặt số cổ điển cho bản Standard: 12 con số vàng đứng yên đúng vị trí + kim giờ, phút, giây
 /// kiểu thép xanh chạm hoa (như đồng hồ cây thật). Kích thước theo khung vuông của DreamClock
 /// (vòng số = 0.40 × cạnh) để khớp vị trí trên mặt đồng hồ.
@@ -16,8 +18,7 @@ class ClassicDial extends StatefulWidget {
 }
 
 class _ClassicDialState extends State<ClassicDial> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
+  late final ClockFrame _c = ClockFrame(this);
 
   @override
   void dispose() {

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'clock_frame.dart';
+
 /// Đồng hồ quả lắc cổ (bản Standard): ảnh đồng hồ cây gỗ, mặt đồng thau đã xoá số,
 /// quả lắc đàn lia đung đưa; 12 hình (con số hoặc ảnh riêng) đặt khớp lên vành số.
 ///
@@ -38,8 +40,7 @@ class PendulumClock extends StatefulWidget {
 }
 
 class _PendulumClockState extends State<PendulumClock> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
+  late final ClockFrame _c = ClockFrame(this);
   int _lastSec = -1;
 
   @override

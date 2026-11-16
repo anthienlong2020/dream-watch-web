@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/clock_theme.dart';
 import '../three_d/body_type.dart';
 import '../effects/element_effect.dart';
+import 'clock_frame.dart';
 import 'extruded_3d.dart';
 import 'slot_image_view.dart';
 
@@ -74,14 +75,13 @@ class DreamClock extends StatefulWidget {
 
 class _DreamClockState extends State<DreamClock>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _frame;
+  late final ClockFrame _frame;
 
   @override
   void initState() {
     super.initState();
     // Chỉ dùng làm "nhịp khung hình"; mọi chuyển động tính theo giờ thực.
-    _frame = AnimationController(vsync: this, duration: const Duration(seconds: 1))
-      ..repeat();
+    _frame = ClockFrame(this);
   }
 
   @override

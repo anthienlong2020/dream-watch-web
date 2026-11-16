@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../widgets/clock_frame.dart';
+
 import 'festive_shapes.dart';
 import 'season_theme.dart';
 import '../effects/element_effect.dart';
@@ -946,8 +948,7 @@ class AnimatedThemeOverlay extends StatefulWidget {
 
 class _AnimatedThemeOverlayState extends State<AnimatedThemeOverlay>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
+  late final ClockFrame _c = ClockFrame(this);
 
   @override
   void dispose() {

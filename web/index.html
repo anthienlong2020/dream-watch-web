@@ -84,6 +84,19 @@
         }
       };
     })();
+    // Pin: dwBattery.charging() trả về true / false, hoặc null nếu trình duyệt không cho biết (iPhone).
+    window.dwBattery = (function () {
+      var charging = null;
+      try {
+        if (navigator.getBattery) {
+          navigator.getBattery().then(function (b) {
+            charging = !!b.charging;
+            b.addEventListener('chargingchange', function () { charging = !!b.charging; });
+          }, function () {});
+        }
+      } catch (e) {}
+      return { charging: function () { return charging; } };
+    })();
   </script>
 </head>
 <body style="background:#0E0B1A">

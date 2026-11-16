@@ -16,7 +16,9 @@ class AwakeHint extends StatelessWidget {
       listenable: app,
       builder: (context, _) {
         final supported = wakeSupported();
-        if (supported && app.keepAwake) return const SizedBox.shrink();
+        final onBattery =
+            supported && app.keepAwake && app.keepAwakeOnlyCharging && app.charging == false;
+        if (supported && app.keepAwake && !onBattery) return const SizedBox.shrink();
         final cs = Theme.of(context).colorScheme;
         return Container(
           width: double.infinity,
@@ -32,7 +34,10 @@ class AwakeHint extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  supported
+                  onBattery
+                      ? 'Máy đang chạy bằng pin nên màn hình sẽ tự tắt cho đỡ hao pin. '
+                          'Muốn báo thức reo, hãy cắm sạc và để app mở như đồng hồ để bàn.'
+                      : supported
                       ? 'Báo thức chỉ reo khi app đang mở và màn hình còn sáng. '
                           'Bật "Giữ màn hình luôn sáng" rồi đặt máy như đồng hồ để bàn nhé.'
                       : 'Báo thức chỉ reo khi app đang mở và màn hình còn sáng. '
@@ -41,7 +46,7 @@ class AwakeHint extends StatelessWidget {
                   style: TextStyle(color: cs.onSecondaryContainer, fontSize: 13),
                 ),
               ),
-              if (supported)
+              if (supported && !onBattery)
                 TextButton(
                   onPressed: () => app.setKeepAwake(true),
                   child: const Text('Bật'),

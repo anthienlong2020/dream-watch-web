@@ -1006,6 +1006,18 @@ class _DisplaySettings extends StatelessWidget {
             value: app.keepAwake,
             onChanged: app.setKeepAwake,
           ),
+          if (kIsWeb && app.keepAwake)
+            SwitchListTile(
+              title: const Text('Chỉ giữ sáng khi đang cắm sạc'),
+              subtitle: Text(app.charging == null
+                  ? 'Đỡ hao pin khi để qua đêm. (Máy này không cho biết đang sạc hay không, '
+                      'nên màn hình luôn được giữ sáng.)'
+                  : 'Đỡ hao pin khi để qua đêm: rút sạc thì màn hình tự tắt như bình thường '
+                      '(lúc đó báo thức sẽ không reo). Cắm sạc là giữ sáng lại.'
+                      '${app.charging == true ? '\nĐang cắm sạc ⚡' : '\nĐang chạy bằng pin 🔋'}'),
+              value: app.keepAwakeOnlyCharging,
+              onChanged: app.setKeepAwakeOnlyCharging,
+            ),
         ],
       ),
     );

@@ -56,6 +56,20 @@ class AppState extends ChangeNotifier {
   bool showDate = true;
   bool showRoman = true;
   bool keepAwake = true;
+
+  /// Chỉ giữ màn hình sáng khi đang cắm sạc (đỡ hao pin khi để qua đêm).
+  bool keepAwakeOnlyCharging = true;
+
+  /// Máy đang cắm sạc? null: không biết (iPhone, app native).
+  bool? charging;
+
+  /// Đang chạy bằng pin (biết chắc là không cắm sạc): vẽ chậm lại để đỡ hao pin.
+  bool get powerSaving => kIsWeb && charging == false;
+
+  /// Có thật sự giữ màn hình sáng lúc này không.
+  bool get wakeWanted =>
+      keepAwake && !(keepAwakeOnlyCharging && charging == false);
+  int _chargeCheck = 0;
   bool showStars = true;
   /// Kiểu & dáng mặc định cho mọi vị trí.
   ImageStyle defaultStyle = ImageStyle.thoiPhong;
@@ -333,6 +347,7 @@ class AppState extends ChangeNotifier {
         'installChipHidden': installChipHidden,
         'showRoman': showRoman,
         'keepAwake': keepAwake,
+        'keepAwakeOnlyCharging': keepAwakeOnlyCharging,
         'showStars': showStars,
         'defaultStyle': defaultStyle.name,
         'slotStyle': slotStyle.map((e) => e?.name).toList(),
@@ -384,6 +399,7 @@ class AppState extends ChangeNotifier {
     if (wc is List) worldCities = wc.whereType<String>().toList();
     showRoman = (j['showRoman'] as bool?) ?? showRoman;
     keepAwake = (j['keepAwake'] as bool?) ?? keepAwake;
+    keepAwakeOnlyCharging = (j['keepAwakeOnlyCharging'] as bool?) ?? keepAwakeOnlyCharging;
     showStars = (j['showStars'] as bool?) ?? showStars;
     if (j['defaultStyle'] is String) {
       defaultStyle = imageStyleFromName(j['defaultStyle'] as String);
@@ -509,10 +525,26 @@ class AppState extends ChangeNotifier {
     _applyWakelock();
   }
 
+  void setKeepAwakeOnlyCharging(bool v) {
+    update(() => keepAwakeOnlyCharging = v);
+    _applyWakelock();
+  }
+
+  /// Mỗi ~2 giây xem máy có đang cắm sạc không (chỉ trên web).
+  void _checkCharging() {
+    if (!kIsWeb) return;
+    if (++_chargeCheck % 8 != 0) return;
+    final c = wake.isCharging();
+    if (c == charging) return;
+    charging = c;
+    notifyListeners();
+    if (started) _applyWakelock();
+  }
+
   Future<void> _applyWakelock() async {
     if (kIsWeb) {
       // Trên web tự xin "Screen Wake Lock" và xin lại mỗi khi quay về app.
-      wake.setWake(keepAwake);
+      wake.setWake(wakeWanted);
       return;
     }
     try {
@@ -817,6 +849,7 @@ class AppState extends ChangeNotifier {
 
   void _tick() {
     final now = DateTime.now();
+    _checkCharging();
 
     // Hẹn giờ đếm ngược
     final end = _timerEnd;

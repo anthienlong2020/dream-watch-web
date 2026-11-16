@@ -6,6 +6,9 @@ external JSBoolean _supported();
 @JS('dwWake.active')
 external JSBoolean _active();
 
+@JS('dwBattery.charging')
+external JSAny? _charging();
+
 @JS('dwWake.set')
 external void _set(JSBoolean on);
 
@@ -32,4 +35,14 @@ void setWake(bool on) {
   try {
     _set(on.toJS);
   } catch (_) {}
+}
+
+/// Máy có đang cắm sạc không. null: trình duyệt không cho biết (vd. iPhone).
+bool? isCharging() {
+  try {
+    final v = _charging()?.dartify();
+    return v is bool ? v : null;
+  } catch (_) {
+    return null;
+  }
 }
