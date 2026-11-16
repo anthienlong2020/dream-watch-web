@@ -34,7 +34,7 @@ class AwakeHint extends StatelessWidget {
                 child: Text(
                   supported
                       ? 'Báo thức chỉ reo khi app đang mở và màn hình còn sáng. '
-                          'Bật "Giữ màn hình sáng" rồi đặt máy như đồng hồ để bàn nhé.'
+                          'Bật "Giữ màn hình luôn sáng" rồi đặt máy như đồng hồ để bàn nhé.'
                       : 'Báo thức chỉ reo khi app đang mở và màn hình còn sáng. '
                           'Máy này chưa tự giữ sáng được, hãy chỉnh "Tự khoá màn hình" '
                           'của máy thành "Không bao giờ".',
