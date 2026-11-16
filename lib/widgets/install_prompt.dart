@@ -11,7 +11,8 @@ const String kAppLink = 'https://anthienlong2020.github.io/dream-watch-web/';
 /// Bấm "Cài vào màn hình chính": Chrome cho cài thẳng thì hiện hộp Cài đặt của
 /// trình duyệt; không thì mở bảng hướng dẫn đúng loại máy.
 Future<void> startInstall(BuildContext context) async {
-  if (installState() == 'ready') {
+  // Trình duyệt trong Facebook / TikTok / Zalo không cài được → hướng dẫn mở bằng Chrome/Safari
+  if (installState() == 'ready' && installPlatform() != 'inapp') {
     final r = await promptInstall();
     if (!context.mounted) return;
     if (r == 'accepted') {
@@ -140,7 +141,7 @@ class _Guide extends StatelessWidget {
           'Mở bằng trình duyệt trước',
           const [
             _Step('Bạn đang xem trong Facebook / TikTok / Zalo — ở đây không cài được.'),
-            _Step('Bấm nút ⋯ (hoặc ⋮) ở góc màn hình.', Icons.more_horiz),
+            _Step('Bấm nút ba chấm ở góc màn hình.', Icons.more_horiz),
             _Step('Chọn "Mở bằng trình duyệt" (Chrome hoặc Safari).', Icons.open_in_browser),
             _Step('Trong trình duyệt, bấm lại nút "📲 Cài app".'),
           ]
@@ -148,7 +149,7 @@ class _Guide extends StatelessWidget {
       'ios' => (
           'Cài trên iPhone / iPad',
           const [
-            _Step('Bấm nút Chia sẻ (ô vuông có mũi tên lên). Trên iOS mới, nút này có thể nằm trong nút ••• ở thanh dưới.',
+            _Step('Bấm nút Chia sẻ (ô vuông có mũi tên lên). Trên iOS mới, nút này có thể nằm trong nút ba chấm ở thanh dưới.',
                 Icons.ios_share),
             _Step('Kéo xuống, chọn "Thêm vào MH chính".', Icons.add_box_outlined),
             _Step('Bấm "Thêm" ở góc trên.', Icons.check),
@@ -157,7 +158,7 @@ class _Guide extends StatelessWidget {
       'android' => (
           'Cài trên Android',
           const [
-            _Step('Bấm nút ⋮ ở góc trên bên phải Chrome.', Icons.more_vert),
+            _Step('Bấm nút ba chấm ở góc trên bên phải Chrome.', Icons.more_vert),
             _Step('Kéo menu xuống, chọn "Cài đặt và tạo lối tắt" (máy cũ: "Thêm vào màn hình chính").',
                 Icons.add_to_home_screen),
             _Step('Bấm "Cài đặt" hoặc "Thêm".', Icons.check),
@@ -167,7 +168,7 @@ class _Guide extends StatelessWidget {
           'Cài trên máy tính',
           const [
             _Step('Mở link bằng Chrome hoặc Edge.', Icons.language),
-            _Step('Bấm biểu tượng cài đặt ở cuối thanh địa chỉ, hoặc menu ⋮ → "Truyền, lưu và chia sẻ" → "Cài đặt trang".',
+            _Step('Bấm biểu tượng cài đặt ở cuối thanh địa chỉ, hoặc menu ba chấm → "Truyền, lưu và chia sẻ" → "Cài đặt trang".',
                 Icons.install_desktop),
             _Step('Bấm "Cài đặt".', Icons.check),
           ]
