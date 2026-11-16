@@ -194,6 +194,9 @@ class AppState extends ChangeNotifier {
   int remindMoonHour = 7;
   bool remindMoonEve = false;
 
+  /// Đã bấm × ở nút "📲 Cài app" trên màn hình đồng hồ.
+  bool installChipHidden = false;
+
   // ---------- Giờ thế giới ----------
   List<String> worldCities = ['tokyo', 'sydney', 'paris', 'newyork', 'losangeles'];
 
@@ -326,6 +329,7 @@ class AppState extends ChangeNotifier {
         'remindMoonHour': remindMoonHour,
         'remindMoonEve': remindMoonEve,
         'worldCities': worldCities,
+        'installChipHidden': installChipHidden,
         'showRoman': showRoman,
         'keepAwake': keepAwake,
         'showStars': showStars,
@@ -374,6 +378,7 @@ class AppState extends ChangeNotifier {
     remindMoon = (j['remindMoon'] as bool?) ?? remindMoon;
     remindMoonHour = (j['remindMoonHour'] as num?)?.toInt() ?? remindMoonHour;
     remindMoonEve = (j['remindMoonEve'] as bool?) ?? remindMoonEve;
+    installChipHidden = (j['installChipHidden'] as bool?) ?? installChipHidden;
     final wc = j['worldCities'];
     if (wc is List) worldCities = wc.whereType<String>().toList();
     showRoman = (j['showRoman'] as bool?) ?? showRoman;

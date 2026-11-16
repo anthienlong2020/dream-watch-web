@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/clock_theme.dart';
 import '../services/app_state.dart';
+import '../widgets/install_prompt.dart';
 import '../effects/element_effect.dart';
 import '../three_d/body_type.dart';
 import '../services/file_saver.dart';
@@ -29,6 +30,7 @@ class SettingsScreen extends StatelessWidget {
         builder: (context, _) => ListView(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
         children: [
+          const InstallCard(),
           const _Header('Phiên bản'),
           const _EditionCard(),
           if (!app.isPro) ...const [

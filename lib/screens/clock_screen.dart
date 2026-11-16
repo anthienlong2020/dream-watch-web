@@ -8,6 +8,7 @@ import '../widgets/mechanical_clock.dart';
 import '../widgets/pendulum_clock.dart';
 
 import '../services/app_state.dart';
+import '../widgets/install_prompt.dart';
 import '../themes/event_background.dart';
 import '../themes/theme_overlay.dart';
 import '../utils/vn_format.dart';
@@ -26,6 +27,15 @@ class ClockScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
+        final face = _face(context);
+        // Nút "Cài vào màn hình chính" (ẩn trên mặt cơ khí vì khung 3D nuốt cú chạm)
+        if (app.showMech) return face;
+        return Stack(fit: StackFit.expand, children: [face, const InstallChip()]);
+      },
+    );
+  }
+
+  Widget _face(BuildContext context) {
         // Pro chọn mặt cơ khí trong suốt (3D)
         if (app.showMech) {
           // Khung web 3D "nuốt" mọi cú chạm phía trên nó, nên khi màn hình
@@ -181,9 +191,7 @@ class ClockScreen extends StatelessWidget {
             if (season != null) Positioned.fill(child: AnimatedThemeOverlay(theme: season, back: false)),
           ],
         );
-      },
-    );
-  }
+      }
 }
 
 /// Viền bóng tối mờ quanh chữ: đọc rõ trên mọi hình nền, sáng hay tối.
