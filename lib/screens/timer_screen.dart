@@ -27,15 +27,12 @@ class _TimerScreenState extends State<TimerScreen> {
           segments: const [
             ButtonSegment(
                 value: 'alarm',
-                icon: Icon(Icons.alarm),
                 label: Text('Báo thức')),
             ButtonSegment(
                 value: 'countdown',
-                icon: Icon(Icons.hourglass_bottom),
                 label: Text('Hẹn giờ')),
             ButtonSegment(
                 value: 'stopwatch',
-                icon: Icon(Icons.timer_outlined),
                 label: Text('Bấm giờ')),
           ],
           selected: {_mode},
