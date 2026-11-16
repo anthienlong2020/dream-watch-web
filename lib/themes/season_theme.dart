@@ -551,6 +551,58 @@ DateTime lunarToSolar(int day, int month, int year) {
   return _jdToDate(_newMoonDay(k + off) + day - 1);
 }
 
+/// Ngày âm lịch Việt Nam.
+class LunarDate {
+  final int day, month, year;
+  final bool leap; // tháng nhuận
+  final int jd; // số ngày Julius của ngày dương tương ứng (để tính can chi ngày)
+  const LunarDate(this.day, this.month, this.year, this.leap, this.jd);
+}
+
+/// Ngày dương lịch → ngày âm lịch (thuật toán Hồ Ngọc Đức, múi giờ +7).
+LunarDate solarToLunar(DateTime d) {
+  final dayNumber = _jdFromDate(d.day, d.month, d.year);
+  final k = ((dayNumber - 2415021.076998695) / 29.530588853).floor();
+  var monthStart = _newMoonDay(k + 1);
+  if (monthStart > dayNumber) monthStart = _newMoonDay(k);
+  var a11 = _lunarMonth11(d.year);
+  var b11 = a11;
+  int lunarYear;
+  if (a11 >= monthStart) {
+    lunarYear = d.year;
+    a11 = _lunarMonth11(d.year - 1);
+  } else {
+    lunarYear = d.year + 1;
+    b11 = _lunarMonth11(d.year + 1);
+  }
+  final lunarDay = dayNumber - monthStart + 1;
+  final diff = ((monthStart - a11) / 29).floor();
+  var leap = false;
+  var lunarMonth = diff + 11;
+  if (b11 - a11 > 365) {
+    final leapMonthDiff = _leapMonthOffset(a11);
+    if (diff >= leapMonthDiff) {
+      lunarMonth = diff + 10;
+      if (diff == leapMonthDiff) leap = true;
+    }
+  }
+  if (lunarMonth > 12) lunarMonth -= 12;
+  if (lunarMonth >= 11 && diff < 4) lunarYear -= 1;
+  return LunarDate(lunarDay, lunarMonth, lunarYear, leap, dayNumber);
+}
+
+const List<String> kCan = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
+
+/// Can chi của năm âm lịch, ví dụ 2026 → "Bính Ngọ".
+String canChiYear(int lunarYear) => '${kCan[(lunarYear + 6) % 10]} ${kZodiacName[(lunarYear + 8) % 12]}';
+
+/// Can chi của tháng âm lịch.
+String canChiMonth(int lunarMonth, int lunarYear) =>
+    '${kCan[(lunarYear * 12 + lunarMonth + 3) % 10]} ${kZodiacName[(lunarMonth + 1) % 12]}';
+
+/// Can chi của ngày (theo số ngày Julius).
+String canChiDay(int jd) => '${kCan[(jd + 9) % 10]} ${kZodiacName[(jd + 1) % 12]}';
+
 /// Thứ [nth] (1 = đầu tiên, -1 = cuối cùng) của [weekday] trong tháng.
 DateTime nthWeekday(int y, int m, int weekday, int nth) {
   if (nth > 0) {

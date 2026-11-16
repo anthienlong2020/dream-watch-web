@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/alarms_screen.dart';
+import 'screens/calendar_screen.dart';
 import 'screens/clock_screen.dart';
 import 'screens/ring_overlay.dart';
 import 'screens/settings_screen.dart';
@@ -51,8 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const _pages = [
     ClockScreen(),
-    AlarmsScreen(),
-    TimerScreen(),
+    TimerScreen(), // Báo thức + Hẹn giờ + Bấm giờ
+    CalendarScreen(),
     SettingsScreen(),
   ];
 
@@ -77,20 +77,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: Icon(Icons.access_time), label: 'Đồng hồ'),
                   NavigationDestination(
                     icon: Badge(
-                      isLabelVisible: app.alarms.any((a) => a.enabled),
-                      smallSize: 8,
-                      child: const Icon(Icons.alarm),
-                    ),
-                    label: 'Báo thức',
-                  ),
-                  NavigationDestination(
-                    icon: Badge(
-                      isLabelVisible: app.timerRunning || app.stopwatch.isRunning,
+                      isLabelVisible: app.alarms.any((a) => a.enabled) ||
+                          app.timerRunning ||
+                          app.stopwatch.isRunning,
                       smallSize: 8,
                       child: const Icon(Icons.timer_outlined),
                     ),
                     label: 'Đếm giờ',
                   ),
+                  const NavigationDestination(
+                      icon: Icon(Icons.calendar_month_outlined), label: 'Lịch'),
                   const NavigationDestination(
                       icon: Icon(Icons.settings_outlined), label: 'Cài đặt'),
                 ],

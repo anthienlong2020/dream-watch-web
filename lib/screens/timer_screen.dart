@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/app_state.dart';
+import 'alarms_screen.dart';
 import '../utils/vn_format.dart';
 import '../widgets/tick_builder.dart';
 
-/// Tab "Đếm giờ": gồm Hẹn giờ (đếm ngược) và Bấm giờ.
+/// Tab "Đếm giờ": gồm Báo thức, Hẹn giờ (đếm ngược) và Bấm giờ.
 class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
 
@@ -14,14 +15,20 @@ class TimerScreen extends StatefulWidget {
 }
 
 class _TimerScreenState extends State<TimerScreen> {
-  String _mode = 'countdown';
+  String _mode = 'alarm';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: SegmentedButton<String>(
+          showSelectedIcon: false,
+          style: const ButtonStyle(visualDensity: VisualDensity.compact),
           segments: const [
+            ButtonSegment(
+                value: 'alarm',
+                icon: Icon(Icons.alarm),
+                label: Text('Báo thức')),
             ButtonSegment(
                 value: 'countdown',
                 icon: Icon(Icons.hourglass_bottom),
@@ -36,7 +43,11 @@ class _TimerScreenState extends State<TimerScreen> {
         ),
         centerTitle: true,
       ),
-      body: _mode == 'countdown' ? const _Countdown() : const _StopwatchView(),
+      body: switch (_mode) {
+        'alarm' => const AlarmsScreen(embedded: true),
+        'countdown' => const _Countdown(),
+        _ => const _StopwatchView(),
+      },
     );
   }
 }

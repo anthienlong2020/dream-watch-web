@@ -35,6 +35,25 @@ void main() {
   });
 
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('đổi dương lịch → âm lịch', () {
+    for (final e in kTetDates.entries) {
+      final l = solarToLunar(DateTime(e.key, e.value.$1, e.value.$2));
+      expect((l.day, l.month, l.year, l.leap), (1, 1, e.key, false), reason: 'Tết ${e.key}');
+    }
+    final l = solarToLunar(DateTime(2026, 11, 16));
+    expect((l.day, l.month, l.year), (8, 10, 2026));
+    // 2025 nhuận tháng 6: 25/7/2025 là mùng 1 tháng 6 nhuận
+    final n = solarToLunar(DateTime(2025, 7, 25));
+    expect((n.day, n.month, n.leap), (1, 6, true));
+    expect(solarToLunar(DateTime(2025, 6, 25)).leap, false);
+    // ngày cuối năm âm thuộc năm cũ
+    final g = solarToLunar(DateTime(2026, 2, 16));
+    expect((g.month, g.year), (12, 2025));
+    expect(canChiYear(2026), 'Bính Ngọ');
+    expect(canChiYear(2025), 'Ất Tỵ');
+    expect(canChiDay(solarToLunar(DateTime(2000, 1, 1)).jd), 'Mậu Ngọ');
+  });
+
   test('vẽ thử các theme', () async {
     final themes = allThemes(DateTime(2026, 2, 17));
     const w = 360.0, h = 480.0;

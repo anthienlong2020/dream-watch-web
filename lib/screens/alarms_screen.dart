@@ -6,12 +6,14 @@ import '../services/voice_recorder.dart';
 import '../utils/vn_format.dart';
 
 class AlarmsScreen extends StatelessWidget {
-  const AlarmsScreen({super.key});
+  /// embedded = nằm trong tab "Đếm giờ" (đã có thanh chọn ở trên) → không vẽ AppBar riêng.
+  final bool embedded;
+  const AlarmsScreen({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: embedded ? null : AppBar(
           title: ListenableBuilder(
               listenable: app, builder: (_, __) => Text(app.isPro ? 'Báo thức & Lời nhắc' : 'Báo thức'))),
       floatingActionButton: FloatingActionButton.extended(
