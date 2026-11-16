@@ -44,6 +44,12 @@ class WorldClockView extends StatelessWidget {
                         textAlign: TextAlign.center),
                   ),
                 for (final c in cities) _CityTile(city: c, now: now, localOffset: localOffset),
+                if (cities.isNotEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('Vuốt một thành phố sang trái để bỏ.',
+                        textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                  ),
               ],
             );
           },
@@ -68,7 +74,16 @@ class _CityTile extends StatelessWidget {
     final dd = theirDay.difference(myDay).inDays;
     final dayText = dd == 0 ? 'Hôm nay' : (dd > 0 ? 'Ngày mai' : 'Hôm qua');
     final night = t.hour < 6 || t.hour >= 18;
-    return Card(
+    return Dismissible(
+      key: ValueKey(city.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.delete_outline),
+      ),
+      onDismissed: (_) => app.removeWorldCity(city.id),
+      child: Card(
       child: ListTile(
         leading: Text(city.flag, style: const TextStyle(fontSize: 30)),
         title: Text(city.name, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -82,13 +97,9 @@ class _CityTile extends StatelessWidget {
             Text('${two(t.hour)}:${two(t.minute)}',
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w300,
                     fontFeatures: [FontFeature.tabularFigures()])),
-            IconButton(
-              tooltip: 'Bỏ',
-              icon: const Icon(Icons.close, size: 18),
-              onPressed: () => app.removeWorldCity(city.id),
-            ),
           ],
         ),
+      ),
       ),
     );
   }
