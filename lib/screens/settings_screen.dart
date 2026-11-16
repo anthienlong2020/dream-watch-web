@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../models/clock_theme.dart';
@@ -11,6 +12,7 @@ import '../three_d/body_type.dart';
 import '../services/file_saver.dart';
 import '../services/speech.dart';
 import '../services/voice_recorder.dart';
+import '../services/wake.dart';
 import '../themes/event_background.dart';
 import '../themes/season_theme.dart';
 import '../utils/image_utils.dart';
@@ -995,7 +997,12 @@ class _DisplaySettings extends StatelessWidget {
           ),
           SwitchListTile(
             title: const Text('Giữ màn hình luôn sáng'),
-            subtitle: const Text('Để báo thức và báo giờ hoạt động ổn định'),
+            subtitle: Text(kIsWeb && !wakeSupported()
+                ? 'Trình duyệt này chưa cho giữ màn hình sáng '
+                    '(iPhone cần iOS 18.4 trở lên). Hãy chỉnh "Tự khoá màn hình" của máy thành "Không bao giờ" '
+                    'khi muốn báo thức reo.'
+                : 'Đặt máy như đồng hồ để bàn, cắm sạc: báo thức, hẹn giờ và báo giờ '
+                    'sẽ reo đúng giờ. Khi màn hình tắt, app sẽ tạm ngủ.'),
             value: app.keepAwake,
             onChanged: app.setKeepAwake,
           ),

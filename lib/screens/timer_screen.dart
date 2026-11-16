@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../services/app_state.dart';
 import 'alarms_screen.dart';
 import '../utils/vn_format.dart';
+import '../widgets/awake_hint.dart';
 import '../widgets/tick_builder.dart';
 
 /// Tab "Đếm giờ": gồm Báo thức, Hẹn giờ (đếm ngược) và Bấm giờ.
@@ -40,11 +41,18 @@ class _TimerScreenState extends State<TimerScreen> {
         ),
         centerTitle: true,
       ),
-      body: switch (_mode) {
-        'alarm' => const AlarmsScreen(embedded: true),
-        'countdown' => const _Countdown(),
-        _ => const _StopwatchView(),
-      },
+      body: Column(
+        children: [
+          if (_mode != 'stopwatch') const AwakeHint(),
+          Expanded(
+            child: switch (_mode) {
+              'alarm' => const AlarmsScreen(embedded: true),
+              'countdown' => const _Countdown(),
+              _ => const _StopwatchView(),
+            },
+          ),
+        ],
+      ),
     );
   }
 }

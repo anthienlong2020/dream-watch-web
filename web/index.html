@@ -55,6 +55,35 @@
         }
       };
     })();
+    // "Giữ màn hình sáng" (Screen Wake Lock): app Flutter gọi dwWake.set(true/false).
+    // Trình duyệt tự nhả khoá khi ẩn app / tắt màn hình, nên khi quay lại phải xin lại.
+    window.dwWake = (function () {
+      var want = false, lock = null, busy = false;
+      function supported() { return 'wakeLock' in navigator; }
+      function acquire() {
+        if (!want || lock || busy || !supported() || document.visibilityState !== 'visible') return;
+        busy = true;
+        navigator.wakeLock.request('screen').then(function (l) {
+          busy = false;
+          if (!want) { l.release(); return; }
+          lock = l;
+          l.addEventListener('release', function () { if (lock === l) lock = null; });
+        }, function () { busy = false; lock = null; });
+      }
+      document.addEventListener('visibilitychange', acquire);
+      // Safari có lúc chỉ cho xin khi người dùng vừa chạm màn hình.
+      document.addEventListener('pointerdown', acquire, true);
+      setInterval(acquire, 20000);
+      return {
+        supported: supported,
+        active: function () { return !!lock; },
+        set: function (on) {
+          want = !!on;
+          if (want) acquire();
+          else if (lock) { var l = lock; lock = null; l.release(); }
+        }
+      };
+    })();
   </script>
 </head>
 <body style="background:#0E0B1A">

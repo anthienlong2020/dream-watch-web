@@ -16,6 +16,7 @@ import '../themes/season_theme.dart';
 import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
 import 'blob_store.dart';
+import 'wake.dart' as wake;
 import 'speech.dart';
 import 'voice_recorder.dart';
 import 'sound_service.dart';
@@ -509,6 +510,11 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _applyWakelock() async {
+    if (kIsWeb) {
+      // Trên web tự xin "Screen Wake Lock" và xin lại mỗi khi quay về app.
+      wake.setWake(keepAwake);
+      return;
+    }
     try {
       await WakelockPlus.toggle(enable: keepAwake);
     } catch (_) {}
