@@ -207,16 +207,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
 
-def main():
-    os.makedirs(f'{B}/scenes', exist_ok=True)
-    scs = scenes()
-    only = set(sys.argv[1:])
+def main(scs=None, tag=''):
+    SD = f'{B}/scenes{tag}'
+    os.makedirs(SD, exist_ok=True)
+    scs = scs or scenes()
+    only = set(sys.argv[1:]) if not tag else set()
     t = 0.0
     total = sum(s['dur'] for s in scs)
     mix = np.zeros(int((total + 1) * SR), np.float32)
     events, srt = [], []
     for sc in scs:
-        out = f'{B}/scenes/{sc["name"]}.mp4'
+        out = f'{SD}/{sc["name"]}.mp4'
         if not only or sc['name'] in only or not os.path.exists(out):
             make_scene(sc, out)
         if 'bed' in sc:
@@ -248,11 +249,11 @@ def main():
     for k in range(len(events) - 1):
         if events[k][2] == events[k + 1][2] and events[k][1] > events[k + 1][0]:
             events[k] = (events[k][0], events[k + 1][0] - 0.02, events[k][2], events[k][3])
-    with open(f'{B}/phu_de.ass', 'w') as f:
+    with open(f'{B}/phu_de{tag}.ass', 'w') as f:
         f.write(ASS_HEAD)
         for st, en, style, txt in events:
             f.write(f'Dialogue: 0,{ass_time(st)},{ass_time(en)},{style},,0,0,0,,{txt}\n')
-    with open(f'{P}/build/phu_de.srt', 'w') as f:
+    with open(f'{P}/build/phu_de{tag}.srt', 'w') as f:
         for k, (st, en, style, txt) in enumerate(events, 1):
             def s(x):
                 ms = int(round(x * 1000))
@@ -266,21 +267,21 @@ def main():
     end = int(total * SR)
     mix = mix[:end]
     mix[-fade:] *= np.linspace(1, 0, fade)
-    mix.astype(np.float32).tofile(f'{B}/mix.f32')
-    run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'f32le', '-ar', str(SR), '-ac', '1', '-i', f'{B}/mix.f32',
-         '-af', 'loudnorm=I=-14:TP=-1.5', '-ar', str(SR), '-ac', '2', f'{B}/mix.wav'])
-    with open(f'{B}/scenes.txt', 'w') as f:
+    mix.astype(np.float32).tofile(f'{B}/mix{tag}.f32')
+    run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'f32le', '-ar', str(SR), '-ac', '1', '-i', f'{B}/mix{tag}.f32',
+         '-af', 'loudnorm=I=-14:TP=-1.5', '-ar', str(SR), '-ac', '2', f'{B}/mix{tag}.wav'])
+    with open(f'{B}/scenes{tag}.txt', 'w') as f:
         for sc in scs:
-            f.write(f"file 'scenes/{sc['name']}.mp4'\n")
-    run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', f'{B}/scenes.txt',
-         '-c', 'copy', f'{B}/video_noaudio.mp4'])
+            f.write(f"file 'scenes{tag}/{sc['name']}.mp4'\n")
+    run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', f'{B}/scenes{tag}.txt',
+         '-c', 'copy', f'{B}/video_noaudio{tag}.mp4'])
     # bản không phụ đề + bản có phụ đề
-    run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'{B}/video_noaudio.mp4', '-i', f'{B}/mix.wav',
+    run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'{B}/video_noaudio{tag}.mp4', '-i', f'{B}/mix{tag}.wav',
          '-vf', 'fade=t=out:st=%.2f:d=1.0' % (total - 1.0), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
-         '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-shortest', f'{P}/dong_ho_mong_mo_ban_tho_khong_phu_de.mp4'])
-    run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'{P}/dong_ho_mong_mo_ban_tho_khong_phu_de.mp4',
-         '-vf', f'ass={B}/phu_de.ass', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
-         '-c:a', 'copy', f'{P}/dong_ho_mong_mo_ban_tho.mp4'])
+         '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-shortest', f'{P}/dong_ho_mong_mo_ban_tho{tag}_khong_phu_de.mp4'])
+    run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'{P}/dong_ho_mong_mo_ban_tho{tag}_khong_phu_de.mp4',
+         '-vf', f'ass={B}/phu_de{tag}.ass', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
+         '-c:a', 'copy', f'{P}/dong_ho_mong_mo_ban_tho{tag}.mp4'])
     print('total', round(total, 1), 's')
 
 
