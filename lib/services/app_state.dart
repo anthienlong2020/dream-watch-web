@@ -11,6 +11,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../chibi/chibi3d.dart';
 import '../effects/element_effect.dart';
 import '../models/alarm.dart';
+import '../models/special_day.dart';
 import '../themes/season_theme.dart';
 import '../three_d/body_type.dart';
 import '../models/clock_theme.dart';
@@ -184,6 +185,18 @@ class AppState extends ChangeNotifier {
   int _nextAlarmId = 1;
   final List<_Snooze> _snoozes = [];
 
+  // ---------- Ngày nhớ (âm/dương lịch, lặp mỗi năm) ----------
+  List<SpecialDay> specialDays = [];
+  int _nextSpecialId = 1;
+
+  /// Nhắc mùng 1 & Rằm âm lịch: giờ nhắc, và có nhắc trước 1 ngày không.
+  bool remindMoon = false;
+  int remindMoonHour = 7;
+  bool remindMoonEve = false;
+
+  // ---------- Giờ thế giới ----------
+  List<String> worldCities = ['tokyo', 'sydney', 'paris', 'newyork', 'losangeles'];
+
   // ---------- Hẹn giờ (đếm ngược) ----------
   Duration timerTotal = const Duration(minutes: 5);
   Duration _timerLeftWhenPaused = const Duration(minutes: 5);
@@ -254,6 +267,24 @@ class AppState extends ChangeNotifier {
       } catch (_) {}
     }
 
+    final rawDays = _prefs.getString('specialDays');
+    if (rawDays != null) {
+      try {
+        specialDays = (jsonDecode(rawDays) as List)
+            .map((e) => SpecialDay.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    } else {
+      // lần đầu: có sẵn đếm ngược tới Tết trên mặt đồng hồ
+      specialDays = [
+        SpecialDay(id: 1, name: 'Tết Nguyên Đán', kind: 'le', lunar: true, day: 1, month: 1,
+            remindBefore: -1, onClock: true),
+      ];
+    }
+    for (final d in specialDays) {
+      if (d.id >= _nextSpecialId) _nextSpecialId = d.id + 1;
+    }
+
     final rawBg = _prefs.getString('backgrounds');
     if (rawBg != null) {
       try {
@@ -291,6 +322,10 @@ class AppState extends ChangeNotifier {
         'imageSets': imageSets,
         'showTime': showTime,
         'showDate': showDate,
+        'remindMoon': remindMoon,
+        'remindMoonHour': remindMoonHour,
+        'remindMoonEve': remindMoonEve,
+        'worldCities': worldCities,
         'showRoman': showRoman,
         'keepAwake': keepAwake,
         'showStars': showStars,
@@ -336,6 +371,11 @@ class AppState extends ChangeNotifier {
     if (sets is List) imageSets = sets.whereType<String>().toList();
     showTime = (j['showTime'] as bool?) ?? showTime;
     showDate = (j['showDate'] as bool?) ?? showDate;
+    remindMoon = (j['remindMoon'] as bool?) ?? remindMoon;
+    remindMoonHour = (j['remindMoonHour'] as num?)?.toInt() ?? remindMoonHour;
+    remindMoonEve = (j['remindMoonEve'] as bool?) ?? remindMoonEve;
+    final wc = j['worldCities'];
+    if (wc is List) worldCities = wc.whereType<String>().toList();
     showRoman = (j['showRoman'] as bool?) ?? showRoman;
     keepAwake = (j['keepAwake'] as bool?) ?? keepAwake;
     showStars = (j['showStars'] as bool?) ?? showStars;
@@ -413,6 +453,11 @@ class AppState extends ChangeNotifier {
 
   void _saveSettings() {
     _prefs.setString('settings', jsonEncode(_settingsMap()));
+  }
+
+  void _saveSpecialDays() {
+    _prefs.setString(
+        'specialDays', jsonEncode(specialDays.map((d) => d.toJson()).toList()));
   }
 
   void _saveAlarms() {
@@ -813,7 +858,101 @@ class AppState extends ChangeNotifier {
       _saveAlarms();
       notifyListeners();
     }
+    _checkSpecialDays(t);
   }
+
+  /// Nhắc ngày nhớ (đúng giờ nhắc, trước N ngày) và mùng 1 / Rằm.
+  void _checkSpecialDays(DateTime t) {
+    if (t.minute != 0) return;
+    final today = DateTime(t.year, t.month, t.day);
+    final notes = <String>[];
+    for (final d in specialDays) {
+      if (d.remindBefore < 0 || d.remindHour != t.hour) continue;
+      final next = d.nextFrom(today);
+      final left = daysBetween(today, next);
+      if (left != d.remindBefore) continue;
+      final years = d.yearsText(next);
+      notes.add('${d.emoji} ${d.name}${years == null ? '' : ' ($years)'}: '
+          '${left == 0 ? 'hôm nay' : (left == 1 ? 'ngày mai' : 'còn $left ngày')}');
+    }
+    if (remindMoon && remindMoonHour == t.hour) {
+      final l = solarToLunar(today);
+      if (l.day == 1 || l.day == 15) {
+        notes.add('${l.day == 15 ? '🌕 Hôm nay Rằm' : '🌑 Hôm nay mùng 1'} tháng ${l.month} âm lịch');
+      }
+      if (remindMoonEve) {
+        final lt = solarToLunar(today.add(const Duration(days: 1)));
+        if (lt.day == 1 || lt.day == 15) {
+          notes.add('${lt.day == 15 ? '🌕 Ngày mai Rằm' : '🌑 Ngày mai mùng 1'} tháng ${lt.month} âm lịch');
+        }
+      }
+    }
+    if (notes.isEmpty || ringing != null) return;
+    _ringNotice(notes);
+  }
+
+  /// Lời nhắc ngày nhớ: chuông nhẹ + (bản Pro) đọc lời nhắc; tự tắt sau 3 phút.
+  void _ringNotice(List<String> notes) {
+    sound.stopStrikes();
+    ringing = RingInfo(title: 'Nhắc ngày', subtitle: notes.join('\n'));
+    _autoStop?.cancel();
+    _autoStop = Timer(const Duration(minutes: 3), dismissRing);
+    sound.playChime();
+    if (isPro) {
+      // bỏ emoji khi đọc
+      final text = notes.map((n) => n.replaceAll(RegExp(r'^\S+\s'), '')).join('. ');
+      Future.delayed(const Duration(milliseconds: 2600), () {
+        if (ringing?.title == 'Nhắc ngày') {
+          speakVi(text, male: hourVoice == 'nam', volume: volume,
+              voiceName: hourVoice == 'nam' ? voiceNameNam : voiceNameNu);
+        }
+      });
+    }
+    notifyListeners();
+  }
+
+  /// Ngày nhớ hiện đếm ngược trên mặt đồng hồ: ngày gần nhất có bật "onClock".
+  (SpecialDay, DateTime, int)? clockCountdown([DateTime? now]) {
+    final today = now ?? DateTime.now();
+    (SpecialDay, DateTime, int)? best;
+    for (final d in specialDays) {
+      if (!d.onClock) continue;
+      final next = d.nextFrom(today);
+      final left = daysBetween(today, next);
+      if (best == null || left < best.$3) best = (d, next, left);
+    }
+    return best;
+  }
+
+  SpecialDay newSpecialDraft() {
+    final l = solarToLunar(DateTime.now());
+    return SpecialDay(id: _nextSpecialId, name: '', kind: 'sinhNhat', lunar: true, day: l.day, month: l.month);
+  }
+
+  void saveSpecialDay(SpecialDay d) {
+    final i = specialDays.indexWhere((x) => x.id == d.id);
+    if (i >= 0) {
+      specialDays[i] = d;
+    } else {
+      specialDays.add(d);
+      _nextSpecialId = d.id + 1;
+    }
+    _saveSpecialDays();
+    notifyListeners();
+  }
+
+  void deleteSpecialDay(SpecialDay d) {
+    specialDays.removeWhere((x) => x.id == d.id);
+    _saveSpecialDays();
+    notifyListeners();
+  }
+
+  void addWorldCity(String id) {
+    if (worldCities.contains(id)) return;
+    update(() => worldCities = [...worldCities, id]);
+  }
+
+  void removeWorldCity(String id) => update(() => worldCities = worldCities.where((c) => c != id).toList());
 
   bool isQuietHour(int hour) {
     if (!quietEnabled || quietStart == quietEnd) return false;

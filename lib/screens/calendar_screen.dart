@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../models/special_day.dart';
+import '../services/app_state.dart';
 import '../themes/season_theme.dart';
 import '../utils/vn_format.dart';
+import 'special_days_view.dart';
+import 'world_clock_view.dart';
 
-/// Tab "Lịch": lịch tháng dương lịch, mỗi ô có ngày âm nhỏ bên dưới,
-/// đánh dấu ngày lễ; chạm một ngày để xem âm lịch, can chi và lễ của ngày đó.
+/// Tab "Lịch": 3 mục — Lịch tháng (dương + âm), Ngày nhớ (sinh nhật, giỗ...
+/// lặp mỗi năm, đếm ngược, nhắc), Giờ thế giới.
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -13,6 +17,44 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  String _mode = 'lich';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: SegmentedButton<String>(
+          showSelectedIcon: false,
+          style: const ButtonStyle(visualDensity: VisualDensity.compact),
+          segments: const [
+            ButtonSegment(value: 'lich', label: Text('Lịch')),
+            ButtonSegment(value: 'ngay', label: Text('Ngày nhớ')),
+            ButtonSegment(value: 'tg', label: Text('Thế giới')),
+          ],
+          selected: {_mode},
+          onSelectionChanged: (v) => setState(() => _mode = v.first),
+        ),
+        centerTitle: true,
+      ),
+      body: switch (_mode) {
+        'lich' => const _MonthView(),
+        'ngay' => const SpecialDaysView(),
+        _ => const WorldClockView(),
+      },
+    );
+  }
+}
+
+/// Lịch tháng dương lịch, mỗi ô có ngày âm nhỏ bên dưới, đánh dấu ngày lễ và
+/// ngày nhớ; chạm một ngày để xem âm lịch, can chi và lễ của ngày đó.
+class _MonthView extends StatefulWidget {
+  const _MonthView();
+
+  @override
+  State<_MonthView> createState() => _MonthViewState();
+}
+
+class _MonthViewState extends State<_MonthView> {
   late DateTime _month; // ngày 1 của tháng đang xem
   late DateTime _selected;
 
@@ -37,18 +79,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final lunarOfMonth = solarToLunar(_month);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lịch'),
-        actions: [
-          TextButton.icon(
-            onPressed: _today,
-            icon: const Icon(Icons.today),
-            label: const Text('Hôm nay'),
-          ),
-        ],
-      ),
-      body: GestureDetector(
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) => GestureDetector(
         // vuốt ngang để đổi tháng
         onHorizontalDragEnd: (d) {
           final v = d.primaryVelocity ?? 0;
@@ -74,6 +107,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 IconButton(onPressed: () => _go(1), icon: const Icon(Icons.chevron_right)),
               ],
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _today,
+                icon: const Icon(Icons.today, size: 18),
+                label: const Text('Hôm nay'),
+              ),
             ),
             const SizedBox(height: 6),
             _MonthGrid(
@@ -333,7 +374,8 @@ class CalEvent {
   final String name;
   final String emoji;
   final bool dayOff; // ngày nghỉ lễ chính thức → tô đỏ
-  const CalEvent(this.name, this.emoji, {this.dayOff = false});
+  final bool mine; // ngày nhớ do người dùng thêm
+  const CalEvent(this.name, this.emoji, {this.dayOff = false, this.mine = false});
 }
 
 /// Lễ theo dương lịch: (tháng, ngày).
@@ -368,8 +410,21 @@ const Map<(int, int), CalEvent> kLunarEvents = {
   (12, 23): CalEvent('Ông Công Ông Táo', '🐟'),
 };
 
-/// Các lễ của một ngày (âm lịch tháng nhuận không tính lễ).
+/// Các lễ của một ngày (âm lịch tháng nhuận không tính lễ), kèm ngày nhớ của người dùng.
 List<CalEvent> eventsOn(DateTime d, LunarDate l) {
+  final out = _builtinEvents(d, l);
+  for (final s in app.specialDays) {
+    final hit = s.lunar
+        ? (!l.leap && l.month == s.month && lunarDateOf(s.day, s.month, l.year) == d)
+        : solarDateOf(s.day, s.month, d.year) == d;
+    if (!hit || out.any((e) => e.name.startsWith(s.name))) continue;
+    final years = s.yearsText(d);
+    out.add(CalEvent('${s.name}${years == null ? '' : ' – $years'}', s.emoji, mine: true));
+  }
+  return out;
+}
+
+List<CalEvent> _builtinEvents(DateTime d, LunarDate l) {
   final out = <CalEvent>[];
   final s = kSolarEvents[(d.month, d.day)];
   if (s != null) out.add(s);

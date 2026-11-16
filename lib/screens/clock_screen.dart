@@ -147,11 +147,29 @@ class ClockScreen extends StatelessWidget {
                     onTap: () => app.update(() => app.showDate = !app.showDate),
                     child: TickBuilder(
                       interval: const Duration(seconds: 5),
-                      builder: (_) => Text(
-                        formatDateVn(DateTime.now()),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: accent, fontSize: dateSize, shadows: _readable),
-                      ),
+                      builder: (_) {
+                        final cd = app.clockCountdown();
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              formatDateVn(DateTime.now()),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: accent, fontSize: dateSize, shadows: _readable),
+                            ),
+                            // đếm ngược tới ngày nhớ (tab Lịch → Ngày nhớ → "Đếm ngược trên mặt đồng hồ")
+                            if (cd != null)
+                              Text(
+                                cd.$3 == 0
+                                    ? '${cd.$1.emoji} Hôm nay: ${cd.$1.name} 🎉'
+                                    : '${cd.$1.emoji} Còn ${cd.$3} ngày đến ${cd.$1.name}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: accent.withAlpha(220), fontSize: dateSize * 0.8, shadows: _readable),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 12),
