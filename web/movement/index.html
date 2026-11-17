@@ -59,7 +59,7 @@ import { RoomEnvironment } from './vendor/RoomEnvironment.js';
 
 // ---------- renderer / scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); // 2x tốn GPU gấp ~1,8 lần mà mắt khó thấy khác
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -540,6 +540,7 @@ function select(owner) {
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
 let lastTouch = 0;
 renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; controls.autoRotate = false; lastTouch = performance.now(); hint.style.opacity = 0; });
+renderer.domElement.addEventListener('pointermove', e => { if (e.buttons) lastTouch = performance.now(); });
 renderer.domElement.addEventListener('wheel', () => { controls.autoRotate = false; lastTouch = performance.now(); }, { passive: true });
 renderer.domElement.addEventListener('pointerup', e => {
   if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
@@ -640,10 +641,20 @@ const easeTick = f => { // escape wheel: quick jump, tiny recoil
   if (f < 0.06) { const x = f / 0.06; return 1 - (1 - x) ** 3; }
   return 1 + 0.035 * Math.sin((f - 0.06) * 40) * Math.exp(-(f - 0.06) * 25);
 };
-function animate() {
+// Đỡ tốn CPU/GPU: bình thường vẽ 30 hình/giây; đang xoay/chạm hoặc tua nhanh thì 60;
+// app báo đang chạy bằng pin (dwBattery của trang cha) thì 12.
+let lastDraw = 0;
+function onBattery() {
+  try { return !!(parent && parent !== window && parent.dwBattery && parent.dwBattery.charging() === false); } catch (e) { return false; }
+}
+function animate(now) {
   requestAnimationFrame(animate);
   // inside the app: skip drawing while this face is not on screen
   if (embed && window.frameElement && !window.frameElement.getClientRects().length) return;
+  const busy = speedIdx > 0 || performance.now() - lastTouch < 1500;
+  const fps = busy ? 60 : (onBattery() ? 12 : 30);
+  if (now - lastDraw < 1000 / fps - 2) return;
+  lastDraw = now;
   const secs = realSecs();
   const fast = speedIdx > 0;
   const sim = fast ? simBase + (secs - realBase) * SPEEDS[speedIdx] : secs;
@@ -700,7 +711,7 @@ function animate() {
   controls.update();
   renderer.render(scene, camera);
 }
-animate();
+requestAnimationFrame(animate);
 // hooks for scripted recordings (promo videos)
 window.mv = { THREE, camera, controls, TARGET, P, dial, pend, tb, tourb, comp, barrel, info,
   setEsc, setSecMode, setComp, select, showNote, frame, fast: () => document.getElementById('bFast').click() };
