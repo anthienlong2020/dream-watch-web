@@ -164,6 +164,17 @@ class _Guide extends StatelessWidget {
             _Step('Bấm "Cài đặt" hoặc "Thêm".', Icons.check),
           ]
         ),
+      'macsafari' => (
+          'Cài trên máy Mac (Safari)',
+          const [
+            _Step('Trên thanh menu trên cùng, bấm "Tệp" (File). Hoặc bấm nút Chia sẻ (ô vuông có mũi tên lên) ở thanh công cụ Safari.',
+                Icons.ios_share),
+            _Step('Chọn "Thêm vào Dock…" (Add to Dock).', Icons.add_box_outlined),
+            _Step('Bấm "Thêm". App hiện ở thanh Dock và trong Launchpad. '
+                'Không thấy mục này là máy đang dùng macOS cũ (trước Sonoma 14): hãy mở link bằng Chrome.',
+                Icons.check),
+          ]
+        ),
       _ => (
           'Cài trên máy tính',
           const [

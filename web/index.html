@@ -39,6 +39,8 @@
         if (/FBAN|FBAV|FB_IAB|FBIOS|Instagram|musical_ly|TikTok|BytedanceWebview|Zalo|Line\//i.test(ua)) return 'inapp';
         if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
         if (/Android/i.test(ua)) return 'android';
+        // Safari trên máy Mac (macOS Sonoma 14 trở lên có "Thêm vào Dock")
+        if (/Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Firefox/.test(ua)) return 'macsafari';
         return 'desktop';
       }
       return {
