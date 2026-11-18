@@ -47,8 +47,12 @@ class SpecialDaysView extends StatelessWidget {
 class _MoonCard extends StatelessWidget {
   const _MoonCard();
 
+  // Tự nghe app: _MoonCard là widget const nên ListenableBuilder bên ngoài không vẽ lại nó
+  // (trước 18/11 bật công tắc mà công tắc không đổi cho tới khi chuyển tab).
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(listenable: app, builder: (context, _) => _card());
+
+  Widget _card() {
     return Card(
       child: Column(
         children: [
