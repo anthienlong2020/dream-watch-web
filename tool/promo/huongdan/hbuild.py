@@ -243,6 +243,8 @@ class Ep:
                 d.rounded_rectangle((110, 1250, W - 110, 1250 + 110 + 75 * nl), 36, fill=INK, outline=GOLD, width=3)
                 ctext(d, 1290, 'TẬP SAU', font('Bold', 46), GOLD)
                 ctext(d, 1360, next_title, font('Bold', 58), maxw=W - 240)
+            ctext(d, 1700, 'Cảm ơn bạn đã xem!', font('Bold', 48), CREAM)
+            ctext(d, 1766, 'Thank you for watching!', font('Medium', 40), LILAC)
             if question:
                 nl = len(wrap(d, question, font('Bold', 56), W - 260))
                 d.rounded_rectangle((110, 1250, W - 110, 1250 + 80 + 73 * nl), 36, fill=INK, outline=GOLD, width=3)
@@ -271,8 +273,16 @@ class Ep:
             f.append(f'[{n}:a]aresample=48000,aformat=channel_layouts=stereo,apad=whole_dur=1,atrim=0:1[t1];[{n + 1}:a]aresample=48000,aformat=channel_layouts=stereo,apad=whole_dur=1,atrim=0:1[t2];'
                      f'[t1][t2]concat=n=2:v=0:a=1,aloop=loop=-1:size=96000,atrim=0:3,afade=t=out:st=2:d=1,volume={tick_vol}[bed]')
             mix += '[bed]'; k += 1
-        f.append(f'{mix}amix=inputs={k}:normalize=0:duration=longest,apad=whole_dur={total:.2f},atrim=0:{total:.2f},loudnorm=I=-14:TP=-1.5[aout]')
-        run(['ffmpeg', '-y', '-v', 'error', *ins, '-filter_complex', ';'.join(f), '-map', '[aout]', '-ar', '48000', '-ac', '2', f'{O}/mix.wav'])
+        f.append(f'{mix}amix=inputs={k}:normalize=0:duration=longest,apad=whole_dur={total:.2f},atrim=0:{total:.2f}[aout]')
+        run(['ffmpeg', '-y', '-v', 'error', *ins, '-filter_complex', ';'.join(f), '-map', '[aout]', '-ar', '48000', '-ac', '2', f'{O}/mix_raw.wav'])
+        # loudnorm 2 lượt, chế độ tuyến tính: không tự kéo âm lượng lên/xuống trong khoảng lặng
+        # (bản 1 lượt làm mất chữ đầu sau đoạn im, ví dụ "Tập" trong "Tập sau…").
+        r = subprocess.run(['ffmpeg', '-hide_banner', '-i', f'{O}/mix_raw.wav', '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'],
+                           capture_output=True, text=True).stderr
+        js = json.loads(r[r.rindex('{'):r.rindex('}') + 1])
+        ln = (f"loudnorm=I=-14:TP=-1.5:LRA=11:measured_I={js['input_i']}:measured_TP={js['input_tp']}:measured_LRA={js['input_lra']}:"
+              f"measured_thresh={js['input_thresh']}:offset={js['target_offset']}:linear=true")
+        run(['ffmpeg', '-y', '-v', 'error', '-i', f'{O}/mix_raw.wav', '-af', ln, '-ar', '48000', '-ac', '2', f'{O}/mix.wav'])
         final = f'{O}/{self.code}.mp4'
         run(['ffmpeg', '-y', '-v', 'error', '-i', f'{O}/video.mp4', '-i', f'{O}/mix.wav', '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
              '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', final])

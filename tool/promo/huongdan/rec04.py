@@ -10,7 +10,7 @@ async def main():
     r.cap('Kéo xuống phần "Ảnh của tôi"'); await r.scroll(1140, 3.0)
     x, y = await r.find('Chọn nhiều ảnh')
     r.cap('Chạm vào một ô, ví dụ ô I'); await r.tap(51, y - 119, post=1.2)
-    r.cap('Chọn "Tạo Chibi từ ảnh người"'); await r.tapt('Tạo Chibi từ ảnh người', post=1.8)
+    r.cap('Chọn "Tạo Chibi từ ảnh người"'); await r.tapt('Tạo Chibi từ ảnh người', post=1.8, maxy=630)
     r.mark('s3')
     got = {}
     async def on_fc(fc):
@@ -27,8 +27,10 @@ async def main():
     r.cap('Vuốt ngang để xoay xem mọi góc'); await r.drag(110, vy - 165, 260, vy - 165, sec=1.6, post=1.0)
     r.cap('Chọn trang phục'); await r.tapt('Váy', post=1.8)
     r.mark('s5')
-    r.cap('Bấm "Dùng Chibi này"'); await r.tapt('Dùng Chibi này', post=1.8)
+    r.cap('Bấm "Dùng Chibi này"'); await r.tapt('Dùng Chibi này', post=1.8, maxy=630)
     await r.scroll(360, 1.2)
+    r.cap('Mở "Chỉnh riêng từng giờ"'); await r.tapt('Chỉnh riêng từng giờ', post=1.2)
+    await r.scroll(150, 1.0)
     r.cap('Chọn hệ cho ô I: Lửa, Nước, Điện…'); await r.tapt('Hệ: mặc định', post=1.4)
     await r.tapt('Lửa', post=1.2)
     r.mark('s6')

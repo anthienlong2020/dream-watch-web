@@ -23,8 +23,9 @@ async def main():
     await r.scroll(440, 1.6)
     d0x, d0y = await r.find('3D thổi phồng')
     r.cap('Chọn kiểu cho cả bộ: ảnh phẳng'); await r.tap(226, d0y, post=1.0); await r.tapt('Standard (phẳng)', post=1.2)
-    await r.scroll(130, 0.8)
-    r.cap('Hoặc từng ô một kiểu riêng: Chibi 3D'); await r.tap(226, d0y + 224 - 130, post=1.0); await r.tapt('Chibi 3D', post=1.4)
+    r.cap('Muốn từng ô một kiểu: mở "Chỉnh riêng từng giờ"'); await r.tapt('Chỉnh riêng từng giờ', post=1.2)
+    await r.scroll(200, 1.0)
+    r.cap('Ví dụ ô II: Chibi 3D'); await r.tapt('Kiểu: mặc định', idx=1, post=1.0); await r.tapt('Chibi 3D', post=1.4)
     r.mark('s5')
     now = await r.pg.evaluate('Date.now()')
     target = dt.datetime.fromisoformat('2026-11-18T10:59:53+07:00').timestamp() * 1000
