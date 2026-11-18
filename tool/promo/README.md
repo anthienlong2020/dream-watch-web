@@ -1,5 +1,7 @@
 # Quay clip quảng cáo (video viral)
 
+> Loạt video hướng dẫn Tập 2–11: xem `huongdan/README.md` (bộ quay `hrec.py`, bộ ráp `hbuild.py`, kịch bản từng tập).
+
 Chạy trên máy Linux có Chrome + Playwright + ffmpeg. Thư mục làm việc: `/home/claude/promo`
 (frames/, clips/, stills/, flow/, audio/).
 
