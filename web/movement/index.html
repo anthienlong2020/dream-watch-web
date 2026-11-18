@@ -29,11 +29,17 @@
   body.embed #bar button{padding:6px 10px;font-size:12px} body.embed #bar{bottom:8px}
   body.clean #top, body.clean #hint, body.clean #bar, body.clean #opts{display:none!important}
   #hint{position:fixed;top:56px;left:0;right:0;text-align:center;font-size:12px;opacity:.55;pointer-events:none;transition:opacity 1s}
+  #batt{position:fixed;left:12px;right:12px;top:84px;max-width:420px;margin:0 auto;padding:10px 14px;border-radius:14px;
+    background:rgba(20,16,30,.9);border:1px solid rgba(246,217,139,.6);color:#f6e7c4;font-size:14px;text-align:center;
+    opacity:0;transform:translateY(-8px);transition:all .5s;pointer-events:none;z-index:20}
+  #batt small{opacity:.75;font-size:12px} #batt.show{opacity:1;transform:none}
+  body.embed #batt{top:44px} body.clean #batt{display:none!important}
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 </head>
 <body>
 <div id="top"><h1>Đồng hồ cơ khí trong suốt</h1><div id="clock"></div></div>
+<div id="batt">🔋 Mặt Cơ khí tốn pin hơn – nên cắm sạc khi để lâu.<br><small>Đang chạy pin: tự giảm độ nét và ngừng tự xoay.</small></div>
 <div id="hint">Kéo để xoay · chụm để phóng to · chạm bộ phận để xem tên</div>
 <div id="info"></div>
 <div id="bar">
@@ -75,9 +81,11 @@ const LOW = qParam.has('low') || qPref === 'low' || (SOFT_GPU && !qParam.has('hi
 window.mvQuality = { gpu: GPU_NAME, low: LOW };
 const renderer = new THREE.WebGLRenderer({ antialias: !LOW, alpha: true });
 // Giới hạn tổng số điểm ảnh: cửa sổ lớn trên laptop (~900x900) với tỉ lệ 1,5 là ~1,9 triệu điểm/hình.
-const PIX_BUDGET = LOW ? 0.45e6 : 1.2e6;
+// liteNow: LOW (máy vẽ bằng CPU / bật tay) hoặc đang chạy pin – đổi được lúc đang chạy (xem applyLite).
+let liteNow = LOW;
 function fitPixelRatio() {
-  const r = Math.min(devicePixelRatio, 1.5, Math.sqrt(PIX_BUDGET / Math.max(1, innerWidth * innerHeight)));
+  const budget = liteNow ? 0.45e6 : 1.2e6;
+  const r = Math.min(devicePixelRatio, 1.5, Math.sqrt(budget / Math.max(1, innerWidth * innerHeight)));
   renderer.setPixelRatio(Math.max(0.6, r));
 }
 fitPixelRatio();
@@ -125,7 +133,10 @@ const HAND = {
 let handColor = 'đen'; try { handColor = localStorage.getItem('mvHand') || 'đen'; } catch (e) {}
 if (!HAND[handColor]) handColor = 'đen';
 // Chế độ nhẹ: bỏ lớp bóng (clearcoat) – shader nhẹ hơn hẳn, nhìn gần như không khác.
-if (LOW) [...Object.values(M), ...Object.values(HAND)].forEach(m => { m.clearcoat = 0; });
+const CC_MATS = [...Object.values(M), ...Object.values(HAND)].filter(m => m.clearcoat > 0);
+CC_MATS.forEach(m => { m.userData.cc = m.clearcoat; });
+function setClearcoat(on) { CC_MATS.forEach(m => { m.clearcoat = on ? m.userData.cc : 0; m.needsUpdate = true; }); }
+if (LOW) setClearcoat(false);
 const HL = new THREE.MeshPhysicalMaterial({ color: 0xffd36b, metalness: 0.6, roughness: 0.3, emissive: 0x7a4a00, emissiveIntensity: 0.9 });
 
 // ---------- geometry helpers ----------
@@ -670,15 +681,36 @@ const easeTick = f => { // escape wheel: quick jump, tiny recoil
   return 1 + 0.035 * Math.sin((f - 0.06) * 40) * Math.exp(-(f - 0.06) * 25);
 };
 // Đỡ tốn CPU/GPU: bình thường vẽ 30 hình/giây (chế độ nhẹ 15); đang xoay/chạm hoặc tua nhanh thì 60 (nhẹ 30);
-// app báo đang chạy bằng pin (dwBattery của trang cha) thì 12.
+// đang chạy pin (dwBattery của trang cha, hoặc navigator.getBattery khi mở riêng) thì 12.
 let lastDraw = 0;
+let ownBatt = null;
+if (!(parent && parent !== window) && navigator.getBattery) navigator.getBattery().then(b => { ownBatt = b; }).catch(() => {});
 function onBattery() {
-  try { return !!(parent && parent !== window && parent.dwBattery && parent.dwBattery.charging() === false); } catch (e) { return false; }
+  try {
+    if (parent && parent !== window && parent.dwBattery) return parent.dwBattery.charging() === false;
+    return !!(ownBatt && ownBatt.charging === false);
+  } catch (e) { return false; }
+}
+// Đang chạy pin: tự sang chế độ nhẹ (bỏ lớp bóng, ít điểm ảnh), không tự xoay, nhắc cắm sạc.
+// Cắm sạc lại: trở về như cũ. Không làm "vẽ 1–2 hình/giây" – quả lắc phải đung đưa mượt (L chốt 18/11).
+let battState = null, battCheck = 0;
+const battToast = document.getElementById('batt');
+function applyLite() {
+  const b = onBattery();
+  if (b === battState) return;
+  battState = b;
+  const want = LOW || b;
+  if (want !== liteNow) { liteNow = want; setClearcoat(!want); fitPixelRatio(); renderer.setSize(innerWidth, innerHeight); }
+  if (b) {
+    controls.autoRotate = false;
+    battToast.classList.add('show'); setTimeout(() => battToast.classList.remove('show'), 7000);
+  } else battToast.classList.remove('show');
 }
 function animate(now) {
   requestAnimationFrame(animate);
   // inside the app: skip drawing while this face is not on screen
   if (embed && window.frameElement && !window.frameElement.getClientRects().length) return;
+  if (now - battCheck > 2000) { battCheck = now; applyLite(); }
   const busy = speedIdx > 0 || performance.now() - lastTouch < 1500;
   const fps = busy ? (LOW ? 30 : 60) : (onBattery() ? 12 : (LOW ? 15 : 30));
   if (now - lastDraw < 1000 / fps - 2) return;
@@ -735,7 +767,7 @@ function animate(now) {
     const t = ((Math.floor(sim) % 86400) + 86400) % 86400, p2 = v => String(v).padStart(2, '0');
     clockEl.textContent = (fast ? '⏩ ' : '') + `${p2(Math.floor(t / 3600))}:${p2(Math.floor(t / 60) % 60)}:${p2(t % 60)}`;
   }
-  if (autoSpin && !controls.autoRotate && performance.now() - lastTouch > 8000) controls.autoRotate = true;
+  if (autoSpin && !battState && !controls.autoRotate && performance.now() - lastTouch > 8000) controls.autoRotate = true;
   controls.update();
   renderer.render(scene, camera);
 }
