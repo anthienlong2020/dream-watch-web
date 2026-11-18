@@ -26,6 +26,7 @@ async def record(name, url, start_iso, seconds, script, setup=None, storage=None
         pg = await ctx.new_page()
         errs = []
         pg.on('pageerror', lambda e: errs.append(str(e)))
+        storage = dict(storage or {}, mvQuality='high')  # quay video: luôn chất lượng cao
         if storage:
             await pg.add_init_script('(()=>{const s=%s;for(const k in s)localStorage.setItem(k,s[k]);})()' % json.dumps(storage))
         import datetime as _dt

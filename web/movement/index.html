@@ -51,6 +51,7 @@
   <button id="bHand">🎨 Kim: đen</button>
   <button id="bDial" class="on">🔘 Mặt số: hiện</button>
   <button id="bSound">🔊 Tiếng tích tắc: tắt</button>
+  <button id="bLite">🪶 Chế độ nhẹ (đỡ tốn máy): tắt</button>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -58,8 +59,28 @@ import { OrbitControls } from './vendor/OrbitControls.js';
 import { RoomEnvironment } from './vendor/RoomEnvironment.js';
 
 // ---------- renderer / scene ----------
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); // 2x tốn GPU gấp ~1,8 lần mà mắt khó thấy khác
+// Máy không có card đồ hoạ dùng được (Chrome vẽ bằng CPU: SwiftShader, llvmpipe, "Microsoft Basic Render")
+// hoặc máy yếu → chế độ NHẸ: ít điểm ảnh, không khử răng cưa, không lớp bóng, ít hình/giây.
+// Ép chế độ: localStorage mvQuality = 'high' | 'low' (quay video dùng 'high'), hoặc ?low / ?high trên link.
+const GPU_NAME = (() => { try {
+  const c = document.createElement('canvas'), g = c.getContext('webgl2') || c.getContext('webgl');
+  const e = g.getExtension('WEBGL_debug_renderer_info');
+  const s = String(e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER));
+  const lc = g.getExtension('WEBGL_lose_context'); if (lc) lc.loseContext(); return s;
+} catch (e) { return ''; } })();
+const qParam = new URLSearchParams(location.search);
+let qPref = ''; try { qPref = localStorage.getItem('mvQuality') || ''; } catch (e) {}
+const SOFT_GPU = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(GPU_NAME);
+const LOW = qParam.has('low') || qPref === 'low' || (SOFT_GPU && !qParam.has('high') && qPref !== 'high');
+window.mvQuality = { gpu: GPU_NAME, low: LOW };
+const renderer = new THREE.WebGLRenderer({ antialias: !LOW, alpha: true });
+// Giới hạn tổng số điểm ảnh: cửa sổ lớn trên laptop (~900x900) với tỉ lệ 1,5 là ~1,9 triệu điểm/hình.
+const PIX_BUDGET = LOW ? 0.45e6 : 1.2e6;
+function fitPixelRatio() {
+  const r = Math.min(devicePixelRatio, 1.5, Math.sqrt(PIX_BUDGET / Math.max(1, innerWidth * innerHeight)));
+  renderer.setPixelRatio(Math.max(0.6, r));
+}
+fitPixelRatio();
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -103,6 +124,8 @@ const HAND = {
 };
 let handColor = 'đen'; try { handColor = localStorage.getItem('mvHand') || 'đen'; } catch (e) {}
 if (!HAND[handColor]) handColor = 'đen';
+// Chế độ nhẹ: bỏ lớp bóng (clearcoat) – shader nhẹ hơn hẳn, nhìn gần như không khác.
+if (LOW) [...Object.values(M), ...Object.values(HAND)].forEach(m => { m.clearcoat = 0; });
 const HL = new THREE.MeshPhysicalMaterial({ color: 0xffd36b, metalness: 0.6, roughness: 0.3, emissive: 0x7a4a00, emissiveIntensity: 0.9 });
 
 // ---------- geometry helpers ----------
@@ -523,6 +546,11 @@ document.getElementById('bSound').onclick = e => {
   e.currentTarget.textContent = '🔊 Tiếng tích tắc: ' + (soundOn ? 'bật' : 'tắt');
 };
 document.addEventListener('visibilitychange', () => { lastBeat = -1; });
+// Nút chế độ nhẹ: lưu lựa chọn rồi tải lại trang (khử răng cưa chỉ đổi được lúc tạo renderer).
+{ const b = document.getElementById('bLite');
+  b.classList.toggle('on', LOW);
+  b.textContent = '🪶 Chế độ nhẹ (đỡ tốn máy): ' + (LOW ? 'bật' : 'tắt') + (SOFT_GPU && !qPref ? ' – tự bật vì máy vẽ bằng CPU' : '');
+  b.onclick = () => { try { localStorage.setItem('mvQuality', LOW ? 'high' : 'low'); } catch (e) {} location.reload(); }; }
 
 // ---------- UI ----------
 const info = document.getElementById('info'), hint = document.getElementById('hint');
@@ -633,7 +661,7 @@ document.getElementById('bSpin').onclick = () => setSpin(!autoSpin);
 placeInfo(); addEventListener('resize', placeInfo);
 document.getElementById('bSec').onclick = () => setSecMode(secMode === 'center' ? 'sub' : 'center', true);
 document.getElementById('bDial').onclick = e => { dial.visible = !dial.visible; e.currentTarget.classList.toggle('on', dial.visible); e.currentTarget.textContent = '🔘 Mặt số: ' + (dial.visible ? 'hiện' : 'ẩn'); };
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); fitPixelRatio(); renderer.setSize(innerWidth, innerHeight); });
 
 // ---------- animation, synced to the real local time ----------
 const clockEl = document.getElementById('clock');
@@ -641,7 +669,7 @@ const easeTick = f => { // escape wheel: quick jump, tiny recoil
   if (f < 0.06) { const x = f / 0.06; return 1 - (1 - x) ** 3; }
   return 1 + 0.035 * Math.sin((f - 0.06) * 40) * Math.exp(-(f - 0.06) * 25);
 };
-// Đỡ tốn CPU/GPU: bình thường vẽ 30 hình/giây; đang xoay/chạm hoặc tua nhanh thì 60;
+// Đỡ tốn CPU/GPU: bình thường vẽ 30 hình/giây (chế độ nhẹ 15); đang xoay/chạm hoặc tua nhanh thì 60 (nhẹ 30);
 // app báo đang chạy bằng pin (dwBattery của trang cha) thì 12.
 let lastDraw = 0;
 function onBattery() {
@@ -652,7 +680,7 @@ function animate(now) {
   // inside the app: skip drawing while this face is not on screen
   if (embed && window.frameElement && !window.frameElement.getClientRects().length) return;
   const busy = speedIdx > 0 || performance.now() - lastTouch < 1500;
-  const fps = busy ? 60 : (onBattery() ? 12 : 30);
+  const fps = busy ? (LOW ? 30 : 60) : (onBattery() ? 12 : (LOW ? 15 : 30));
   if (now - lastDraw < 1000 / fps - 2) return;
   lastDraw = now;
   const secs = realSecs();
