@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <!-- flutter build thay / bằng giá trị --base-href -->
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Chiếc đồng hồ không kim – 12 hình ảnh của chính bạn. Miễn phí, không cần cài.">
+  <meta name="theme-color" content="#1B1630">
+
+  <!-- iPhone: chạy toàn màn hình khi mở từ màn hình chính -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Đồng hồ mơ">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Đồng hồ mộng mơ</title>
+  <link rel="manifest" href="manifest.json">
+
+  <script>
+    // "Cài vào màn hình chính": app Flutter gọi dwInstall.state() / platform() / prompt().
+    window.dwInstall = (function () {
+      var deferred = null, installed = false;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();          // giữ lại để hiện khi người dùng bấm nút "Cài app"
+        deferred = e;
+      });
+      window.addEventListener('appinstalled', function () { installed = true; deferred = null; });
+      function standalone() {
+        return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+               window.navigator.standalone === true;
+      }
+      function platform() {
+        var ua = navigator.userAgent || '';
+        if (/FBAN|FBAV|FB_IAB|FBIOS|Instagram|musical_ly|TikTok|BytedanceWebview|Zalo|Line\//i.test(ua)) return 'inapp';
+        if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+        if (/Android/i.test(ua)) return 'android';
+        // Safari trên máy Mac (macOS Sonoma 14 trở lên có "Thêm vào Dock")
+        if (/Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Firefox/.test(ua)) return 'macsafari';
+        return 'desktop';
+      }
+      return {
+        state: function () { return (standalone() || installed) ? 'installed' : (deferred ? 'ready' : 'manual'); },
+        platform: platform,
+        prompt: function () {
+          if (!deferred) return Promise.resolve('unavailable');
+          var d = deferred; deferred = null;
+          d.prompt();
+          return d.userChoice.then(function (c) {
+            if (c.outcome === 'accepted') installed = true;
+            return c.outcome;
+          }, function () { return 'unavailable'; });
+        }
+      };
+    })();
+    // "Giữ màn hình sáng" (Screen Wake Lock): app Flutter gọi dwWake.set(true/false).
+    // Trình duyệt tự nhả khoá khi ẩn app / tắt màn hình, nên khi quay lại phải xin lại.
+    window.dwWake = (function () {
+      var want = false, lock = null, busy = false;
+      function supported() { return 'wakeLock' in navigator; }
+      function acquire() {
+        if (!want || lock || busy || !supported() || document.visibilityState !== 'visible') return;
+        busy = true;
+        navigator.wakeLock.request('screen').then(function (l) {
+          busy = false;
+          if (!want) { l.release(); return; }
+          lock = l;
+          l.addEventListener('release', function () { if (lock === l) lock = null; });
+        }, function () { busy = false; lock = null; });
+      }
+      document.addEventListener('visibilitychange', acquire);
+      // Safari có lúc chỉ cho xin khi người dùng vừa chạm màn hình.
+      document.addEventListener('pointerdown', acquire, true);
+      setInterval(acquire, 20000);
+      return {
+        supported: supported,
+        active: function () { return !!lock; },
+        set: function (on) {
+          want = !!on;
+          if (want) acquire();
+          else if (lock) { var l = lock; lock = null; l.release(); }
+        }
+      };
+    })();
+    // Pin: dwBattery.charging() trả về true / false, hoặc null nếu trình duyệt không cho biết (iPhone).
+    window.dwBattery = (function () {
+      var charging = null;
+      try {
+        if (navigator.getBattery) {
+          navigator.getBattery().then(function (b) {
+            charging = !!b.charging;
+            b.addEventListener('chargingchange', function () { charging = !!b.charging; });
+          }, function () {});
+        }
+      } catch (e) {}
+      return { charging: function () { return charging; } };
+    })();
+  </script>
+</head>
+<body style="background:#0E0B1A">
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

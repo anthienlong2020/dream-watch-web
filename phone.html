@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Điện thoại mô phỏng – Đồng hồ mộng mơ</title>
+<style>
+  :root { --w: 390px; --h: 844px; --scale: 1; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; color: #ddd;
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  #bar { position: fixed; top: 0; left: 0; right: 0; display: flex; gap: 10px; align-items: center;
+    flex-wrap: wrap; padding: 8px 12px; background: #15181f; border-bottom: 1px solid #2a2f3a; z-index: 5; font-size: 14px; }
+  #bar select, #bar button { background: #232836; color: #eee; border: 1px solid #3a4152;
+    border-radius: 8px; padding: 6px 10px; font-size: 14px; cursor: pointer; }
+  #bar .hint { color: #8b93a7; font-size: 12.5px; }
+  body.clean #bar { display: none; }
+  #stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #phone { width: calc(var(--w) + 28px); height: calc(var(--h) + 28px); padding: 14px; border-radius: 54px;
+    background: linear-gradient(145deg, #3b3f48, #15171c); box-shadow: 0 0 0 2px #50555f, 0 30px 80px rgba(0,0,0,.6);
+    position: relative; transform: scale(var(--scale)); transform-origin: center; flex: none; }
+  #phone.bare { padding: 0; border-radius: 0; background: none; box-shadow: none;
+    width: var(--w); height: var(--h); }
+  #screen { width: 100%; height: 100%; border-radius: 40px; overflow: hidden; background: #000; position: relative;
+    display: flex; flex-direction: column; }
+  #status { height: 40px; flex: none; background: #000; position: relative; }
+  #phone.bare #status { display: none; }
+  #phone.bare #screen { border-radius: 0; }
+  #notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 100px; height: 26px;
+    background: #1a1c22; border-radius: 16px; }
+  #show { display: none; position: fixed; top: 6px; left: 6px; z-index: 6; opacity: 0; background: #232836;
+    color: #eee; border: 1px solid #3a4152; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  body.clean #show { display: block; }
+  #show:hover { opacity: 1; }
+  #nav { height: 42px; flex: none; background: #000; display: flex; align-items: center;
+    justify-content: space-around; color: #c9ccd3; font-size: 20px; user-select: none; }
+  #nav .home { width: 120px; height: 5px; border-radius: 3px; background: #e8e8e8; }
+  #phone.bare #nav, body.nonav #nav { display: none; }
+  iframe { width: 100%; flex: 1; min-height: 0; border: 0; display: block; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <b>📱 Điện thoại mô phỏng</b>
+  <label>Máy:
+    <select id="model">
+      <option value="390x844">iPhone 13/14/15 (390×844)</option>
+      <option value="430x932">iPhone Pro Max (430×932)</option>
+      <option value="360x780">Samsung Galaxy A/S (360×780)</option>
+      <option value="412x915">Android màn lớn (412×915)</option>
+      <option value="405x720|bare">Khung quay video 9:16 (không viền)</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="navOn" checked> Thanh điều hướng</label>
+  <button id="reload" title="Tải lại app">⟳ Tải lại</button>
+  <button id="clean" title="Ẩn thanh này để quay màn hình (bấm phím H để hiện lại)">🎬 Chế độ quay</button>
+  <span class="hint">Kéo chuột để cuộn như vuốt tay. Bấm vào app 1 lần để bật tiếng. Khi đã ẩn: rê chuột lên góc trên bên trái để hiện lại.</span>
+</div>
+<button id="show" title="Hiện lại thanh điều khiển">☰</button>
+<div id="stage">
+  <div id="phone"><div id="screen"><div id="status"><div id="notch"></div></div><iframe id="app" src="./?touchdot=1" allow="autoplay; fullscreen"></iframe><div id="nav"></div></div></div>
+</div>
+<script>
+  const phone = document.getElementById('phone');
+  const model = document.getElementById('model');
+  function fit() {
+    const [size, bare] = model.value.split('|');
+    const [w, h] = size.split('x').map(Number);
+    document.documentElement.style.setProperty('--w', w + 'px');
+    document.documentElement.style.setProperty('--h', h + 'px');
+    phone.classList.toggle('bare', !!bare);
+    // iPhone: vạch vuốt Home; Android: 3 nút Menu – Home – Back
+    const nav = document.getElementById('nav');
+    nav.innerHTML = model.selectedOptions[0].text.includes('iPhone')
+      ? '<div class="home"></div>'
+      : '<span>|||</span><span style="font-size:24px">○</span><span>‹</span>';
+    document.body.classList.toggle('nonav', !document.getElementById('navOn').checked);
+    const pad = bare ? 0 : 28;
+    const clean = document.body.classList.contains('clean');
+    const top = clean ? 0 : document.getElementById('bar').offsetHeight;
+    document.getElementById('stage').style.top = top + 'px';
+    const s = Math.min(1.6, (innerHeight - top - 24) / (h + pad), (innerWidth - 24) / (w + pad));
+    document.documentElement.style.setProperty('--scale', s.toFixed(3));
+    try { localStorage.setItem('phoneModel', model.value); } catch (e) {}
+  }
+  try { const m = localStorage.getItem('phoneModel'); if (m) model.value = m; } catch (e) {}
+  model.onchange = fit;
+  document.getElementById('navOn').onchange = fit;
+  addEventListener('resize', fit);
+  document.getElementById('reload').onclick = () => document.getElementById('app').contentWindow.location.reload();
+  function toggleClean() { document.body.classList.toggle('clean'); fit(); }
+  document.getElementById('clean').onclick = toggleClean;
+  document.getElementById('show').onclick = toggleClean;
+  addEventListener('keydown', e => { if (e.key === 'h' || e.key === 'H') toggleClean(); });
+  fit();
+</script>
+</body>
+</html>
