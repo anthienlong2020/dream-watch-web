@@ -19,5 +19,6 @@ App đồng hồ hình ảnh viết bằng Flutter web. Bản chạy: https://an
 - 18/11/2026 (3): mặt Cơ khí khi chạy pin – tự chế độ nhẹ, ngừng tự xoay, nhắc cắm sạc.
 - 18/11/2026 (4): sửa lỗi công tắc "Nhắc mùng 1 & Rằm" (Lịch › Ngày nhớ) bấm không đổi cho tới khi chuyển tab.
 - 18/11/2026 (5): Cài đặt › Kiểu, dáng & hệ – 12 vị trí gập vào mục "Chỉnh riêng từng giờ" (mặc định đóng, có đếm số hình đã chỉnh riêng); tiếng tích tắc mặc định **tắt** cho người cài mới (ai đã chọn thì giữ nguyên).
+- 18/11/2026 (6): sửa lỗi thu nhỏ cửa sổ (PC) thì mất chuông báo giờ: Chrome cho timer chạy thưa khi cửa sổ ẩn, lần kiểm tra rơi sau giây thứ 10 nên bị bỏ qua. Nay chuông được đánh bù nếu trễ dưới 75 giây (`_tick` trong `app_state.dart`).
 - 17/11/2026: chế độ đỡ hao pin, công tắc giữ sáng khi sạc; hướng dẫn cài trên Safari máy Mac.
 - 16/11/2026: nút "Cài app", icon mới, giữ màn hình sáng; Lịch / Ngày nhớ / Giờ thế giới; gộp Đếm giờ.

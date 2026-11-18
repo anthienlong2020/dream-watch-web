@@ -877,15 +877,18 @@ class AppState extends ChangeNotifier {
     if (minute.isAfter(_lastMinute)) {
       // Nếu tab web bị trình duyệt "ngủ" vài phút, kiểm tra bù các phút bị lỡ
       // (tối đa 15 phút) nhưng chỉ đánh chuông cho phút hiện tại.
+      // Chuông báo giờ cũng bù: khi cửa sổ bị thu nhỏ/che khuất, Chrome cho timer chạy thưa
+      // (sau 5 phút chỉ còn ~1 lần/phút) nên lần kiểm tra có thể rơi vào giây 30–59 của phút :00.
+      // Trước 18/11 chỉ đánh chuông khi giây < 10 → thu nhỏ là mất chuông. Nay đánh bù nếu trễ < 75 giây.
       var m = _lastMinute.add(const Duration(minutes: 1));
       var guard = 0;
       while (!m.isAfter(minute) && guard < 15) {
         _checkAlarms(m);
+        if (now.difference(m).inSeconds < 75) _checkChime(m);
         m = m.add(const Duration(minutes: 1));
         guard++;
       }
       _lastMinute = minute;
-      if (now.second < 10) _checkChime(now);
     }
   }
 
