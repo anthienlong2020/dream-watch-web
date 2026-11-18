@@ -90,7 +90,7 @@ class AppState extends ChangeNotifier {
   /// Standard: đồng hồ quả lắc + 12 con số + chuông Big Ben (nhẹ máy). Pro: miễn phí, đủ tính năng, nặng máy hơn.
   bool isPro = false;
   String faceStyle = 'dream'; // Pro chọn mặt: 'dream' (hình ảnh mộng mơ) | 'pendulum' (quả lắc) | 'mech' (cơ khí trong suốt)
-  bool tickTock = true; // tiếng tích tắc của quả lắc (mặc định bật)
+  bool tickTock = false; // tiếng tích tắc của quả lắc (mặc định TẮT từ 18/11 – ai cần thì tự bật)
   bool get showPendulum => !isPro || faceStyle == 'pendulum';
   bool get showMech => isPro && faceStyle == 'mech';
 

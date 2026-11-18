@@ -1511,6 +1511,15 @@ class _StyleSettings extends StatelessWidget {
     );
   }
 
+  /// Số vị trí có chỉnh riêng (kiểu, dáng, hệ hoặc màu khác mặc định).
+  static int _customCount() {
+    var n = 0;
+    for (var i = 0; i < 12; i++) {
+      if (app.slotStyle[i] != null || app.slotBody[i] != null || app.slotElement[i] != null || app.slotElemColor[i] != null) n++;
+    }
+    return n;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -1563,6 +1572,18 @@ class _StyleSettings extends StatelessWidget {
                       : null,
                 ),
                 const Divider(),
+                // 12 vị trí gập lại: bình thường dùng "Mặc định" chung, cần chỉnh từng giờ mới mở ra (L 18/11).
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    key: const PageStorageKey('slotStyles'),
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: EdgeInsets.zero,
+                    title: const Text('Chỉnh riêng từng giờ'),
+                    subtitle: Text(_customCount() == 0
+                        ? 'Cả 12 hình đang dùng Mặc định ở trên'
+                        : 'Đã chỉnh riêng ${_customCount()} hình'),
+                    children: [
                 for (final i in order)
                   _block(
                     leading: SizedBox(
@@ -1600,6 +1621,9 @@ class _StyleSettings extends StatelessWidget {
                       app.slotElemColor = List<ElemColor?>.filled(12, null);
                     }),
                     child: const Text('Đưa tất cả về mặc định'),
+                  ),
+                ),
+                    ],
                   ),
                 ),
               ],
